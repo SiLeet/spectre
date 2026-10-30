@@ -68,6 +68,10 @@ pub enum SubCommand {
     #[structopt(about = "Run a bot automation script")]
     Bot(BotArgs),
 
+    /// Search memory for a value (Cheat-Engine style, with refinement).
+    #[structopt(about = "Search memory for a value; refine previous results")]
+    Search(SearchArgs),
+
     /// Execute a Lua bot script.
     #[structopt(about = "Execute a Lua bot script")]
     Script(ScriptArgs),
@@ -124,6 +128,43 @@ pub struct ScanArgs {
     /// Virtual address of the first byte in the dump file (default: 0).
     #[structopt(long = "dump-base", default_value = "0")]
     pub dump_base: String,
+}
+
+// ── Search Command ───────────────────────────────────────────────────────────
+
+#[derive(StructOpt)]
+pub struct SearchArgs {
+    /// Process ID (omit when using --continue).
+    #[structopt(name = "pid", required_unless = "continue")]
+    pub pid: Option<u32>,
+
+    /// Value type: u8/u16/u32/u64/i8/i16/i32/i64/f32/f64.
+    #[structopt(name = "type")]
+    pub value_type: String,
+
+    /// Value to find (decimal, hex with 0x, or float).
+    #[structopt(name = "value")]
+    pub value: String,
+
+    /// Refine the previous search results instead of scanning all memory.
+    #[structopt(long = "continue")]
+    pub continue_search: bool,
+
+    /// State file for previous/next search (default: .spectre-search.json).
+    #[structopt(long = "state")]
+    pub state: Option<String>,
+
+    /// Stop after N results (0 = unlimited).
+    #[structopt(long = "limit", default_value = "0")]
+    pub limit: u32,
+
+    /// Output as JSON.
+    #[structopt(long = "json")]
+    pub json: bool,
+
+    /// Use ADB backend.
+    #[structopt(long = "adb")]
+    pub adb: bool,
 }
 
 // ── Dump Command ─────────────────────────────────────────────────────────────
@@ -272,6 +313,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Find(cmd)) => run_find(cmd),
         Some(SubCommand::Regions(cmd)) => run_regions(cmd),
         Some(SubCommand::Bot(cmd)) => run_bot(cmd),
+        Some(SubCommand::Search(cmd)) => run_search(cmd),
         Some(SubCommand::Script(cmd)) => run_script(cmd),
         Some(SubCommand::Info(cmd)) => run_info(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
@@ -444,6 +486,18 @@ fn parse_u64(s: &str) -> Option<u64> {
         t.parse::<u64>()
             .ok()
             .or_else(|| u64::from_str_radix(t, 16).ok())
+    }
+}
+
+/// Strict integer parse for search values: decimal OR explicit 0x-hex only.
+/// Unlike [`parse_u64`], this rejects bare "abc" (which would otherwise be
+/// interpreted as hex 0xabc).
+fn parse_strict_u64(s: &str) -> Option<u64> {
+    let t = s.trim();
+    if let Some(hex) = t.strip_prefix("0x").or_else(|| t.strip_prefix("0X")) {
+        u64::from_str_radix(hex, 16).ok()
+    } else {
+        t.parse::<u64>().ok()
     }
 }
 
@@ -1333,6 +1387,179 @@ fn run_script(args: ScriptArgs) -> Result<()> {
     Ok(())
 }
 
+// ── Value Search (Cheat-Engine style) ────────────────────────────────────────
+
+/// Deserialized value type + bytes for a search request.
+struct SearchValue {
+    value_type: ValueType,
+    /// Raw little-endian bytes of the target value.
+    bytes: Vec<u8>,
+    /// Human-readable type name for output.
+    type_name: String,
+}
+
+/// Parse `type` + `value` (decimal, 0x-hex, or float) into a concrete value.
+fn parse_search_value(type_name: &str, value_str: &str) -> Result<SearchValue> {
+    let vt = match type_name.to_lowercase().as_str() {
+        "u8" => ValueType::U8,
+        "u16" => ValueType::U16,
+        "u32" => ValueType::U32,
+        "u64" => ValueType::U64,
+        "i8" => ValueType::I8,
+        "i16" => ValueType::I16,
+        "i32" => ValueType::I32,
+        "i64" => ValueType::I64,
+        "f32" => ValueType::F32,
+        "f64" => ValueType::F64,
+        _ => bail!("unknown value type '{type_name}' (use u8..u64, i8..i64, f32, f64)"),
+    };
+
+    let bytes = match vt {
+        ValueType::U8 | ValueType::I8 => {
+            let n = parse_strict_u64(value_str).ok_or_else(|| anyhow!("invalid u8 value '{value_str}'"))?;
+            vec![n as u8]
+        }
+        ValueType::U16 | ValueType::I16 => {
+            let n = parse_strict_u64(value_str).ok_or_else(|| anyhow!("invalid u16 value '{value_str}'"))?;
+            (n as u16).to_le_bytes().to_vec()
+        }
+        ValueType::U32 | ValueType::I32 => {
+            let n = parse_strict_u64(value_str).ok_or_else(|| anyhow!("invalid u32 value '{value_str}'"))?;
+            (n as u32).to_le_bytes().to_vec()
+        }
+        ValueType::U64 | ValueType::I64 => {
+            let n = parse_strict_u64(value_str).ok_or_else(|| anyhow!("invalid u64 value '{value_str}'"))?;
+            n.to_le_bytes().to_vec()
+        }
+        ValueType::F32 => {
+            let f: f32 = value_str
+                .parse()
+                .map_err(|_| anyhow!("invalid f32 value '{value_str}'"))?;
+            f.to_le_bytes().to_vec()
+        }
+        ValueType::F64 => {
+            let f: f64 = value_str
+                .parse()
+                .map_err(|_| anyhow!("invalid f64 value '{value_str}'"))?;
+            f.to_le_bytes().to_vec()
+        }
+        ValueType::Bytes(_) => bail!("byte arrays are not supported in search"),
+    };
+
+    Ok(SearchValue { value_type: vt, bytes, type_name: type_name.to_lowercase() })
+}
+
+fn search_state_path(explicit: &Option<String>) -> String {
+    explicit.clone().unwrap_or_else(|| ".spectre-search.json".to_owned())
+}
+
+/// Load previously found addresses.
+fn load_search_state(path: &str) -> Result<Vec<u64>> {
+    let text = std::fs::read_to_string(path)
+        .with_context(|| format!("cannot read search state '{}' (run search without --continue first)", path))?;
+    let addrs: Vec<String> = serde_json::from_str(&text)
+        .with_context(|| format!("invalid search state in '{}'", path))?;
+    Ok(addrs
+        .iter()
+        .filter_map(|s| parse_u64(s))
+        .collect())
+}
+
+/// Persist addresses for the next refinement step.
+fn save_search_state(path: &str, addrs: &[u64]) -> Result<()> {
+    let hex: Vec<String> = addrs.iter().map(|a| format!("{a:#x}")).collect();
+    let json = serde_json::to_string_pretty(&hex)
+        .context("failed to serialize search state")?;
+    std::fs::write(path, json).with_context(|| format!("cannot write '{}'", path))?;
+    Ok(())
+}
+
+/// Format one memory address for table output.
+fn fmt_addr(a: u64) -> String {
+    format!("{a:#014x}")
+}
+
+/// Core search: find addresses where the given value type equals `bytes`.
+fn search_matches(reader: &dyn MemoryReader, pid: u32, sv: &SearchValue, limit: u32) -> Result<Vec<u64>> {
+    // Build a one-field pattern: exact little-endian bytes, checked at a
+    // fixed stride via the scanner's alignment (natural size alignment).
+    let align = sv.value_type.size().max(1);
+    let pattern = ScanPattern {
+        name: "search".to_owned(),
+        fields: vec![PatternField {
+            name: "value".to_owned(),
+            value_type: sv.value_type,
+            value: ScanValue::Exact(sv.bytes.clone()),
+            alignment: align,
+        }],
+    };
+    let mut config = ScanConfig { alignment: align, little_endian: true, ..Default::default() };
+        if limit > 0 {
+            config.max_matches_per_pattern = limit;
+        }
+    let reports = scan_memory(reader, pid, vec![pattern], &config)?;
+    Ok(reports
+        .into_iter()
+        .flat_map(|r| r.matches.into_iter().map(|m| m.address))
+        .collect())
+}
+
+fn run_search(args: SearchArgs) -> Result<()> {
+    let sv = parse_search_value(&args.value_type, &args.value)?;
+    let state_path = search_state_path(&args.state);
+
+    if args.continue_search {
+        // Refine: only re-check previously found addresses.
+        let prev = load_search_state(&state_path)?;
+        info!("refining {} candidate(s)...", prev.len());
+        if prev.is_empty() {
+            println!("no previous results to refine");
+            return Ok(());
+        }
+        let reader = create_reader(args.adb, None, None)?;
+        if args.pid.is_none() {
+            bail!("--continue requires --pid to re-read the target process");
+        }
+        let pid = args.pid.unwrap();
+        let mut kept: Vec<u64> = Vec::new();
+        for addr in &prev {
+            let is_match = reader
+                .read_bytes(pid, *addr, sv.value_type.size())
+                .map(|b| b == sv.bytes)
+                .unwrap_or(false);
+            if is_match {
+                kept.push(*addr);
+                if args.limit > 0 && kept.len() >= args.limit as usize {
+                    break;
+                }
+            }
+        }
+        save_search_state(&state_path, &kept)?;
+        for a in &kept {
+            println!("{}", fmt_addr(*a));
+        }
+        println!("-- {} result(s), saved to {state_path}", kept.len());
+        return Ok(());
+    }
+
+    // New search over all readable memory.
+    let pid = args.pid.ok_or_else(|| anyhow!("pid is required (or use --continue)"))?;
+    let reader = create_reader(args.adb, None, None)?;
+    info!(
+        "searching pid {pid} for {} = {}...",
+        sv.type_name,
+        args.value
+    );
+    let found = search_matches(reader.as_ref(), pid, &sv, args.limit)?;
+    save_search_state(&state_path, &found)?;
+
+    for a in found.iter().take(if args.limit > 0 { args.limit as usize } else { usize::MAX }) {
+        println!("{}", fmt_addr(*a));
+    }
+    println!("-- {} result(s), saved to {state_path}", found.len());
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -1385,5 +1612,41 @@ mod tests {
     fn empty_offsets_yield_empty_patterns() {
         let go = GameOffsets { game: "x".into(), version: "1".into(), structures: vec![] };
         assert!(build_scan_patterns(&go).is_empty());
+    }
+
+    #[test]
+    fn search_value_parses_numeric_types() {
+        let v = parse_search_value("u32", "42").unwrap();
+        assert_eq!(v.bytes, 42u32.to_le_bytes().to_vec());
+        assert_eq!(v.value_type.size(), 4);
+
+        let v16 = parse_search_value("u16", "0x10").unwrap();
+        assert_eq!(v16.bytes, 16u16.to_le_bytes().to_vec());
+
+        let v64 = parse_search_value("i64", "1234567890").unwrap();
+        assert_eq!(v64.bytes, 1234567890i64.to_le_bytes().to_vec());
+
+        let f = parse_search_value("f32", "9999.5").unwrap();
+        assert_eq!(f.bytes, 9999.5f32.to_le_bytes().to_vec());
+    }
+
+    #[test]
+    fn search_value_rejects_bad_input() {
+        assert!(parse_search_value("u32", "abc").is_err());
+        assert!(parse_search_value("f32", "not-a-float").is_err());
+        assert!(parse_search_value("strange", "1").is_err());
+    }
+
+    #[test]
+    fn search_state_roundtrip_via_tempfile() {
+        let dir = std::env::temp_dir().join(format!("spectre-state-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("state.json");
+        let path_str = path.to_string_lossy().to_string();
+
+        save_search_state(&path_str, &[0x1000, 0x7ff0000]).unwrap();
+        let loaded = load_search_state(&path_str).unwrap();
+        assert_eq!(loaded, vec![0x1000, 0x7ff0000]);
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

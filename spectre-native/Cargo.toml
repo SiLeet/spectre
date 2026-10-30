@@ -1,7 +1,7 @@
 [package]
 name = "spectre-native"
 description = "OS-native process memory reader (Windows/Linux)"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 # Raw FFI only — no windows-rs / libc wrappers.

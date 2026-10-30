@@ -118,9 +118,10 @@ impl LuaSandbox {
         for key in keys {
             let name = key.as_string().map(|s| s.to_string_lossy());
             if let Some(name) = name
-                && keep.contains(&name.as_str()) {
-                    continue;
-                }
+                && keep.contains(&name.as_str())
+            {
+                continue;
+            }
             globals.set(key, Nil)?;
         }
 

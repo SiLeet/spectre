@@ -57,6 +57,55 @@ local pid = spectre.find_process("game.exe")
 | Float range | `{ float = { lo = 0.0, hi = 1.0 } }` |
 | Any value | `{ any = true }` |
 
+#### `spectre.read_fields(pid, fields)` — batch read
+
+```lua
+-- fields: array of { name = string, addr = integer, type = string?, len = integer? }
+-- returns: { [name] = number | string }
+local s = spectre.read_fields(pid, {
+    { name = "hp",    addr = base + 0x10, type = "u32" },
+    { name = "speed", addr = base + 0x14, type = "f32" },
+    { name = "guid",  addr = base + 0x18, type = "u64" },
+    { name = "nick",  addr = base + 0x40, type = "string", len = 32 },
+})
+
+if s.hp then
+    bot.log(("%s: %d HP, speed %.2f"):format(s.nick or "?", s.hp, s.speed or 0))
+end
+```
+
+| `type` | Lua result |
+|--------|------------|
+| `"u8"` `"u16"` `"u32"` `"u64"` | integer (a `u64` above `2^63-1` becomes a float, same as `read_u64`) |
+| `"i32"` `"i64"` | integer |
+| `"f32"` `"f64"` | float |
+| `"string"` | string, null-terminated, at most `len` bytes (`len` is **required**) |
+
+- `type` is case-insensitive and defaults to `"u32"` (same default as `scan` fields). All reads are little-endian, like the single `read_*` functions.
+- **Validation is all-or-nothing:** a missing `name`/`addr`, an unknown `type`, or a `"string"` without `len` raises a Lua error before any memory is read.
+- **Reads are best-effort per field:** if reading one entry fails (unmapped address, short read, …) that name is simply **absent** from the result — Lua tables cannot store `nil`, so `s.name == nil` is how you detect it. All other entries are still returned. Check fields with `if s.hp then … end`.
+- Duplicate names: the last successful entry wins.
+
+#### `spectre.regions(pid)` — memory map
+
+```lua
+-- returns: array of { start, end_addr, ["end"], size, perms, path? }
+for i, r in ipairs(spectre.regions(pid)) do
+    if r.perms:sub(1, 2) == "rw" then
+        bot.log(("%#x-%#x %s %d bytes %s"):format(r.start, r.end_addr, r.perms, r.size, r.path or ""))
+    end
+end
+```
+
+| Key | Value |
+|-----|-------|
+| `start` | first address of the region (integer) |
+| `end_addr` | exclusive end address (integer) |
+| `["end"]` | alias of `end_addr` — `end` is a Lua keyword, so `r.end` does **not** parse; write `r["end"]` or use `r.end_addr` |
+| `size` | `end_addr - start` in bytes |
+| `perms` | permission string as reported by the backend (e.g. `"rw-p"`, `"r-xp"`) |
+| `path` | backing file / module name, absent (`nil`) for anonymous regions |
+
 ### `bot` module
 
 ```lua

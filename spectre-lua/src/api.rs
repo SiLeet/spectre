@@ -3,8 +3,8 @@ use crate::LuaContext;
 ///
 /// Each Rust callback retrieves the shared `LuaContext` from app-data,
 /// then delegates to the `MemoryReader` or `BotApi` implementations.
-use mlua::{Error as LuaError, Lua, Result as LuaResult, Table, Value};
-use spectre_core::{PatternField, ScanPattern, ScanValue, ValueType};
+use mlua::{Error as LuaError, IntoLua, Lua, Result as LuaResult, Table, Value};
+use spectre_core::{MemoryReader, PatternField, ScanPattern, ScanValue, ValueType};
 
 /// Stateless helper: registers all functions on an initialised Lua instance.
 pub struct LuaApi;
@@ -170,6 +170,94 @@ fn lua_value_to_scan_value(v: &Value, vt: ValueType) -> LuaResult<ScanValue> {
     }
 }
 
+/// Value kinds supported by `spectre.read_fields`.
+#[derive(Debug, Clone, Copy)]
+enum FieldKind {
+    U8,
+    U16,
+    U32,
+    U64,
+    I32,
+    I64,
+    F32,
+    F64,
+    /// Null-terminated string of at most `len` bytes.
+    Str(u32),
+}
+
+/// One validated entry of a `read_fields` request.
+#[derive(Debug)]
+struct FieldSpec {
+    name: String,
+    addr: u64,
+    kind: FieldKind,
+}
+
+/// Validate one `{ name, addr, type, len }` entry (1-based `idx` for errors).
+///
+/// `type` defaults to `"u32"` (same default as `spectre.scan` fields);
+/// `len` is required for `"string"`.
+fn field_spec_from_table(idx: usize, tbl: &Table) -> LuaResult<FieldSpec> {
+    let name: String = tbl.get::<Option<String>>("name")?.ok_or_else(|| {
+        LuaError::RuntimeError(format!("read_fields: entry {idx} is missing `name`"))
+    })?;
+    let addr: u64 = tbl.get::<Option<u64>>("addr")?.ok_or_else(|| {
+        LuaError::RuntimeError(format!("read_fields: `{name}` is missing `addr`"))
+    })?;
+    let type_str: String = tbl
+        .get::<Option<String>>("type")?
+        .unwrap_or_else(|| "u32".to_string());
+
+    let kind = match type_str.to_lowercase().as_str() {
+        "u8" => FieldKind::U8,
+        "u16" => FieldKind::U16,
+        "u32" => FieldKind::U32,
+        "u64" => FieldKind::U64,
+        "i32" => FieldKind::I32,
+        "i64" => FieldKind::I64,
+        "f32" => FieldKind::F32,
+        "f64" => FieldKind::F64,
+        "string" => {
+            let len: u32 = tbl.get::<Option<u32>>("len")?.ok_or_else(|| {
+                LuaError::RuntimeError(format!(
+                    "read_fields: `{name}` has type \"string\" but no `len`"
+                ))
+            })?;
+            FieldKind::Str(len)
+        }
+        other => {
+            return Err(LuaError::RuntimeError(format!(
+                "read_fields: `{name}` has unknown type: {other}"
+            )));
+        }
+    };
+
+    Ok(FieldSpec { name, addr, kind })
+}
+
+/// Perform the read for one validated field and convert it to a Lua value
+/// (same conversions as the single `read_*` functions).
+fn read_field(
+    lua: &Lua,
+    reader: &dyn MemoryReader,
+    pid: u32,
+    spec: &FieldSpec,
+) -> anyhow::Result<Value> {
+    let addr = spec.addr;
+    let value = match spec.kind {
+        FieldKind::U8 => reader.read_u8(pid, addr)?.into_lua(lua)?,
+        FieldKind::U16 => reader.read_u16(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::U32 => reader.read_u32(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::U64 => reader.read_u64(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::I32 => reader.read_i32(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::I64 => reader.read_i64(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::F32 => reader.read_f32(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::F64 => reader.read_f64(pid, addr, true)?.into_lua(lua)?,
+        FieldKind::Str(len) => reader.read_string(pid, addr, len)?.into_lua(lua)?,
+    };
+    Ok(value)
+}
+
 // ── Spectre Module ─────────────────────────────────────────────────
 
 fn register_spectre(lua: &Lua) -> anyhow::Result<()> {
@@ -220,6 +308,65 @@ fn register_spectre(lua: &Lua) -> anyhow::Result<()> {
                 Ok(ctx.reader.read_string(pid, addr, len)?)
             },
         )?,
+    )?;
+
+    // spectre.read_fields(pid, fields_table) -> { name -> number|string }
+    //
+    // Batch read: every entry is validated up front (bad shape / unknown
+    // type / missing `len` for strings raises a Lua error before any read).
+    // A read that fails for one entry leaves that name absent from the
+    // result (i.e. `result.name == nil`); the remaining entries still succeed.
+    m.set(
+        "read_fields",
+        lua.create_function(
+            |lua: &Lua, (pid, fields): (u32, Table)| -> LuaResult<Table> {
+                let specs: Vec<FieldSpec> = fields
+                    .sequence_values::<Table>()
+                    .enumerate()
+                    .map(|(i, entry)| field_spec_from_table(i + 1, &entry?))
+                    .collect::<LuaResult<_>>()?;
+
+                let ctx = get_ctx(lua);
+                let result = lua.create_table()?;
+                for spec in &specs {
+                    match read_field(lua, &*ctx.reader, pid, spec) {
+                        Ok(value) => result.set(spec.name.as_str(), value)?,
+                        Err(e) => tracing::debug!(
+                            "read_fields: `{}` at {:#x} failed: {e:#}",
+                            spec.name,
+                            spec.addr
+                        ),
+                    }
+                }
+                Ok(result)
+            },
+        )?,
+    )?;
+
+    // spectre.regions(pid) -> { { start, end_addr, ["end"], size, perms, path }, ... }
+    m.set(
+        "regions",
+        lua.create_function(|lua: &Lua, pid: u32| -> LuaResult<Table> {
+            let ctx = get_ctx(lua);
+            let regions = ctx.reader.memory_regions(pid)?;
+
+            let list = lua.create_table()?;
+            for (i, region) in regions.iter().enumerate() {
+                let r = lua.create_table()?;
+                r.set("start", region.start)?;
+                // `end` is a Lua keyword, so `r.end` does not parse; expose the
+                // ergonomic `end_addr` plus `end` for `r["end"]` access.
+                r.set("end_addr", region.end)?;
+                r.set("end", region.end)?;
+                r.set("size", region.size())?;
+                r.set("perms", region.perms.as_str())?;
+                if let Some(path) = &region.path {
+                    r.set("path", path.as_str())?;
+                }
+                list.set(i + 1, r)?;
+            }
+            Ok(list)
+        })?,
     )?;
 
     // spectre.find_process(name) -> pid or nil

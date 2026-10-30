@@ -3,11 +3,10 @@
 //! real process memory. Works on Windows AND Linux (Linux child inherits our
 //! UID so /proc/<pid>/mem is readable).
 
-use spectre_core::reader::MemoryReader;
 use spectre_core::types::{ScanMatch, ScanPattern, ScanValue, ValueType};
 use spectre_native::{create_default_reader, NativeReader};
 use std::process::{Child, Command};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 fn probe_bin() -> &'static str {
     env!("CARGO_BIN_EXE_probe")
@@ -20,27 +19,6 @@ impl Drop for ProbeGuard {
         let _ = self.0.kill();
         let _ = self.0.wait();
     }
-}
-
-fn wait_for_probe(reader: &dyn MemoryReader, deadline: Instant) -> u32 {
-    let mut last_err = String::new();
-    while Instant::now() < deadline {
-        match reader.find_process("probe") {
-            Ok(procs) => {
-                // Pick the entry whose name contains "probe" and is our child
-                // (fresh process, usually the newest). Prefer exact binary name.
-                if let Some(p) = procs.iter().find(|p| {
-                    let n = p.name.to_lowercase();
-                    n.contains("probe") && !n.contains("spectre")
-                }) {
-                    return p.pid;
-                }
-            }
-            Err(e) => last_err = e.to_string(),
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    panic!("probe process not found within deadline: {last_err}");
 }
 
 /// Pattern matching the probe's ProbeStruct:
@@ -120,15 +98,15 @@ fn e2e_find_and_scan_probe() {
     // if the environment can't list processes this test still fails loudly.
     let reader = create_default_reader();
 
-    // Spawn the probe binary.
+    // Spawn the probe binary and use its REAL pid (Child::id) — name-based
+    // process lookup is unreliable in CI containers where unrelated
+    // "probe"-named kernel threads exist (pid 20 on GitHub runners).
     let child = Command::new(probe_bin())
         .spawn()
         .expect("failed to spawn probe binary");
-    let _guard = ProbeGuard(child);
-
-    let deadline = Instant::now() + Duration::from_secs(20);
-    let pid = wait_for_probe(reader.as_ref(), deadline);
+    let pid = child.id();
     eprintln!("probe pid = {pid}");
+    let _guard = ProbeGuard(child);
 
     // Wait for memory pages to be resident (page fault latency).
     std::thread::sleep(Duration::from_millis(500));

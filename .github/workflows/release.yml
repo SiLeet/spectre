@@ -1,0 +1,115 @@
+name: Release
+
+# Builds spectre binaries and attaches them to a GitHub release.
+#   - push a tag `v*` (e.g. `git tag v0.2.0 && git push origin v0.2.0`), or
+#   - run manually (Actions → Release → Run workflow) with an existing tag.
+# Pull requests that touch this file only build the packages (no release).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build and upload, e.g. v0.1.0"
+        required: true
+  pull_request:
+    paths: [".github/workflows/release.yml"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: spectre.exe
+            archive: zip
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            exe: spectre
+            archive: tar.gz
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/cache@v5
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - name: Build (release)
+        shell: bash
+        run: |
+          # Static CRT on Windows: spectre.exe runs without the VC++ redistributable.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            export RUSTFLAGS="-C target-feature=+crt-static"
+          fi
+          cargo build --release --locked -p spectre-cli
+
+      - name: Package
+        id: package
+        shell: bash
+        run: |
+          name="spectre-${TAG}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp "target/release/${{ matrix.exe }}" "dist/$name/"
+          cp -r games examples README.md LICENSE "dist/$name/"
+          [ -f docs/cli-reference.md ] && cp docs/cli-reference.md "dist/$name/"
+          cd dist
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            7z a -tzip "$name.zip" "$name" > /dev/null
+            echo "file=dist/$name.zip" >> "$GITHUB_OUTPUT"
+          else
+            tar czf "$name.tar.gz" "$name"
+            echo "file=dist/$name.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+          # Bare executable as well, for a one-file download.
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "$name/${{ matrix.exe }}" "spectre-${TAG}-windows-x64.exe"
+            echo "exe=dist/spectre-${TAG}-windows-x64.exe" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spectre-${{ matrix.target }}
+          path: |
+            ${{ steps.package.outputs.file }}
+            ${{ steps.package.outputs.exe }}
+
+  release:
+    name: publish release
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update release
+        run: |
+          ls -l dist
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/* --generate-notes --title "Spectre $TAG" -R "$GITHUB_REPOSITORY"
+          fi

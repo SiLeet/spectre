@@ -65,13 +65,21 @@ spectre regions 12345
 
 # Info & diagnostics
 spectre info
-spectre info --diagnostics
+spectre info --json
 ```
 
 ## Installation
 
+**Download:** prebuilt binaries are on the
+[Releases page](https://github.com/SiLeet/spectre/releases/latest):
+`spectre-<version>-windows-x64.exe` (single file, no runtime needed) or the
+`.zip` / `.tar.gz` packages, which also contain `games/` and `examples/`.
+Run `spectre` from the folder that contains `games/` so offset files are found.
+
+**From source:**
+
 ```bash
-git clone https://github.com/sergej-dukart/spectre.git
+git clone https://github.com/SiLeet/spectre.git
 cd spectre
 cargo build -r
 
@@ -201,13 +209,22 @@ spectre regions 12345
 
 # Info & Diagnose
 spectre info
-spectre info --diagnostics
+spectre info --json
 ```
 
 ## Installation
 
+**Download:** fertige Programme gibt es auf der
+[Releases-Seite](https://github.com/SiLeet/spectre/releases/latest):
+`spectre-<version>-windows-x64.exe` (eine Datei, keine Laufzeit nötig) oder
+die `.zip`- / `.tar.gz`-Pakete, die zusätzlich `games/` und `examples/`
+enthalten. `spectre` aus dem Ordner starten, der `games/` enthält, damit die
+Offset-Dateien gefunden werden.
+
+**Aus dem Quellcode:**
+
 ```bash
-git clone https://github.com/sergej-dukart/spectre.git
+git clone https://github.com/SiLeet/spectre.git
 cd spectre
 cargo build -r
 

@@ -26,12 +26,12 @@
 - **Vorschlag:** Axum/Actix + minimales HTML/JS, `spectre serve --port 8787`.
 - **DoD:** `spectre serve` startet, Browser zeigt Prozessliste + `read_u32`-Probe von einem PID; Tests für die HTTP-Handler; CI baut das neue Crate.
 
-### ⬜ T2: Native Windows-Input-Simulation (`InputSimulator` Backend)
+### ✅ T2: Native Windows-Input-Simulation (`InputSimulator` Backend) — erledigt 2026-10-30 (#1)
 - **Berührt:** `spectre-bot/src/engine.rs` (oder neues Modul `spectre-bot/src/wininput.rs`), Testfile `spectre-bot/tests/wininput_test.rs`. KEINE anderen Crates.
 - **Ziel:** `BotEngine` kann echte Klicks/Swipes auf native Windows-Fenster senden (SendInput/PostMessage) statt nur `adb shell input`.
 - **DoD:** `InputSimulator` für Windows implementiert; CLI `--input-backend native_windows` akzeptiert es; Test, der den Treiber ohne echte Klicks validiert (Backend-Erkennung/Mocking); keine Änderung an anderen Crates.
 
-### ⬜ T3: Offline-Dump-Diff (`spectre dumpdiff`)
+### ✅ T3: Offline-Dump-Diff (`spectre dumpdiff`) — erledigt 2026-10-30 (#2)
 - **Berührt:** `spectre-core` (neues Modul `diff.rs` + Tests) und `spectre-cli` (Subcommand `dumpdiff`, eigene Sektion im main.rs).
 - **Ziel:** Zwei Raw-Dumps vergleichen → geänderte Bytes/Offsets ausgeben. So findet man Werte-Offsets, ohne live im Prozess zu suchen (Diff-Methode offline).
 - **DoD:** `spectre dumpdiff a.dump b.dump --base 0x1000` zeigt geänderte Offsets mit Hex; 3+ Tests (gleich/anders/größenverschieden); kein Umbau bestehender APIs.
@@ -45,17 +45,17 @@
 
 ## P1 — Verbesserungen & Docs
 
-### ⬜ T5: CLI-Referenz-Doku (auto-generiert)
+### ✅ T5: CLI-Referenz-Doku (auto-generiert) — erledigt 2026-10-30 (#6)
 - **Berührt:** `docs/cli-reference.md` (neu), evtl. `spectre-cli` help-Texte.
 - **Ziel:** Vollständige, lebende CLI-Referenz für alle Subcommands + Flags.
 - **DoD:** Jedes Subcommand mit Beispiel; `--help`-Ausgabe stimmt mit Doku überein (manueller Abgleich).
 
-### ⬜ T6: Lua-API erweitern (read_fields + batch)
+### ✅ T6: Lua-API erweitern (read_fields + batch) — erledigt 2026-10-30 (#3)
 - **Berührt:** `spectre-lua/src/api.rs` (+ Tests im Crate).
 - **Ziel:** `spectre.read_fields({pid, name=...})` Batch-Read; `spectre.regions(pid)` exportieren.
 - **DoD:** Neue Lua-Funktionen dokumentiert in `spectre-lua/README.md`; Skript-Test in `examples/`.
 
-### ⬜ T7: CRON-Like Scheduling im Bot
+### ✅ T7: CRON-Like Scheduling im Bot — erledigt 2026-10-30 (#4)
 - **Berührt:** `spectre-bot/src/scheduler.rs` + `config.rs` (+ Tests).
 - **Ziel:** README verspricht „interval scheduling"; optional `cron`-Ausdruck pro Task (simple 5-Feld-Cron oder Intervall nur erweitern? — erst Review).
 - **DoD:** Task kann `schedule: "0 */6 * * *"` statt `interval_ms`; Unit-Tests für Cron-Parser; Docs-Update.
@@ -73,7 +73,7 @@
 - **Berührt:** `spectre-web/` (eigenes Crate, in T1 angelegt).
 - **DoD:** Nur-Lesen-Zugriff, CORS-Limits, keine Secrets; Security-Review.
 
-### ⬜ T10: Multi-Instanz/Mehrere Emulatoren orchestrieren
+### ✅ T10: Multi-Instanz/Mehrere Emulatoren orchestrieren — erledigt 2026-10-30 (#5)
 - **Berührt:** `spectre-adb` (+ CLI).
 - **DoD:** `adb list` parallel ansprechen, mehrere Targets in einem Bot-Lauf.
 

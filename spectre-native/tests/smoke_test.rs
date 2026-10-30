@@ -43,7 +43,9 @@ fn find_process_matches_self() {
 }
 
 #[test]
+#[cfg(windows)]
 fn exact_reader_type_dispatches() {
-    // The NativeReader enum itself should exist and construct.
+    // The NativeReader enum itself should exist and construct. Windows-only:
+    // the Windows variant is cfg-gated to the Windows target.
     let _ = NativeReader::Windows(Default::default());
 }

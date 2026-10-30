@@ -33,6 +33,11 @@ pub struct PointerChain {
     pub resolved: Option<u64>,
     /// Why the walk stopped.
     pub stop: ChainStop,
+    /// Error message of the failed read when `stop` is
+    /// [`ChainStop::Unreadable`] (e.g. the process could not be opened),
+    /// otherwise `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_error: Option<String>,
 }
 
 /// One dereference in a chain: `*(pointer + offset) == value`.
@@ -90,12 +95,17 @@ impl fmt::Display for ChainStop {
 ///                 read                  read                  read, not followed
 /// ```
 ///
+/// This is `[[base+o0]+o1]+o2`, *not* a Cheat Engine pointer path: Cheat
+/// Engine dereferences the base first (`[[base]+o0]+o1`). A CE path
+/// `base -> [o0, o1, ..]` is therefore `follow(base, [0, o0, o1, ..])`.
+///
 /// `steps[i]` is `{ pointer, offset: o_i, address: a_i, value: *a_i }`, so the
 /// value stored at the resolved address is `steps.last().value`. With empty
 /// `offsets` nothing is read and `resolved == Some(base)`.
 ///
 /// Where `resolve_ptr_chain` returns `Err` on a failed read, `follow` returns
-/// `Ok` with [`ChainStop::Unreadable`] and `resolved == None`. One deliberate
+/// `Ok` with [`ChainStop::Unreadable`], `resolved == None` and the read error
+/// in [`PointerChain::read_error`]. One deliberate
 /// difference: a NULL intermediate pointer stops the walk with
 /// [`ChainStop::Null`] instead of reading near address 0. Otherwise
 /// `resolved` equals `resolve_ptr_chain(...)`. Address overflow
@@ -113,6 +123,7 @@ pub fn follow(
         steps: Vec::with_capacity(offsets.len()),
         resolved: None,
         stop: ChainStop::Complete,
+        read_error: None,
     };
     let Some(last) = offsets.len().checked_sub(1) else {
         chain.resolved = Some(base);
@@ -129,6 +140,7 @@ pub fn follow(
             Err(e) => {
                 debug!("chain step {i}: read at {address:#x} failed: {e:#}");
                 chain.stop = ChainStop::Unreadable { address };
+                chain.read_error = Some(format!("{e:#}"));
                 return Ok(chain);
             }
         };
@@ -183,6 +195,7 @@ pub fn follow_until_end(
         steps: Vec::new(),
         resolved: None,
         stop: ChainStop::MaxDepth,
+        read_error: None,
     };
     let mut visited = HashSet::new();
     let mut address = start;
@@ -201,6 +214,7 @@ pub fn follow_until_end(
             Err(e) => {
                 debug!("chain: read at {address:#x} failed: {e:#}");
                 chain.stop = ChainStop::Unreadable { address };
+                chain.read_error = Some(format!("{e:#}"));
                 break;
             }
         };

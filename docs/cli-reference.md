@@ -140,12 +140,11 @@ Example output:
 Follow a pointer chain from an address and print every dereference.
 
 ```
-spectre chain [FLAGS] [OPTIONS] <pid> <address>
+spectre chain [FLAGS] [OPTIONS] <address> (--pid <pid> | --name <name>)
 ```
 
 | Argument | Description |
 |----------|-------------|
-| `<pid>` | Process ID |
 | `<address>` | Start address (hex with 0x prefix, or decimal) |
 
 | Flag / option | Description |
@@ -153,20 +152,30 @@ spectre chain [FLAGS] [OPTIONS] <pid> <address>
 | `--adb` | Use ADB backend |
 | `--big-endian` | Read pointers as big-endian (default: little-endian) |
 | `--json` | Output as JSON |
+| `-p, --pid <pid>` | PID of the target process (auto-detected from --name if omitted) |
+| `-n, --name <name>` | Process name substring used to auto-detect the PID when --pid is not given |
 | `--depth <depth>` | Maximum number of dereferences when --offsets is not given [default: 16] |
-| `--offsets <offsets>` | Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the last address is read but not followed. Without it, raw pointers are followed until NULL, a cycle, unreadable memory, or --depth |
+| `--offsets <offsets>` | Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the start address itself is not dereferenced and the last address is read but not followed. For a Cheat Engine path prepend a 0 offset. Without it, raw pointers are followed until NULL, a cycle, unreadable memory, or --depth |
+
+One of `--pid` or `--name` is required; with `--name` the first matching
+process is used (a warning is logged if several match).
 
 Two modes:
 
-- **With `--offsets`** the chain is resolved like a Cheat-Engine pointer
-  path (same semantics as `MemoryReader::resolve_ptr_chain`): each offset is
-  added *before* its dereference, the start address itself is not
-  dereferenced, and the last `pointer + offset` is the result (it is read, so
-  its u64 value is shown too, but not followed):
+- **With `--offsets`** the chain is resolved with the semantics of
+  `MemoryReader::resolve_ptr_chain`: each offset is added *before* its
+  dereference, the start address itself is not dereferenced, and the last
+  `pointer + offset` is the result (it is read, so its u64 value is shown
+  too, but not followed):
 
   ```
   <address> +o0 -> *a0 = p1 ; p1 +o1 -> *a1 = p2 ; ... ; p(n-1) +o(n-1) = resolved
   ```
+
+  That is `[[address+o0]+o1]+..`. This is **not** the Cheat Engine
+  convention: Cheat Engine reads the pointer at the base first
+  (`[[base]+o0]+o1`). To resolve a Cheat Engine path `base -> [o0, o1, ..]`,
+  add a leading `0` offset: `--offsets 0,o0,o1,..`.
 
   A NULL intermediate pointer stops the walk instead of reading near 0.
 - **Without `--offsets`** raw pointers are followed (`*start`, `**start`, ...)
@@ -175,14 +184,18 @@ Two modes:
   read (the deepest link).
 
 `stop` says why the walk ended: `complete` (all offsets applied), `null`,
-`max_depth`, `unreadable` (with the failing address) or `cycle` (with the
-repeated address). If the chain could not be resolved, `resolved` is `-`
-(`null` in JSON); the exit code is still 0.
+`max_depth`, `unreadable` (with the failing address and the read error) or
+`cycle` (with the repeated address). If the chain could not be resolved,
+`resolved` is `-` (`null` in JSON) and the exit code is still 0 — except when
+not even the first read succeeds (wrong PID, missing permissions, unmapped
+start address): then `chain` prints the error and exits with 1, like `dump`.
 
 ```bash
-spectre chain 12345 0x7ff0000 --offsets 0x10,0x8,0x30
-spectre chain 12345 0x7ff0000 --depth 8 --json
-spectre chain 4321 0x12c0000 --adb --offsets 0x18,0x4
+spectre chain 0x7ff0000 --pid 12345 --offsets 0x10,0x8,0x30
+spectre chain 0x7ff0000 --name game.exe --depth 8 --json
+spectre chain 0x12c0000 -p 4321 --adb --offsets 0x18,0x4
+# Cheat Engine path 0x7ff0000 -> [0x10, 0x8, 0x30]:
+spectre chain 0x7ff0000 --pid 12345 --offsets 0,0x10,0x8,0x30
 ```
 
 Example output:
@@ -196,10 +209,14 @@ stop:     complete (all offsets applied)
 resolved: 0x2b20030
 ```
 
-Raw walks (no `--offsets`) print steps as `[i] *0x7ff0000 = 0x2a10000`.
+Walks with `--offsets` always print steps in this `pointer + offset ->`
+form, also for a `0` offset. Raw walks (no `--offsets`) print steps as
+`[i] *0x7ff0000 = 0x2a10000`. When the walk stops at unreadable memory, an
+`error:` line with the read error follows the `stop:` line.
 JSON output has `pid`, `base`, `offsets`, `steps` (`pointer`, `offset`,
-`address`, `value`), `stop` (`reason`, optional `address`) and `resolved`;
-all addresses are `0x` hex strings.
+`address`, `value`), `stop` (`reason`, plus `address` and `error` for
+`unreadable`, `address` for `cycle`) and `resolved`; all addresses are `0x`
+hex strings.
 
 ## find
 

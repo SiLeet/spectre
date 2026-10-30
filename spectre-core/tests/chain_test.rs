@@ -161,10 +161,27 @@ fn follow_reports_unreadable_where_resolve_ptr_chain_errors() {
     );
     assert_eq!(chain.resolved, None);
     assert_eq!(chain.steps.len(), 1);
+    let err = chain.read_error.as_deref().unwrap();
+    assert!(err.contains("outside fake memory"), "{err}");
     assert!(
         r.resolve_ptr_chain(PID, 0x1000, &[0x10, 0x8], true)
             .is_err()
     );
+}
+
+#[test]
+fn cheat_engine_path_needs_a_leading_zero_offset() {
+    let mut r = FakeReader::new(0x400);
+    // CE path "0x1000 -> [0x10, 0x8]" = [[0x1000]+0x10]+0x8.
+    r.put(0x1000, 0x1100).put(0x1110, 0x1200);
+    let ce = 0x1200 + 0x8;
+
+    let chain = follow(&r, PID, 0x1000, &[0, 0x10, 0x8], true).unwrap();
+    assert_eq!(chain.stop, ChainStop::Complete);
+    assert_eq!(chain.resolved, Some(ce));
+    // Without the leading 0 the base is not dereferenced: [0x1000+0x10]+0x8.
+    let short = follow(&r, PID, 0x1000, &[0x10, 0x8], true).unwrap();
+    assert_ne!(short.resolved, Some(ce));
 }
 
 #[test]
@@ -247,11 +264,17 @@ fn until_end_reports_unreadable() {
     );
     assert_eq!(chain.steps.len(), 2);
     assert_eq!(chain.resolved, Some(0x1100));
+    assert!(chain.read_error.is_some());
 
     // Unreadable start: nothing resolved.
     let start = follow_until_end(&r, PID, 0x50, 16, true).unwrap();
     assert_eq!(start.stop, ChainStop::Unreadable { address: 0x50 });
     assert_eq!(start.resolved, None);
+    assert!(start.read_error.is_some());
+
+    // Successful walks carry no read error.
+    let ok = follow_until_end(&r, PID, 0x1000, 1, true).unwrap();
+    assert_eq!(ok.read_error, None);
 }
 
 #[test]

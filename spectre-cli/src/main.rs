@@ -5,7 +5,8 @@
 //!                       [--adb [--adb-host H] [--adb-port P]]
 //!   spectre dump <pid> <address> <size> [--output PATH] [--format hex|raw|ascii] [--adb]
 //!   spectre dumpdiff <old> <new> [--base ADDR] [--json]
-//!   spectre chain <pid> <address> [--offsets O1,O2,..|--depth N] [--big-endian] [--json] [--adb]
+//!   spectre chain <address> (--pid P | --name N) [--offsets O1,O2,..|--depth N] [--big-endian]
+//!                 [--json] [--adb]
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
@@ -1707,16 +1708,21 @@ fn run_search(args: SearchArgs) -> Result<()> {
 
 #[derive(StructOpt)]
 pub struct ChainArgs {
-    /// Process ID.
-    #[structopt(name = "pid")]
-    pub pid: u32,
+    /// PID of the target process (auto-detected from --name if omitted).
+    #[structopt(short = "p", long = "pid", required_unless = "name")]
+    pub pid: Option<u32>,
+
+    /// Process name substring used to auto-detect the PID when --pid is not given.
+    #[structopt(short = "n", long = "name")]
+    pub name: Option<String>,
 
     /// Start address (hex with 0x prefix, or decimal).
     #[structopt(name = "address")]
     pub address: String,
 
-    /// Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the last
-    /// address is read but not followed. Without it, raw pointers are followed until NULL, a
+    /// Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the start
+    /// address itself is not dereferenced and the last address is read but not followed. For a
+    /// Cheat Engine path prepend a 0 offset. Without it, raw pointers are followed until NULL, a
     /// cycle, unreadable memory, or --depth.
     #[structopt(long = "offsets")]
     pub offsets: Option<String>,
@@ -1749,34 +1755,39 @@ fn run_chain(args: ChainArgs) -> Result<()> {
     let little = !args.big_endian;
 
     let reader = create_reader(args.adb, None, None)?;
+    let pid = resolve_pid(reader.as_ref(), args.name.as_deref().unwrap_or_default(), args.pid)?;
     let chain = match &offsets {
         Some(offsets) => {
             debug!(
-                "following {} offset(s) from {address:#x} in pid {}",
-                offsets.len(),
-                args.pid
+                "following {} offset(s) from {address:#x} in pid {pid}",
+                offsets.len()
             );
-            spectre_core::follow(reader.as_ref(), args.pid, address, offsets, little)?
+            spectre_core::follow(reader.as_ref(), pid, address, offsets, little)?
         }
         None => {
             debug!(
-                "following raw pointers from {address:#x} in pid {} (depth {})",
-                args.pid, args.depth
+                "following raw pointers from {address:#x} in pid {pid} (depth {})",
+                args.depth
             );
-            spectre_core::follow_until_end(
-                reader.as_ref(),
-                args.pid,
-                address,
-                args.depth,
-                little,
-            )?
+            spectre_core::follow_until_end(reader.as_ref(), pid, address, args.depth, little)?
         }
     };
 
+    // Not even the first read worked: a bad PID, missing permissions or a
+    // wrong start address. Fail like `dump` does instead of printing an
+    // empty chain.
+    if let (spectre_core::ChainStop::Unreadable { address: at }, true) =
+        (chain.stop, chain.steps.is_empty())
+    {
+        let cause = chain.read_error.as_deref().unwrap_or("read failed");
+        bail!("failed to read pointer at {at:#x} in pid {pid}: {cause}");
+    }
+
+    let raw = offsets.is_none();
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&chain_to_json(&chain, args.pid))?);
+        println!("{}", serde_json::to_string_pretty(&chain_to_json(&chain, pid))?);
     } else {
-        print!("{}", render_chain(&chain, args.pid));
+        print!("{}", render_chain(&chain, pid, raw));
     }
     Ok(())
 }
@@ -1796,10 +1807,14 @@ fn parse_offset_list(s: &str) -> Result<Vec<u64>> {
 }
 
 /// Human-readable chain: one line per dereference, then stop reason and result.
-fn render_chain(chain: &spectre_core::PointerChain, pid: u32) -> String {
+///
+/// `raw` selects the step format: raw walks (no `--offsets`) print
+/// `*address = value`, offset walks always print
+/// `pointer + offset -> *address = value`, even for a 0 offset.
+fn render_chain(chain: &spectre_core::PointerChain, pid: u32, raw: bool) -> String {
     let mut out = format!("pointer chain from {:#x} (pid {pid})\n", chain.base);
     for (i, s) in chain.steps.iter().enumerate() {
-        if s.offset == 0 {
+        if raw {
             out.push_str(&format!("  [{i}] *{:#x} = {:#x}\n", s.address, s.value));
         } else {
             out.push_str(&format!(
@@ -1810,6 +1825,9 @@ fn render_chain(chain: &spectre_core::PointerChain, pid: u32) -> String {
     }
     let resolved = chain.resolved.map_or_else(|| "-".to_owned(), |a| format!("{a:#x}"));
     out.push_str(&format!("stop:     {}\n", chain.stop));
+    if let Some(err) = &chain.read_error {
+        out.push_str(&format!("error:    {err}\n"));
+    }
     out.push_str(&format!("resolved: {resolved}\n"));
     out
 }
@@ -1823,9 +1841,11 @@ fn chain_to_json(chain: &spectre_core::PointerChain, pid: u32) -> serde_json::Va
         ChainStop::Complete => serde_json::json!({"reason": "complete"}),
         ChainStop::Null => serde_json::json!({"reason": "null"}),
         ChainStop::MaxDepth => serde_json::json!({"reason": "max_depth"}),
-        ChainStop::Unreadable { address } => {
-            serde_json::json!({"reason": "unreadable", "address": hex(address)})
-        }
+        ChainStop::Unreadable { address } => serde_json::json!({
+            "reason": "unreadable",
+            "address": hex(address),
+            "error": chain.read_error,
+        }),
         ChainStop::Cycle { address } => {
             serde_json::json!({"reason": "cycle", "address": hex(address)})
         }
@@ -1864,6 +1884,7 @@ mod chain_tests {
             ],
             resolved: Some(0x2008),
             stop: ChainStop::Complete,
+            read_error: None,
         }
     }
 
@@ -1876,7 +1897,7 @@ mod chain_tests {
 
     #[test]
     fn chain_renders_steps_stop_and_result() {
-        let text = render_chain(&sample(), 42);
+        let text = render_chain(&sample(), 42, false);
         let lines: Vec<&str> = text.lines().collect();
         assert_eq!(
             lines,
@@ -1898,10 +1919,49 @@ mod chain_tests {
             steps: vec![ChainStep { pointer: 0x1000, offset: 0, address: 0x1000, value: 0x1000 }],
             resolved: Some(0x1000),
             stop: ChainStop::Cycle { address: 0x1000 },
+            read_error: None,
         };
-        let text = render_chain(&chain, 1);
+        let text = render_chain(&chain, 1, true);
         assert!(text.contains("  [0] *0x1000 = 0x1000\n"));
         assert!(text.contains("stop:     cycle (0x1000 already visited)\n"));
+        assert!(!text.contains("error:"));
+    }
+
+    #[test]
+    fn offset_walk_keeps_long_form_for_zero_offset() {
+        let mut chain = sample();
+        chain.offsets.insert(0, 0);
+        chain.steps.insert(
+            0,
+            ChainStep { pointer: 0x1000, offset: 0, address: 0x1000, value: 0x1000 },
+        );
+        let text = render_chain(&chain, 42, false);
+        assert!(text.contains("  [0] 0x1000 + 0x0 -> *0x1000 = 0x1000\n"), "{text}");
+        assert!(!text.contains("  [0] *0x1000"));
+    }
+
+    #[test]
+    fn unreadable_stop_shows_read_error() {
+        let mut chain = sample();
+        chain.steps.truncate(1);
+        chain.resolved = None;
+        chain.stop = ChainStop::Unreadable { address: 0x2008 };
+        chain.read_error = Some("ReadProcessMemory failed".to_owned());
+        let text = render_chain(&chain, 42, false);
+        assert!(text.contains("stop:     unreadable memory at 0x2008\n"));
+        assert!(text.contains("error:    ReadProcessMemory failed\n"));
+        let v = chain_to_json(&chain, 42);
+        assert_eq!(v["stop"]["error"], "ReadProcessMemory failed");
+    }
+
+    #[test]
+    fn chain_args_need_pid_or_name() {
+        let args = ChainArgs::from_iter_safe(["chain", "0x1000", "--name", "game"]).unwrap();
+        assert_eq!(args.pid, None);
+        assert_eq!(args.name.as_deref(), Some("game"));
+        let args = ChainArgs::from_iter_safe(["chain", "-p", "42", "0x1000"]).unwrap();
+        assert_eq!(args.pid, Some(42));
+        assert!(ChainArgs::from_iter_safe(["chain", "0x1000"]).is_err());
     }
 
     #[test]

@@ -387,13 +387,18 @@ spectre serve [FLAGS] [OPTIONS]
 | Flag / option | Description |
 |---------------|-------------|
 | `-p`, `--port <port>` | Port to listen on; always bound to 127.0.0.1 (0 = pick a free port) [default: 8787] |
+| `--rate-limit <n>` | Max `/api/read` + `/api/search` requests per minute and client (at least 1) [default: 60] |
+| `--allow-origin <origin>` | Extra origin allowed to call the API via CORS, e.g. `https://tool.example` (repeatable; no wildcards) [default: same-origin only] |
 | `--adb` | Use ADB backend instead of native |
 | `--adb-host <adb-host>` | ADB host (default: localhost) |
 | `--adb-port <adb-port>` | ADB port (default: 5555) |
 
 Prints the dashboard URL (`http://127.0.0.1:<port>/`) and serves until
-Ctrl+C. The server only binds the loopback interface; there is no `--host`
-option. The browser UI is embedded in the binary (no CDN, works offline) and
+Ctrl+C. The server only binds the loopback interface, and there is
+deliberately no `--host` option: the dashboard shows process memory without
+any authentication, so it must never listen on a network interface. For
+remote use, tunnel it instead (`ssh -L 8787:127.0.0.1:8787 <host>`). The
+browser UI is embedded in the binary (no CDN, works offline) and
 offers a process list with filter, the region table of the selected process,
 a read form and a value search.
 
@@ -409,15 +414,28 @@ All endpoints are read-only `GET` requests returning
 | `/api/search?pid=N&type=T&value=V[&limit=L][&endian=little\|big]` | Exact-value search in writable regions; `limit` defaults to 1000, max 10000 |
 
 Invalid parameters return HTTP 400, backend failures (unreadable address,
-unknown pid, ADB offline) HTTP 502. Requests addressed to a non-loopback
-`Host` or coming from another website (`Origin` / `Sec-Fetch-Site`) are
-refused with HTTP 403 (DNS-rebinding protection); at most two searches run at
-once (HTTP 429 otherwise). See `spectre-web/README.md` for details.
+unknown pid, ADB offline) HTTP 502 with a generic message such as
+`read failed` (never paths or environment values). Hardening:
+
+- Requests whose `Host` is not `127.0.0.1:<port>` / `localhost:<port>`, or
+  that come from another website (`Origin` / `Sec-Fetch-Site`), are refused
+  with HTTP 403 (DNS-rebinding protection).
+- CORS is off by default; `--allow-origin` adds origins that may call the
+  API cross-origin. `Access-Control-Allow-Origin` echoes the listed origin,
+  never `*`.
+- `/api/read` and `/api/search` share a per-client budget of `--rate-limit`
+  requests per minute (HTTP 429 with `Retry-After` beyond it); at most two
+  searches run at once (HTTP 429 otherwise).
+- Every response carries `Content-Security-Policy`,
+  `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
+
+See `spectre-web/README.md` for details.
 
 ```bash
 spectre serve                 # http://127.0.0.1:8787/
 spectre serve --port 0        # pick a free port, print it
 spectre serve --adb           # inspect an Android emulator via ADB
+spectre serve --rate-limit 120 --allow-origin http://localhost:3000
 ```
 
 ## adb

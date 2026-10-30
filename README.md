@@ -44,7 +44,7 @@ the game binary**.
 | `spectre bot`  | Run a bot automation from a config file      |
 | `spectre script` | Execute a Lua bot script                  |
 | `spectre info` | Show version, backends, and diagnostics      |
-| `spectre serve` | Read-only web dashboard on `127.0.0.1` (`--port`, default 8787) |
+| `spectre serve` | Read-only web dashboard on `127.0.0.1` (`--port`, default 8787; `--rate-limit`, `--allow-origin`) |
 | `spectre adb`  | ADB device management (list, ping)           |
 
 ## Quick Start
@@ -192,7 +192,7 @@ Spielbinärdatei**.
 | `spectre regions` | Speicherbereiche eines Prozesses auflisten |
 | `spectre bot`   | Bot-Automatisierung aus Konfigurationsdatei  |
 | `spectre info`  | Version, Backends und Diagnose anzeigen      |
-| `spectre serve` | Read-only-Web-Dashboard auf `127.0.0.1` (`--port`, Standard 8787) |
+| `spectre serve` | Read-only-Web-Dashboard auf `127.0.0.1` (`--port`, Standard 8787; `--rate-limit`, `--allow-origin`) |
 | `spectre adb`   | ADB-Geräteverwaltung (list, ping)            |
 
 ## Kurzanleitung

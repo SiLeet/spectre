@@ -5,6 +5,8 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 
+use crate::ratelimit::RateLimit;
+
 /// Successful API response: `{ "ok": true, "data": ... }`.
 #[derive(Debug, Serialize)]
 pub(crate) struct ApiOk<T: Serialize> {
@@ -74,6 +76,18 @@ impl ApiError {
         Self {
             status: StatusCode::TOO_MANY_REQUESTS,
             message: message.into(),
+        }
+    }
+
+    /// 429 — the client used up its request budget for the memory endpoints.
+    pub fn rate_limited(limit: RateLimit) -> Self {
+        Self {
+            status: StatusCode::TOO_MANY_REQUESTS,
+            message: format!(
+                "rate limit exceeded: at most {} requests per {} s; try again later",
+                limit.max_requests(),
+                limit.window().as_secs()
+            ),
         }
     }
 

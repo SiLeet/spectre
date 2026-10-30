@@ -12,7 +12,8 @@
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
-//!   spectre serve [--port P] [--adb [--adb-host H] [--adb-port P]]
+//!   spectre serve [--port P] [--rate-limit N] [--allow-origin O]...
+//!                 [--adb [--adb-host H] [--adb-port P]]
 //!   spectre adb list | adb ping [serial]
 //!
 //! Global flags: --version, --verbose (repeat for more detail).
@@ -320,11 +321,25 @@ pub struct InfoArgs {
 
 // ── Serve Command ────────────────────────────────────────────────────────────
 
+// There is deliberately no `--host` option: the dashboard exposes process
+// memory without authentication, so it must never listen on a network
+// interface. Remote access belongs behind an SSH tunnel
+// (`ssh -L 8787:127.0.0.1:8787 host`), which keeps the loopback-only and
+// Host-header guarantees of spectre-web intact.
 #[derive(StructOpt)]
 pub struct ServeArgs {
     /// Port to listen on; always bound to 127.0.0.1 (0 = pick a free port).
     #[structopt(short = "p", long = "port", default_value = "8787")]
     pub port: u16,
+
+    /// Max /api/read + /api/search requests per minute and client (>= 1).
+    #[structopt(long = "rate-limit", default_value = "60")]
+    pub rate_limit: u32,
+
+    /// Extra origin allowed to call the API via CORS, e.g. https://tool.example
+    /// (repeatable; no wildcards). Default: same-origin only.
+    #[structopt(long = "allow-origin", number_of_values = 1)]
+    pub allow_origin: Vec<String>,
 
     /// Use ADB backend instead of native.
     #[structopt(long = "adb")]
@@ -341,13 +356,21 @@ pub struct ServeArgs {
 
 /// Run the read-only web dashboard on 127.0.0.1:<port> until Ctrl+C.
 fn run_serve(args: ServeArgs) -> Result<()> {
+    // Validate the hardening options before touching any backend.
+    let rate_limit = spectre_web::RateLimit::per_minute(args.rate_limit)
+        .context("invalid --rate-limit")?;
+    let origins = args.allow_origin;
     let reader: std::sync::Arc<dyn MemoryReader> =
         create_reader(args.adb, args.adb_host, args.adb_port)?.into();
+    let app = spectre_web::DashboardApp::new(reader)
+        .with_rate_limit(rate_limit)
+        .with_allowed_origins(&origins)
+        .context("invalid --allow-origin")?;
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .context("failed to create tokio runtime")?;
-    rt.block_on(spectre_web::DashboardApp::new(reader).serve(args.port))
+    rt.block_on(app.serve(args.port))
 }
 
 // ── Adb Command ──────────────────────────────────────────────────────────────

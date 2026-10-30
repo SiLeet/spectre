@@ -2,8 +2,8 @@
 //!
 //! The router is assembled from three groups so middleware can be layered
 //! per group: [`ui_routes`] (static assets), [`meta_routes`] (cheap listing
-//! endpoints) and [`memory_routes`] (endpoints that read process memory —
-//! the natural place for rate limiting).
+//! endpoints) and [`memory_routes`] (endpoints that read process memory,
+//! behind the per-client rate limiter).
 
 use std::sync::Arc;
 
@@ -22,9 +22,10 @@ use tracing::{debug, error, warn};
 
 use crate::error::{ApiError, ApiOk, ok};
 use crate::params::{self, ReadKind};
+use crate::ratelimit::{self, RateLimiter};
 use crate::{
     DEFAULT_SEARCH_LIMIT, DashboardApp, MAX_CONCURRENT_SEARCHES, MAX_READ_SIZE, MAX_SEARCH_LIMIT,
-    cancel, guard,
+    cancel, guard, headers,
 };
 
 const INDEX_HTML: &str = include_str!("../assets/index.html");
@@ -36,16 +37,24 @@ type ApiResult<T> = Result<Json<ApiOk<T>>, ApiError>;
 /// Build the complete dashboard router for `app`.
 ///
 /// Usable without a socket (e.g. `tower::ServiceExt::oneshot` in tests) and
-/// as the base for additional middleware layers. Every route, including the
-/// 404/405 fallbacks, sits behind the same-origin guard ([`crate::guard`]).
+/// as the base for additional middleware layers. Layers, outermost first:
+///
+/// 1. security headers on every response ([`crate::headers`]);
+/// 2. the origin guard and CORS ([`crate::guard`]) on every route, including
+///    the 404/405 fallbacks;
+/// 3. the per-client rate limiter ([`crate::ratelimit`]) on the memory
+///    routes only — requests rejected by the guard do not use up budget.
 pub fn router(app: DashboardApp) -> Router {
+    let guard = app.guard().clone();
+    let limiter = Arc::clone(app.limiter());
     Router::new()
         .merge(ui_routes())
         .merge(meta_routes())
-        .merge(memory_routes())
+        .merge(memory_routes(limiter))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
-        .layer(middleware::from_fn(guard::same_origin_only))
+        .layer(middleware::from_fn_with_state(guard, guard::origin_guard))
+        .layer(middleware::from_fn(headers::security_headers))
         .with_state(app)
 }
 
@@ -66,11 +75,16 @@ fn meta_routes() -> Router<DashboardApp> {
         .route("/api/regions", get(api_regions))
 }
 
-/// Endpoints that read target-process memory (potentially expensive).
-fn memory_routes() -> Router<DashboardApp> {
+/// Endpoints that read target-process memory (potentially expensive); they
+/// share one per-client budget of `limiter`.
+fn memory_routes(limiter: Arc<RateLimiter>) -> Router<DashboardApp> {
     Router::new()
         .route("/api/read", get(api_read))
         .route("/api/search", get(api_search))
+        .route_layer(middleware::from_fn_with_state(
+            limiter,
+            ratelimit::limit_requests,
+        ))
 }
 
 // ── Static Assets ────────────────────────────────────────────────────────────
@@ -153,9 +167,14 @@ struct InfoDto {
     max_read_size: u32,
     default_search_limit: u32,
     max_search_limit: u32,
+    /// Per-client budget of `/api/read` + `/api/search` requests...
+    rate_limit_max_requests: u32,
+    /// ...per window of this many seconds.
+    rate_limit_window_secs: u64,
 }
 
 async fn api_info(State(app): State<DashboardApp>) -> ApiResult<InfoDto> {
+    let limit = app.rate_limit();
     Ok(ok(InfoDto {
         name: env!("CARGO_PKG_NAME"),
         version: env!("CARGO_PKG_VERSION"),
@@ -163,6 +182,8 @@ async fn api_info(State(app): State<DashboardApp>) -> ApiResult<InfoDto> {
         max_read_size: MAX_READ_SIZE,
         default_search_limit: DEFAULT_SEARCH_LIMIT,
         max_search_limit: MAX_SEARCH_LIMIT,
+        rate_limit_max_requests: limit.max_requests(),
+        rate_limit_window_secs: limit.window().as_secs(),
     }))
 }
 
@@ -233,7 +254,7 @@ async fn api_regions(
     let regions = with_reader(&app, move |reader| {
         reader.memory_regions(pid).map_err(|e| {
             warn!("memory_regions({pid}) failed: {e:#}");
-            ApiError::backend(format!("failed to list memory regions for pid {pid}"))
+            ApiError::backend("failed to list memory regions")
         })
     })
     .await?;
@@ -301,11 +322,7 @@ async fn api_read(
     }
 
     let bytes = with_reader(&app, move |reader| {
-        let read_failed = || {
-            ApiError::backend(format!(
-                "read failed: {size} byte(s) at {address:#x} (pid {pid})"
-            ))
-        };
+        let read_failed = || ApiError::backend("read failed");
         let bytes = reader.read_bytes(pid, address, size).map_err(|e| {
             debug!("read_bytes({pid}, {address:#x}, {size}) failed: {e:#}");
             read_failed()
@@ -448,7 +465,7 @@ async fn api_search(
         };
         let reports = scan_memory(&reader, pid, vec![pattern], &config).map_err(|e| {
             warn!("search in pid {pid} failed: {e:#}");
-            ApiError::backend(format!("search failed for pid {pid}"))
+            ApiError::backend("search failed")
         })?;
         Ok(reports
             .into_iter()

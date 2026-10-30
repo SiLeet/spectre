@@ -36,6 +36,7 @@ the game binary**.
 |----------------|----------------------------------------------|
 | `spectre scan` | Scan a running game for known structures     |
 | `spectre dump` | Dump raw memory bytes from an address        |
+| `spectre dumpdiff` | Compare two raw dumps and show changed offsets (`--base`, `--json`) |
 | `spectre find` | Find processes by name substring             |
 | `spectre regions` | List memory regions of a process         |
 | `spectre search` | Search memory for a value; refine with `--continue` |
@@ -173,6 +174,7 @@ Spielbinärdatei**.
 |-----------------|----------------------------------------------|
 | `spectre scan`  | Laufehendes Spiel nach Strukturen durchsuchen|
 | `spectre dump`  | Rohe Speicherbytes ab Adresse auslesen       |
+| `spectre dumpdiff` | Zwei Raw-Dumps vergleichen, geänderte Offsets anzeigen (`--base`, `--json`) |
 | `spectre find`  | Prozesse anhand des Namens suchen            |
 | `spectre regions` | Speicherbereiche eines Prozesses auflisten |
 | `spectre bot`   | Bot-Automatisierung aus Konfigurationsdatei  |

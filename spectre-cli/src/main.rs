@@ -4,6 +4,7 @@
 //!   spectre scan <game> [--pid P] [--offsets PATH] [--format table|json|yaml] [--output PATH]
 //!                       [--adb [--adb-host H] [--adb-port P]]
 //!   spectre dump <pid> <address> <size> [--output PATH] [--format hex|raw|ascii] [--adb]
+//!   spectre dumpdiff <old> <new> [--base ADDR] [--json]
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
@@ -84,6 +85,13 @@ pub enum SubCommand {
     /// ADB device management.
     #[structopt(about = "ADB device management")]
     Adb(AdbArgs),
+
+    /// Compare two raw dump files byte-by-byte.
+    #[structopt(
+        name = "dumpdiff",
+        about = "Compare two raw dump files and show changed offsets"
+    )]
+    DumpDiff(DumpDiffArgs),
 }
 
 // ── Scan Command ─────────────────────────────────────────────────────────────
@@ -195,6 +203,27 @@ pub struct DumpArgs {
     /// Use ADB backend.
     #[structopt(long = "adb")]
     pub adb: bool,
+}
+
+// ── DumpDiff Command ─────────────────────────────────────────────────────────
+
+#[derive(StructOpt)]
+pub struct DumpDiffArgs {
+    /// Older raw dump file (e.g. from `spectre dump --format raw`).
+    #[structopt(name = "old")]
+    pub old: String,
+
+    /// Newer raw dump file of the same memory range.
+    #[structopt(name = "new")]
+    pub new: String,
+
+    /// Virtual address of the first byte in both dumps; added to printed offsets.
+    #[structopt(long = "base", default_value = "0")]
+    pub base: String,
+
+    /// Output as JSON (full hex, with file offset and address per region).
+    #[structopt(long = "json")]
+    pub json: bool,
 }
 
 // ── Find Command ─────────────────────────────────────────────────────────────
@@ -318,6 +347,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Script(cmd)) => run_script(cmd),
         Some(SubCommand::Info(cmd)) => run_info(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
+        Some(SubCommand::DumpDiff(cmd)) => run_dumpdiff(cmd),
         None => {
             eprintln!("error: a subcommand is required; run `spectre --help` for usage");
             return ExitCode::from(2);
@@ -805,10 +835,9 @@ fn render_scan_table(reports: &[ScanReport]) -> String {
         for m in &report.matches {
             lines.push(format!("  Address: {:#x}", m.address));
             for (offset, name, bytes) in &m.fields {
-                let hex: Vec<String> = bytes.iter().map(|b| format!("{b:02x}")).collect();
                 lines.push(format!(
                     "    [{offset:#06x}] {name:<20} = {}",
-                    hex.join(" ")
+                    hex_bytes(bytes)
                 ));
             }
         }
@@ -830,7 +859,7 @@ fn scan_reports_to_json(reports: &[ScanReport]) -> serde_json::Value {
                             serde_json::json!({
                                 "offset": off,
                                 "name": name,
-                                "hex": bytes.iter().map(|b| format!("{b:02x}")).collect::<Vec<String>>().join(" "),
+                                "hex": hex_bytes(bytes),
                             })
                         }).collect::<Vec<_>>(),
                     })
@@ -888,7 +917,6 @@ fn render_hex_dump(data: &[u8], base: u64) -> String {
     let mut lines = Vec::new();
     for (i, chunk) in data.chunks(16).enumerate() {
         let addr = base + (i as u64) * 16;
-        let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
         let ascii: String = chunk
             .iter()
             .map(|b| {
@@ -899,9 +927,30 @@ fn render_hex_dump(data: &[u8], base: u64) -> String {
                 }
             })
             .collect();
-        lines.push(format!("{addr:016x}  {:<48}  {ascii}", hex.join(" ")));
+        lines.push(format!("{addr:016x}  {:<48}  {ascii}", hex_bytes(chunk)));
     }
     lines.join("\n")
+}
+
+/// Format bytes as space-separated lowercase hex pairs ("de ad be ef").
+fn hex_bytes(bytes: &[u8]) -> String {
+    bytes
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Like [`hex_bytes`], but shows at most `max` bytes followed by
+/// "…(N bytes)" with the total length. Empty input renders as "-".
+fn hex_preview(bytes: &[u8], max: usize) -> String {
+    if bytes.is_empty() {
+        "-".to_owned()
+    } else if bytes.len() > max {
+        format!("{} …({} bytes)", hex_bytes(&bytes[..max]), bytes.len())
+    } else {
+        hex_bytes(bytes)
+    }
 }
 
 fn render_ascii(data: &[u8]) -> String {
@@ -914,6 +963,93 @@ fn render_ascii(data: &[u8]) -> String {
             }
         })
         .collect()
+}
+
+// ── DumpDiff Implementation ──────────────────────────────────────────────────
+
+/// Max bytes of hex shown per side in table output (JSON is never truncated).
+const DUMPDIFF_TABLE_HEX_MAX: usize = 32;
+
+fn run_dumpdiff(args: DumpDiffArgs) -> Result<()> {
+    let base = parse_u64(&args.base).ok_or_else(|| {
+        anyhow!(
+            "invalid base '{}' (use 0x-prefixed hex or decimal)",
+            args.base
+        )
+    })?;
+    let old = std::fs::read(&args.old).with_context(|| format!("cannot read '{}'", args.old))?;
+    let new = std::fs::read(&args.new).with_context(|| format!("cannot read '{}'", args.new))?;
+    let longest = old.len().max(new.len()) as u64;
+    if base.checked_add(longest).is_none() {
+        bail!("base {base:#x} + dump length {longest} overflows the 64-bit address space");
+    }
+
+    let diff = spectre_core::diff_dumps(&old, &new);
+    info!(
+        "dumpdiff: {} region(s), {} changed byte(s)",
+        diff.changed_count(),
+        diff.changed_bytes()
+    );
+
+    let text = if args.json {
+        serde_json::to_string_pretty(&dumpdiff_to_json(
+            &diff,
+            base,
+            (&args.old, old.len()),
+            (&args.new, new.len()),
+        ))?
+    } else {
+        render_dumpdiff_table(&diff, base, old.len(), new.len())
+    };
+    println!("{text}");
+    Ok(())
+}
+
+fn render_dumpdiff_table(
+    diff: &spectre_core::DumpDiff,
+    base: u64,
+    old_len: usize,
+    new_len: usize,
+) -> String {
+    let mut lines = vec![format!(
+        "{} changed region(s), {} changed byte(s)  (old: {old_len} bytes, new: {new_len} bytes)",
+        diff.changed_count(),
+        diff.changed_bytes()
+    )];
+    for r in diff.regions() {
+        lines.push(format!(
+            "0x{:X}  old: {}  new: {}",
+            base + r.offset as u64,
+            hex_preview(&r.old_bytes, DUMPDIFF_TABLE_HEX_MAX),
+            hex_preview(&r.new_bytes, DUMPDIFF_TABLE_HEX_MAX)
+        ));
+    }
+    lines.join("\n")
+}
+
+fn dumpdiff_to_json(
+    diff: &spectre_core::DumpDiff,
+    base: u64,
+    (old_path, old_len): (&str, usize),
+    (new_path, new_len): (&str, usize),
+) -> serde_json::Value {
+    serde_json::json!({
+        "old": { "path": old_path, "len": old_len },
+        "new": { "path": new_path, "len": new_len },
+        "base": format!("{base:#x}"),
+        "region_count": diff.changed_count(),
+        "changed_bytes": diff.changed_bytes(),
+        "regions": diff.regions().iter().map(|r| {
+            serde_json::json!({
+                "offset": r.offset,
+                "address": format!("{:#x}", base + r.offset as u64),
+                "len": r.len(),
+                "changed_bytes": r.changed_bytes(),
+                "old": hex_bytes(&r.old_bytes),
+                "new": hex_bytes(&r.new_bytes),
+            })
+        }).collect::<Vec<_>>(),
+    })
 }
 
 // ── Find Implementation ──────────────────────────────────────────────────────
@@ -1636,6 +1772,48 @@ mod tests {
         assert!(parse_search_value("u32", "abc").is_err());
         assert!(parse_search_value("f32", "not-a-float").is_err());
         assert!(parse_search_value("strange", "1").is_err());
+    }
+
+    #[test]
+    fn hex_bytes_formats_space_separated_pairs() {
+        assert_eq!(hex_bytes(&[]), "");
+        assert_eq!(hex_bytes(&[0x00]), "00");
+        assert_eq!(hex_bytes(&[0xde, 0xad, 0xbe, 0xef]), "de ad be ef");
+    }
+
+    #[test]
+    fn hex_preview_truncates_long_input() {
+        assert_eq!(hex_preview(&[], 4), "-");
+        assert_eq!(hex_preview(&[1, 2, 3, 4], 4), "01 02 03 04");
+        assert_eq!(hex_preview(&[1, 2, 3, 4, 5], 4), "01 02 03 04 …(5 bytes)");
+    }
+
+    #[test]
+    fn dumpdiff_table_adds_base_to_offsets() {
+        let old = vec![0u8; 64];
+        let mut new = old.clone();
+        new[0x10] = 0xAB;
+        let diff = spectre_core::diff_dumps(&old, &new);
+        let text = render_dumpdiff_table(&diff, 0x7FF0000, old.len(), new.len());
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[0].starts_with("1 changed region(s), 1 changed byte(s)"));
+        assert_eq!(lines[1], "0x7FF0010  old: 00  new: ab");
+    }
+
+    #[test]
+    fn dumpdiff_json_has_offset_address_and_full_hex() {
+        let old = vec![0u8; 8];
+        let new = vec![0xFFu8; 48];
+        let diff = spectre_core::diff_dumps(&old, &new);
+        let v = dumpdiff_to_json(&diff, 0x1000, ("a.bin", 8), ("b.bin", 48));
+        assert_eq!(v["region_count"], 1);
+        let r = &v["regions"][0];
+        assert_eq!(r["offset"], 0);
+        assert_eq!(r["address"], "0x1000");
+        assert_eq!(r["len"], 48);
+        // JSON is never truncated.
+        assert_eq!(r["new"].as_str().unwrap(), hex_bytes(&new));
     }
 
     #[test]

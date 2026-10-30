@@ -4,6 +4,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::cron::{CronSchedule, parse_cron};
+
 // ── Logging ─────────────────────────────────────────────────────────────────
 
 /// Log severity levels.
@@ -238,7 +240,8 @@ pub enum BotAction {
 /// A named, schedulable task consisting of a sequence of actions.
 ///
 /// Tasks are the top-level unit of bot configuration. Each task runs
-/// independently on a configurable interval and can be toggled on/off.
+/// independently — either on a fixed `interval_ms` or, when `schedule` is
+/// set, on a cron-style schedule — and can be toggled on/off.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BotTask {
     /// Human-readable name for the task (used in logs and debugging).
@@ -246,14 +249,36 @@ pub struct BotTask {
     /// The action tree to execute.
     pub actions: Vec<BotAction>,
     /// Interval between task executions in milliseconds.
+    /// `0` (or omitted) means "use the config's `default_interval_ms`".
+    /// Ignored for firing when `schedule` is set.
+    #[serde(default)]
     pub interval_ms: u32,
     /// Whether this task is enabled at startup.
     pub enabled: bool,
     /// Optional guard conditions; the task only runs when ALL evaluate true.
     pub conditions: Vec<BotCondition>,
+    /// Optional five-field cron expression (`minute hour day month weekday`,
+    /// local time), e.g. `"*/15 * * * *"`. When set, the task fires at most
+    /// once per matching minute instead of every `interval_ms`.
+    /// See [`crate::cron`] for the supported syntax.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schedule: Option<String>,
 }
 
 impl BotTask {
+    /// Parse this task's `schedule`, if any.
+    ///
+    /// Errors name the task so a bad expression in a config file is easy
+    /// to locate.
+    pub fn cron_schedule(&self) -> anyhow::Result<Option<CronSchedule>> {
+        match &self.schedule {
+            None => Ok(None),
+            Some(expr) => parse_cron(expr)
+                .map(Some)
+                .map_err(|e| anyhow::anyhow!("task '{}': {:#}", self.name, e)),
+        }
+    }
+
     /// Check whether all guard conditions pass given the raw field values.
     ///
     /// `field_values` maps field name → raw bytes as read from process memory.

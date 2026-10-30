@@ -99,9 +99,25 @@ impl BotConfig {
     }
 
     /// Load a `BotConfig` from a YAML string.
+    ///
+    /// The config is [validated](BotConfig::validate) after parsing, so an
+    /// invalid cron `schedule` fails here with an error naming the task.
     pub fn from_yaml(yaml_text: &str) -> anyhow::Result<BotConfig> {
-        serde_yaml::from_str::<BotConfig>(yaml_text)
-            .map_err(|e| anyhow::anyhow!("failed to parse bot config: {}", e))
+        let config = serde_yaml::from_str::<BotConfig>(yaml_text)
+            .map_err(|e| anyhow::anyhow!("failed to parse bot config: {}", e))?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Check semantic constraints that serde cannot express.
+    ///
+    /// Currently: every task `schedule` must be a valid cron expression.
+    pub fn validate(&self) -> anyhow::Result<()> {
+        for task in &self.tasks {
+            task.cron_schedule()
+                .map_err(|e| anyhow::anyhow!("invalid bot config: {:#}", e))?;
+        }
+        Ok(())
     }
 
     /// Load a `BotConfig` from a YAML file on disk.
@@ -149,5 +165,37 @@ mod tests {
         assert_eq!(cfg.tasks.len(), 0);
         assert_eq!(cfg.input_backend, "adb");
         assert!(cfg.enabled);
+    }
+
+    #[test]
+    fn schedule_parses_and_interval_is_optional() {
+        let yaml = "tasks:\n  - name: daily\n    enabled: true\n    schedule: \"0 */6 * * *\"\n    conditions: []\n    actions: []\n";
+        let cfg = BotConfig::from_yaml(yaml).unwrap();
+        let task = &cfg.tasks[0];
+        assert_eq!(task.schedule.as_deref(), Some("0 */6 * * *"));
+        assert_eq!(task.interval_ms, 0);
+        assert!(task.cron_schedule().unwrap().is_some());
+
+        // Round-trip keeps the schedule; tasks without one omit the key.
+        let back = BotConfig::from_yaml(&cfg.to_yaml().unwrap()).unwrap();
+        assert_eq!(cfg, back);
+        let mut plain = cfg.clone();
+        plain.tasks[0].schedule = None;
+        assert!(!plain.to_yaml().unwrap().contains("schedule"));
+    }
+
+    #[test]
+    fn invalid_schedule_fails_at_load_naming_the_task() {
+        let yaml = "tasks:\n  - name: broken-task\n    enabled: true\n    schedule: \"*/0 * * * *\"\n    conditions: []\n    actions: []\n";
+        let err = format!("{:#}", BotConfig::from_yaml(yaml).unwrap_err());
+        assert!(err.contains("broken-task"), "{err}");
+        assert!(err.contains("*/0 * * * *"), "{err}");
+    }
+
+    #[test]
+    fn example_config_loads() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/bot-config.yaml");
+        let cfg = BotConfig::from_yaml_file(path).unwrap();
+        assert!(cfg.tasks.iter().any(|t| t.schedule.is_some()));
     }
 }

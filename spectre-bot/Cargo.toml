@@ -11,3 +11,4 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }
+chrono = { workspace = true }

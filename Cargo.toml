@@ -27,6 +27,7 @@ serde_json = "^1"
 structopt = "0.3"
 mlua = "0.12"
 quest = "0.3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 spectre-core = { path = "spectre-core" }
 spectre-adb = { path = "spectre-adb" }
 spectre-native = { path = "spectre-native" }

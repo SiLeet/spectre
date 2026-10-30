@@ -10,6 +10,7 @@
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
+//!   spectre serve [--port P] [--adb [--adb-host H] [--adb-port P]]
 //!   spectre adb list | adb ping [serial]
 //!
 //! Global flags: --version, --verbose (repeat for more detail).
@@ -81,6 +82,10 @@ pub enum SubCommand {
     /// Show version and available backend info.
     #[structopt(about = "Show version and available backends")]
     Info(InfoArgs),
+
+    /// Serve the read-only web dashboard on 127.0.0.1.
+    #[structopt(about = "Start the read-only web dashboard (127.0.0.1 only)")]
+    Serve(ServeArgs),
 
     /// ADB device management.
     #[structopt(about = "ADB device management")]
@@ -307,6 +312,38 @@ pub struct InfoArgs {
     pub json: bool,
 }
 
+// ── Serve Command ────────────────────────────────────────────────────────────
+
+#[derive(StructOpt)]
+pub struct ServeArgs {
+    /// Port to listen on; always bound to 127.0.0.1 (0 = pick a free port).
+    #[structopt(short = "p", long = "port", default_value = "8787")]
+    pub port: u16,
+
+    /// Use ADB backend instead of native.
+    #[structopt(long = "adb")]
+    pub adb: bool,
+
+    /// ADB host (default: localhost).
+    #[structopt(long = "adb-host")]
+    pub adb_host: Option<String>,
+
+    /// ADB port (default: 5555).
+    #[structopt(long = "adb-port")]
+    pub adb_port: Option<u16>,
+}
+
+/// Run the read-only web dashboard on 127.0.0.1:<port> until Ctrl+C.
+fn run_serve(args: ServeArgs) -> Result<()> {
+    let reader: std::sync::Arc<dyn MemoryReader> =
+        create_reader(args.adb, args.adb_host, args.adb_port)?.into();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("failed to create tokio runtime")?;
+    rt.block_on(spectre_web::DashboardApp::new(reader).serve(args.port))
+}
+
 // ── Adb Command ──────────────────────────────────────────────────────────────
 
 #[derive(StructOpt)]
@@ -346,6 +383,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Search(cmd)) => run_search(cmd),
         Some(SubCommand::Script(cmd)) => run_script(cmd),
         Some(SubCommand::Info(cmd)) => run_info(cmd),
+        Some(SubCommand::Serve(cmd)) => run_serve(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
         Some(SubCommand::DumpDiff(cmd)) => run_dumpdiff(cmd),
         None => {

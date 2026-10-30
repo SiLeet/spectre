@@ -1,0 +1,21 @@
+[package]
+name = "spectre-web"
+description = "Read-only local web dashboard for Spectre (`spectre serve`)"
+version = "0.2.0"
+edition = "2024"
+
+# The memory reader is injected as `Arc<dyn MemoryReader>`; this crate never
+# depends on spectre-native / spectre-adb directly and contains no
+# platform-specific code, so it builds on Linux and Windows alike.
+
+[dependencies]
+spectre-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tower = { workspace = true }

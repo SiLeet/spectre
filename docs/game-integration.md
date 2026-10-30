@@ -75,6 +75,33 @@ Finding offsets is the hard part. Common approaches:
 - Use `spectre dump` to explore memory from that pointer
 - Map out the structure fields
 
+`spectre chain` does the dereferencing for you. Without offsets it follows
+raw pointers from an address and tells you where and why the chain ends
+(NULL, a cycle, unreadable memory, or `--depth`):
+
+```bash
+spectre chain 0x7ff0000 --pid <pid> --depth 8
+```
+
+Once you know the offsets, resolve the full path. Each offset is added before
+its dereference, the start address itself is *not* dereferenced, and the last
+offset gives the final field address (`[[0x7ff0000+0x10]+0x8]+0x30`):
+
+```bash
+spectre chain 0x7ff0000 --pid <pid> --offsets 0x10,0x8,0x30
+```
+
+Cheat Engine pointer paths dereference the base first (`[[base]+o0]+o1`), so
+copy a CE path `base -> [o0, o1, ..]` with a leading `0` offset:
+
+```bash
+spectre chain <base> --pid <pid> --offsets 0,<o0>,<o1>
+```
+
+Re-run it after restarting the game: if `resolved` still points at the value
+you found with `search`, the chain is stable enough for `offsets.yaml`. See
+[`chain` in the CLI reference](cli-reference.md#chain) for the output format.
+
 **c. Diff-based discovery:**
 - Dump memory before and after an action (e.g. gaining gold)
 - Diff the dumps to identify changed bytes

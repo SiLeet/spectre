@@ -122,8 +122,10 @@ pub trait MemoryReader: Send + Sync + Debug {
 
     // ── Pointer Chains ────────────────────────────────────────────────
 
-    /// Follow: read pointer at base, add offset, read next pointer, ...
-    /// Return the final address (or the base if `offsets` is empty).
+    /// Follow: add offset to base, read pointer there, add next offset, ...
+    /// The last `base + offset` address is read (must be readable) but not
+    /// followed; it is returned. Returns the base if `offsets` is empty.
+    /// See [`crate::chain::follow`] for a step-recording variant.
     fn resolve_ptr_chain(
         &self,
         pid: u32,

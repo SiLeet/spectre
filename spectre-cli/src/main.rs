@@ -5,6 +5,8 @@
 //!                       [--adb [--adb-host H] [--adb-port P]]
 //!   spectre dump <pid> <address> <size> [--output PATH] [--format hex|raw|ascii] [--adb]
 //!   spectre dumpdiff <old> <new> [--base ADDR] [--json]
+//!   spectre chain <address> (--pid P | --name N) [--offsets O1,O2,..|--depth N] [--big-endian]
+//!                 [--json] [--adb]
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
@@ -92,6 +94,10 @@ pub enum SubCommand {
         about = "Compare two raw dump files and show changed offsets"
     )]
     DumpDiff(DumpDiffArgs),
+
+    /// Walk a pointer chain from an address.
+    #[structopt(about = "Follow a pointer chain from an address")]
+    Chain(ChainArgs),
 }
 
 // ── Scan Command ─────────────────────────────────────────────────────────────
@@ -348,6 +354,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Info(cmd)) => run_info(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
         Some(SubCommand::DumpDiff(cmd)) => run_dumpdiff(cmd),
+        Some(SubCommand::Chain(cmd)) => run_chain(cmd),
         None => {
             eprintln!("error: a subcommand is required; run `spectre --help` for usage");
             return ExitCode::from(2);
@@ -1695,6 +1702,287 @@ fn run_search(args: SearchArgs) -> Result<()> {
     }
     println!("-- {} result(s), saved to {state_path}", found.len());
     Ok(())
+}
+
+// ── Chain Command ────────────────────────────────────────────────────────────
+
+#[derive(StructOpt)]
+pub struct ChainArgs {
+    /// PID of the target process (auto-detected from --name if omitted).
+    #[structopt(short = "p", long = "pid", required_unless = "name")]
+    pub pid: Option<u32>,
+
+    /// Process name substring used to auto-detect the PID when --pid is not given.
+    #[structopt(short = "n", long = "name")]
+    pub name: Option<String>,
+
+    /// Start address (hex with 0x prefix, or decimal).
+    #[structopt(name = "address")]
+    pub address: String,
+
+    /// Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the start
+    /// address itself is not dereferenced and the last address is read but not followed. For a
+    /// Cheat Engine path prepend a 0 offset. Without it, raw pointers are followed until NULL, a
+    /// cycle, unreadable memory, or --depth.
+    #[structopt(long = "offsets")]
+    pub offsets: Option<String>,
+
+    /// Maximum number of dereferences when --offsets is not given.
+    #[structopt(long = "depth", default_value = "16")]
+    pub depth: u32,
+
+    /// Read pointers as big-endian (default: little-endian).
+    #[structopt(long = "big-endian")]
+    pub big_endian: bool,
+
+    /// Output as JSON.
+    #[structopt(long = "json")]
+    pub json: bool,
+
+    /// Use ADB backend.
+    #[structopt(long = "adb")]
+    pub adb: bool,
+}
+
+fn run_chain(args: ChainArgs) -> Result<()> {
+    let address = parse_u64(&args.address).ok_or_else(|| {
+        anyhow!(
+            "invalid address '{}' (use 0x-prefixed hex or decimal)",
+            args.address
+        )
+    })?;
+    let offsets = args.offsets.as_deref().map(parse_offset_list).transpose()?;
+    let little = !args.big_endian;
+
+    let reader = create_reader(args.adb, None, None)?;
+    let pid = resolve_pid(reader.as_ref(), args.name.as_deref().unwrap_or_default(), args.pid)?;
+    let chain = match &offsets {
+        Some(offsets) => {
+            debug!(
+                "following {} offset(s) from {address:#x} in pid {pid}",
+                offsets.len()
+            );
+            spectre_core::follow(reader.as_ref(), pid, address, offsets, little)?
+        }
+        None => {
+            debug!(
+                "following raw pointers from {address:#x} in pid {pid} (depth {})",
+                args.depth
+            );
+            spectre_core::follow_until_end(reader.as_ref(), pid, address, args.depth, little)?
+        }
+    };
+
+    // Not even the first read worked: a bad PID, missing permissions or a
+    // wrong start address. Fail like `dump` does instead of printing an
+    // empty chain.
+    if let (spectre_core::ChainStop::Unreadable { address: at }, true) =
+        (chain.stop, chain.steps.is_empty())
+    {
+        let cause = chain.read_error.as_deref().unwrap_or("read failed");
+        bail!("failed to read pointer at {at:#x} in pid {pid}: {cause}");
+    }
+
+    let raw = offsets.is_none();
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&chain_to_json(&chain, pid))?);
+    } else {
+        print!("{}", render_chain(&chain, pid, raw));
+    }
+    Ok(())
+}
+
+/// Parse `--offsets` ("0x10,0x8,24") into a list; every entry must parse.
+fn parse_offset_list(s: &str) -> Result<Vec<u64>> {
+    s.split(',')
+        .map(|part| {
+            parse_u64(part).ok_or_else(|| {
+                anyhow!(
+                    "invalid offset '{}' in --offsets (use 0x-prefixed hex or decimal)",
+                    part.trim()
+                )
+            })
+        })
+        .collect()
+}
+
+/// Human-readable chain: one line per dereference, then stop reason and result.
+///
+/// `raw` selects the step format: raw walks (no `--offsets`) print
+/// `*address = value`, offset walks always print
+/// `pointer + offset -> *address = value`, even for a 0 offset.
+fn render_chain(chain: &spectre_core::PointerChain, pid: u32, raw: bool) -> String {
+    let mut out = format!("pointer chain from {:#x} (pid {pid})\n", chain.base);
+    for (i, s) in chain.steps.iter().enumerate() {
+        if raw {
+            out.push_str(&format!("  [{i}] *{:#x} = {:#x}\n", s.address, s.value));
+        } else {
+            out.push_str(&format!(
+                "  [{i}] {:#x} + {:#x} -> *{:#x} = {:#x}\n",
+                s.pointer, s.offset, s.address, s.value
+            ));
+        }
+    }
+    let resolved = chain.resolved.map_or_else(|| "-".to_owned(), |a| format!("{a:#x}"));
+    out.push_str(&format!("stop:     {}\n", chain.stop));
+    if let Some(err) = &chain.read_error {
+        out.push_str(&format!("error:    {err}\n"));
+    }
+    out.push_str(&format!("resolved: {resolved}\n"));
+    out
+}
+
+/// JSON form of a chain; addresses are 0x-hex strings, `resolved` may be null.
+fn chain_to_json(chain: &spectre_core::PointerChain, pid: u32) -> serde_json::Value {
+    use spectre_core::ChainStop;
+
+    let hex = |a: u64| format!("{a:#x}");
+    let stop = match chain.stop {
+        ChainStop::Complete => serde_json::json!({"reason": "complete"}),
+        ChainStop::Null => serde_json::json!({"reason": "null"}),
+        ChainStop::MaxDepth => serde_json::json!({"reason": "max_depth"}),
+        ChainStop::Unreadable { address } => serde_json::json!({
+            "reason": "unreadable",
+            "address": hex(address),
+            "error": chain.read_error,
+        }),
+        ChainStop::Cycle { address } => {
+            serde_json::json!({"reason": "cycle", "address": hex(address)})
+        }
+    };
+    serde_json::json!({
+        "pid": pid,
+        "base": hex(chain.base),
+        "offsets": chain.offsets.iter().map(|&o| hex(o)).collect::<Vec<_>>(),
+        "steps": chain
+            .steps
+            .iter()
+            .map(|s| serde_json::json!({
+                "pointer": hex(s.pointer),
+                "offset": hex(s.offset),
+                "address": hex(s.address),
+                "value": hex(s.value),
+            }))
+            .collect::<Vec<_>>(),
+        "stop": stop,
+        "resolved": chain.resolved.map(hex),
+    })
+}
+
+#[cfg(test)]
+mod chain_tests {
+    use super::*;
+    use spectre_core::{ChainStep, ChainStop, PointerChain};
+
+    fn sample() -> PointerChain {
+        PointerChain {
+            base: 0x1000,
+            offsets: vec![0x10, 0x8],
+            steps: vec![
+                ChainStep { pointer: 0x1000, offset: 0x10, address: 0x1010, value: 0x2000 },
+                ChainStep { pointer: 0x2000, offset: 0x8, address: 0x2008, value: 0x2a },
+            ],
+            resolved: Some(0x2008),
+            stop: ChainStop::Complete,
+            read_error: None,
+        }
+    }
+
+    #[test]
+    fn offset_list_parses_hex_and_decimal() {
+        assert_eq!(parse_offset_list("0x10, 0x8,24").unwrap(), vec![0x10, 0x8, 24]);
+        assert!(parse_offset_list("0x10,,0x8").is_err());
+        assert!(parse_offset_list("0xZZ").is_err());
+    }
+
+    #[test]
+    fn chain_renders_steps_stop_and_result() {
+        let text = render_chain(&sample(), 42, false);
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(
+            lines,
+            vec![
+                "pointer chain from 0x1000 (pid 42)",
+                "  [0] 0x1000 + 0x10 -> *0x1010 = 0x2000",
+                "  [1] 0x2000 + 0x8 -> *0x2008 = 0x2a",
+                "stop:     complete (all offsets applied)",
+                "resolved: 0x2008",
+            ]
+        );
+    }
+
+    #[test]
+    fn raw_walk_renders_without_offsets() {
+        let chain = PointerChain {
+            base: 0x1000,
+            offsets: vec![0],
+            steps: vec![ChainStep { pointer: 0x1000, offset: 0, address: 0x1000, value: 0x1000 }],
+            resolved: Some(0x1000),
+            stop: ChainStop::Cycle { address: 0x1000 },
+            read_error: None,
+        };
+        let text = render_chain(&chain, 1, true);
+        assert!(text.contains("  [0] *0x1000 = 0x1000\n"));
+        assert!(text.contains("stop:     cycle (0x1000 already visited)\n"));
+        assert!(!text.contains("error:"));
+    }
+
+    #[test]
+    fn offset_walk_keeps_long_form_for_zero_offset() {
+        let mut chain = sample();
+        chain.offsets.insert(0, 0);
+        chain.steps.insert(
+            0,
+            ChainStep { pointer: 0x1000, offset: 0, address: 0x1000, value: 0x1000 },
+        );
+        let text = render_chain(&chain, 42, false);
+        assert!(text.contains("  [0] 0x1000 + 0x0 -> *0x1000 = 0x1000\n"), "{text}");
+        assert!(!text.contains("  [0] *0x1000"));
+    }
+
+    #[test]
+    fn unreadable_stop_shows_read_error() {
+        let mut chain = sample();
+        chain.steps.truncate(1);
+        chain.resolved = None;
+        chain.stop = ChainStop::Unreadable { address: 0x2008 };
+        chain.read_error = Some("ReadProcessMemory failed".to_owned());
+        let text = render_chain(&chain, 42, false);
+        assert!(text.contains("stop:     unreadable memory at 0x2008\n"));
+        assert!(text.contains("error:    ReadProcessMemory failed\n"));
+        let v = chain_to_json(&chain, 42);
+        assert_eq!(v["stop"]["error"], "ReadProcessMemory failed");
+    }
+
+    #[test]
+    fn chain_args_need_pid_or_name() {
+        let args = ChainArgs::from_iter_safe(["chain", "0x1000", "--name", "game"]).unwrap();
+        assert_eq!(args.pid, None);
+        assert_eq!(args.name.as_deref(), Some("game"));
+        let args = ChainArgs::from_iter_safe(["chain", "-p", "42", "0x1000"]).unwrap();
+        assert_eq!(args.pid, Some(42));
+        assert!(ChainArgs::from_iter_safe(["chain", "0x1000"]).is_err());
+    }
+
+    #[test]
+    fn chain_json_uses_hex_strings_and_stop_reason() {
+        let v = chain_to_json(&sample(), 42);
+        assert_eq!(v["pid"], 42);
+        assert_eq!(v["base"], "0x1000");
+        assert_eq!(v["offsets"][1], "0x8");
+        assert_eq!(v["steps"][0]["address"], "0x1010");
+        assert_eq!(v["steps"][1]["value"], "0x2a");
+        assert_eq!(v["stop"]["reason"], "complete");
+        assert_eq!(v["resolved"], "0x2008");
+
+        let mut broken = sample();
+        broken.resolved = None;
+        broken.stop = ChainStop::Unreadable { address: 0xdead };
+        let v = chain_to_json(&broken, 42);
+        assert_eq!(v["stop"]["reason"], "unreadable");
+        assert_eq!(v["stop"]["address"], "0xdead");
+        assert!(v["resolved"].is_null());
+    }
 }
 
 

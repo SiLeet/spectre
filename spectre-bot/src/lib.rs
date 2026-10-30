@@ -9,9 +9,13 @@ pub mod actions;
 pub mod config;
 pub mod engine;
 pub mod scheduler;
+#[cfg(windows)]
+pub mod wininput;
 
 // Re-export key types at the crate root for convenience.
 pub use actions::{BotAction, BotCondition, BotTask, ComparisonOp, LogLevel, ValueSpec};
 pub use config::BotConfig;
 pub use engine::{ActionContext, ActionResult, BotEngine, HookRegistry, InputSimulator};
 pub use scheduler::TaskScheduler;
+#[cfg(windows)]
+pub use wininput::WindowsInput;

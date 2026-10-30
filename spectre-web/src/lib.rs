@@ -30,8 +30,9 @@
 //!   checks) so that websites cannot reach the API through DNS rebinding or
 //!   blind cross-site requests. CORS is off unless origins are allow-listed
 //!   with [`DashboardApp::with_allowed_origins`]; `*` is never sent.
-//! - `/api/read` and `/api/search` are rate-limited per client IP
-//!   ([`RateLimit`], default [`DEFAULT_RATE_LIMIT`] per minute).
+//! - `/api/read` and `/api/search` are rate-limited per client
+//!   ([`RateLimit`], default [`DEFAULT_RATE_LIMIT`] per minute); all loopback
+//!   peers share one budget.
 //! - Searches are limited to [`MAX_CONCURRENT_SEARCHES`] at a time and stop
 //!   reading memory once their client disconnects.
 //! - Every response carries security headers (`Content-Security-Policy`,
@@ -124,8 +125,9 @@ impl DashboardApp {
         }
     }
 
-    /// Limit `/api/read` + `/api/search` to `limit` per client IP (replaces
-    /// the limiter, i.e. resets all counters).
+    /// Limit `/api/read` + `/api/search` to `limit` per client, with all
+    /// loopback peers counting as one (replaces the limiter, i.e. resets all
+    /// counters).
     pub fn with_rate_limit(mut self, limit: RateLimit) -> Self {
         self.limiter = Arc::new(RateLimiter::new(limit, Arc::clone(&self.clock)));
         self

@@ -788,9 +788,13 @@ async fn memory_endpoints_allow_n_then_block_until_window_resets() {
         assert_eq!(status, StatusCode::OK, "{uri}");
     }
 
-    // Another client has its own budget.
+    // Every loopback peer shares that budget: another 127.x source address,
+    // or a request without a peer address, does not get a fresh one.
     let (status, _, _) = request(router(app.clone()), from_ip(READ_URI, [127, 0, 0, 2])).await;
-    assert_eq!(status, StatusCode::OK);
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let no_peer = build(Method::GET, READ_URI, &[("host", "127.0.0.1:8787")]);
+    let (status, _, _) = request(router(app.clone()), no_peer).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
 
     // Still blocked within the window, with a shrinking Retry-After...
     clock.advance(Duration::from_secs(45));

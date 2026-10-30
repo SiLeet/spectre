@@ -1,10 +1,14 @@
 //! Per-client, in-memory rate limiting for the memory endpoints.
 //!
 //! `/api/read` and `/api/search` touch target-process memory, so each client
-//! IP may only issue [`RateLimit::max_requests`] of them per
+//! may only issue [`RateLimit::max_requests`] of them per
 //! [`RateLimit::window`] (default: [`DEFAULT_RATE_LIMIT`] per minute). Both
 //! endpoints share one budget per client. Requests over the limit get a JSON
 //! 429 with a `Retry-After` header.
+//!
+//! The server is loopback-only, so all loopback peers (any `127.0.0.0/8`
+//! address or `::1`) count as one client; picking another source address
+//! does not buy a fresh budget.
 //!
 //! The limiter uses fixed windows: a client's window starts with its first
 //! request and its counter resets once the window has elapsed. Time comes from
@@ -255,20 +259,37 @@ impl RateLimiter {
     }
 }
 
-/// Middleware: apply `limiter` to the request's client IP.
+/// The budget key for a request from `peer`.
 ///
-/// The IP comes from axum's `ConnectInfo<SocketAddr>` (set by
-/// [`crate::BoundServer::run_until`]). Requests without it — a router driven
-/// directly, e.g. in tests — share one bucket keyed `0.0.0.0`.
+/// Every loopback peer (all of `127.0.0.0/8`, `::1` and IPv4-mapped loopback)
+/// maps to one shared key, `127.0.0.1`. The server only accepts loopback
+/// connections, so keying by the exact address would protect nothing and
+/// would let a local process bind `127.0.0.2`, `127.0.0.3`, ... for a fresh
+/// budget each. A missing peer — a router driven directly, e.g. in tests —
+/// shares that same key. Any other address keeps its own budget.
+fn client_key(peer: Option<SocketAddr>) -> IpAddr {
+    const LOOPBACK: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
+    match peer.map(|addr| addr.ip().to_canonical()) {
+        Some(ip) if !ip.is_loopback() => ip,
+        _ => LOOPBACK,
+    }
+}
+
+/// Middleware: apply `limiter` to the request's client.
+///
+/// The peer comes from axum's `ConnectInfo<SocketAddr>` (set by
+/// [`crate::BoundServer::run_until`]) and is keyed by [`client_key`], so all
+/// loopback clients share one budget.
 pub(crate) async fn limit_requests(
     State(limiter): State<Arc<RateLimiter>>,
     req: Request,
     next: Next,
 ) -> Response {
-    let client = req
-        .extensions()
-        .get::<ConnectInfo<SocketAddr>>()
-        .map_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED), |c| c.0.ip());
+    let client = client_key(
+        req.extensions()
+            .get::<ConnectInfo<SocketAddr>>()
+            .map(|c| c.0),
+    );
 
     match limiter.check(client) {
         Decision::Allowed => next.run(req).await,
@@ -397,6 +418,47 @@ mod tests {
             assert_eq!(limiter.check(ip(2)), Decision::Allowed);
         }
         assert!(matches!(limiter.check(ip(2)), Decision::Limited { .. }));
+    }
+
+    #[test]
+    fn loopback_peers_share_one_budget() {
+        let (limiter, _) = limiter(16);
+        let peer = |ip: &str| Some(SocketAddr::new(ip.parse().unwrap(), 40_000));
+        for _ in 0..N {
+            assert_eq!(
+                limiter.check(client_key(peer("127.0.0.1"))),
+                Decision::Allowed
+            );
+        }
+        // Other loopback source addresses do not get a fresh budget.
+        for other in ["127.0.0.2", "127.255.0.9", "::1", "::ffff:127.0.0.3"] {
+            assert!(
+                matches!(
+                    limiter.check(client_key(peer(other))),
+                    Decision::Limited { .. }
+                ),
+                "{other} bypassed the shared loopback budget"
+            );
+        }
+        assert!(matches!(
+            limiter.check(client_key(None)),
+            Decision::Limited { .. }
+        ));
+        // A non-loopback peer would still be tracked on its own.
+        assert_eq!(limiter.check(client_key(peer("10.0.0.1"))), Decision::Allowed);
+    }
+
+    #[test]
+    fn client_keys() {
+        let key = |ip: &str| client_key(Some(SocketAddr::new(ip.parse().unwrap(), 1)));
+        let loopback = IpAddr::V4(Ipv4Addr::LOCALHOST);
+        assert_eq!(key("127.0.0.1"), loopback);
+        assert_eq!(key("127.0.0.2"), loopback);
+        assert_eq!(key("::1"), loopback);
+        assert_eq!(key("::ffff:127.1.2.3"), loopback);
+        assert_eq!(client_key(None), loopback);
+        assert_eq!(key("10.0.0.7"), ip(7));
+        assert_eq!(key("::ffff:10.0.0.7"), ip(7));
     }
 
     #[test]

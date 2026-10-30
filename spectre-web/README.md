@@ -52,14 +52,30 @@ Every API response is either
   `spectre search`.
 - `limit`: default **1000**, between 1 and **10000**. `truncated: true` means
   more matches exist than were returned.
+- At most **2** searches run at the same time; more return 429. A search stops
+  reading memory as soon as its client disconnects.
+
+### Access control
+
+Binding to 127.0.0.1 keeps other machines out but not other websites, which
+could reach the API through DNS rebinding or blind cross-site `GET`s. Every
+request is therefore checked:
+
+- `Host` must be `127.0.0.1`, `localhost` or `[::1]` (any port).
+- `Origin`, if sent, must be an `http://` origin on one of those hosts.
+- For `/api/*`, `Sec-Fetch-Site`, if sent, must be `same-origin` or `none`.
+
+Anything else is answered with 403.
 
 ### Errors
 
 | Status | When |
 |--------|------|
 | 400 | missing/invalid parameter, `size` or `limit` out of range, malformed query |
+| 403 | foreign `Host`, cross-origin `Origin` or cross-site `Sec-Fetch-Site` |
 | 404 | unknown route |
-| 405 | non-`GET` method on an API route |
+| 405 | non-`GET` method on an existing route (`Allow: GET,HEAD` is set) |
+| 429 | too many searches running at once |
 | 502 | the backend failed: unreadable address, unknown pid, ADB offline, ... |
 | 500 | unexpected internal failure |
 

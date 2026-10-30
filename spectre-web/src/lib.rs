@@ -10,11 +10,19 @@
 //! | `GET /api/processes[?name=S]` | all (or name-filtered) processes |
 //! | `GET /api/regions?pid=N[&perms=S]` | memory regions of a process |
 //! | `GET /api/read?pid=N&addr=A&type=T[&size=S][&endian=E]` | read one value |
-//! | `GET /api/search?pid=N&type=T&value=V[&limit=L]` | exact-value search |
+//! | `GET /api/search?pid=N&type=T&value=V[&limit=L][&endian=E]` | exact-value search |
 //!
 //! Every API response is `{ "ok": true, "data": ... }` or
 //! `{ "ok": false, "error": "..." }`. Error messages never contain backend
 //! details such as filesystem paths; those are only logged via `tracing`.
+//!
+//! # Access control
+//!
+//! Besides the loopback bind, every request passes a same-origin guard
+//! (`Host`, `Origin`, `Sec-Fetch-Site`) so that websites cannot reach the
+//! API through DNS rebinding or blind cross-site requests. Searches are
+//! limited to [`MAX_CONCURRENT_SEARCHES`] at a time and stop reading memory
+//! once their client disconnects.
 //!
 //! # Concurrency model
 //!
@@ -30,7 +38,9 @@
 //! [`router`] returns a plain [`axum::Router`] so callers (tests, or a later
 //! hardening layer) can drive it without a socket or wrap it in middleware.
 
+mod cancel;
 mod error;
+mod guard;
 mod params;
 mod routes;
 
@@ -42,6 +52,7 @@ use anyhow::{Context, Result};
 use axum::Router;
 use spectre_core::MemoryReader;
 use tokio::net::TcpListener;
+use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
 pub use error::ApiError;
@@ -57,22 +68,35 @@ pub const DEFAULT_READ_SIZE: u32 = 64;
 pub const DEFAULT_SEARCH_LIMIT: u32 = 1000;
 /// Hard upper bound for the `/api/search` `limit` parameter.
 pub const MAX_SEARCH_LIMIT: u32 = 10_000;
+/// Number of `/api/search` scans that may run at once; further searches are
+/// answered with 429 until one finishes.
+pub const MAX_CONCURRENT_SEARCHES: usize = 2;
 
-/// Shared state of the dashboard: the injected memory reader.
+/// Shared state of the dashboard: the injected memory reader and the
+/// search concurrency budget.
 #[derive(Debug, Clone)]
 pub struct DashboardApp {
     reader: Arc<dyn MemoryReader>,
+    search_slots: Arc<Semaphore>,
 }
 
 impl DashboardApp {
     /// Create a dashboard backed by `reader` (native, ADB, dump file, fake...).
     pub fn new(reader: Arc<dyn MemoryReader>) -> Self {
-        Self { reader }
+        Self {
+            reader,
+            search_slots: Arc::new(Semaphore::new(MAX_CONCURRENT_SEARCHES)),
+        }
     }
 
     /// The reader every request is served from.
     pub fn reader(&self) -> &Arc<dyn MemoryReader> {
         &self.reader
+    }
+
+    /// Permits for concurrently running searches.
+    pub(crate) fn search_slots(&self) -> &Arc<Semaphore> {
+        &self.search_slots
     }
 
     /// Bind `127.0.0.1:port` without serving yet. Port `0` picks a free port;

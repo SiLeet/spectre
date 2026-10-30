@@ -6,6 +6,8 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header};
@@ -123,12 +125,22 @@ fn app() -> DashboardApp {
 
 /// Send a request through the router; return status, content type and body.
 async fn send(method: Method, uri: &str) -> (StatusCode, String, Vec<u8>) {
-    let req = Request::builder()
-        .method(method)
-        .uri(uri)
-        .body(Body::empty())
-        .unwrap();
-    let res = router(app()).oneshot(req).await.unwrap();
+    send_to(router(app()), method, uri, &[]).await
+}
+
+/// Send a request with extra headers through `router`.
+async fn send_to(
+    router: axum::Router,
+    method: Method,
+    uri: &str,
+    headers: &[(&str, &str)],
+) -> (StatusCode, String, Vec<u8>) {
+    let mut req = Request::builder().method(method).uri(uri);
+    for (name, value) in headers {
+        req = req.header(*name, *value);
+    }
+    let req = req.body(Body::empty()).unwrap();
+    let res = router.oneshot(req).await.unwrap();
     let status = res.status();
     let ctype = res
         .headers()
@@ -145,13 +157,18 @@ async fn send(method: Method, uri: &str) -> (StatusCode, String, Vec<u8>) {
 /// GET a JSON endpoint and parse the body.
 async fn get_json(uri: &str) -> (StatusCode, Value) {
     let (status, ctype, body) = send(Method::GET, uri).await;
+    parse_json(uri, status, &ctype, &body)
+}
+
+/// Assert a JSON content type and parse `body`.
+fn parse_json(uri: &str, status: StatusCode, ctype: &str, body: &[u8]) -> (StatusCode, Value) {
     assert!(
         ctype.starts_with("application/json"),
         "{uri}: content-type {ctype}"
     );
     (
         status,
-        serde_json::from_slice(&body).expect("valid JSON body"),
+        serde_json::from_slice(body).expect("valid JSON body"),
     )
 }
 
@@ -196,8 +213,97 @@ async fn unknown_route_and_write_methods_are_rejected() {
     let (status, body) = get_json("/api/nope").await;
     expect_error(status, &body, StatusCode::NOT_FOUND);
 
-    let (status, _, _) = send(Method::POST, "/api/read?pid=1234&addr=0x10000&type=u32").await;
-    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    for (method, uri) in [
+        (Method::POST, "/api/read?pid=1234&addr=0x10000&type=u32"),
+        (Method::DELETE, "/api/search?pid=1234&type=u32&value=7"),
+        (Method::PUT, "/api/info"),
+    ] {
+        let router = router(app());
+        let req = Request::builder()
+            .method(method)
+            .uri(uri)
+            .body(Body::empty())
+            .unwrap();
+        let res = router.oneshot(req).await.unwrap();
+        let allow = res.headers().get(header::ALLOW).cloned();
+        let ctype = res
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default()
+            .to_owned();
+        let status = res.status();
+        let body = axum::body::to_bytes(res.into_body(), 1 << 20)
+            .await
+            .unwrap();
+        let (status, body) = parse_json(uri, status, &ctype, &body);
+        let msg = expect_error(status, &body, StatusCode::METHOD_NOT_ALLOWED);
+        assert!(msg.contains("GET"), "{msg}");
+        assert!(allow.is_some_and(|a| a.to_str().unwrap().contains("GET")));
+    }
+}
+
+// ── Same-origin guard ────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn foreign_host_is_rejected_dns_rebinding() {
+    for host in [
+        "evil.example",
+        "attacker.example:8787",
+        "rebind.attacker.example",
+    ] {
+        for uri in [
+            "/api/processes",
+            "/api/read?pid=1234&addr=0x10000&type=u32",
+            "/",
+        ] {
+            let (status, ctype, body) =
+                send_to(router(app()), Method::GET, uri, &[("host", host)]).await;
+            let (status, body) = parse_json(uri, status, &ctype, &body);
+            expect_error(status, &body, StatusCode::FORBIDDEN);
+        }
+    }
+
+    for host in ["127.0.0.1:8787", "localhost:8787", "[::1]:8787"] {
+        let (status, _, _) = send_to(
+            router(app()),
+            Method::GET,
+            "/api/processes",
+            &[("host", host)],
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{host}");
+    }
+}
+
+#[tokio::test]
+async fn cross_origin_and_cross_site_requests_are_rejected() {
+    let host = ("host", "127.0.0.1:8787");
+    for extra in [
+        ("origin", "https://evil.example"),
+        ("origin", "null"),
+        ("sec-fetch-site", "cross-site"),
+        ("sec-fetch-site", "same-site"),
+    ] {
+        let uri = "/api/search?pid=1234&type=u32&value=7";
+        let (status, ctype, body) = send_to(router(app()), Method::GET, uri, &[host, extra]).await;
+        let (status, body) = parse_json(uri, status, &ctype, &body);
+        expect_error(status, &body, StatusCode::FORBIDDEN);
+    }
+
+    // What the dashboard's own fetch() calls look like.
+    let (status, _, _) = send_to(
+        router(app()),
+        Method::GET,
+        "/api/search?pid=1234&type=u32&value=7",
+        &[
+            host,
+            ("origin", "http://127.0.0.1:8787"),
+            ("sec-fetch-site", "same-origin"),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
 }
 
 // ── /api/info, /api/processes, /api/regions ──────────────────────────────────
@@ -373,6 +479,137 @@ async fn search_rejects_bad_params() {
         let (status, body) = get_json(uri).await;
         expect_error(status, &body, StatusCode::BAD_REQUEST);
     }
+}
+
+// ── Search budget and cancellation ───────────────────────────────────────────
+
+/// Reader with `regions` small rw regions; every read sleeps `delay` and is
+/// counted, so tests can observe whether a scan is still running.
+#[derive(Debug)]
+struct SlowReader {
+    delay: Duration,
+    regions: u64,
+    reads: Arc<AtomicUsize>,
+}
+
+impl MemoryReader for SlowReader {
+    fn backend_kind(&self) -> BackendKind {
+        BackendKind::DumpFile
+    }
+
+    fn find_process(&self, _name: &str) -> anyhow::Result<Vec<ProcessInfo>> {
+        Ok(Vec::new())
+    }
+
+    fn list_processes(&self) -> anyhow::Result<Vec<ProcessInfo>> {
+        Ok(Vec::new())
+    }
+
+    fn memory_regions(&self, _pid: u32) -> anyhow::Result<Vec<MemoryRegion>> {
+        Ok((0..self.regions)
+            .map(|i| MemoryRegion {
+                start: BASE + i * 0x1000,
+                end: BASE + (i + 1) * 0x1000,
+                perms: "rw-p".to_owned(),
+                path: None,
+            })
+            .collect())
+    }
+
+    fn process_name(&self, _pid: u32) -> anyhow::Result<Option<String>> {
+        Ok(None)
+    }
+
+    fn read_bytes(&self, _pid: u32, _address: u64, size: u32) -> anyhow::Result<Vec<u8>> {
+        std::thread::sleep(self.delay);
+        self.reads.fetch_add(1, Ordering::SeqCst);
+        Ok(vec![0; size as usize])
+    }
+
+    fn scan(
+        &self,
+        pid: u32,
+        patterns: Vec<ScanPattern>,
+        little: bool,
+    ) -> anyhow::Result<Vec<ScanReport>> {
+        let config = ScanConfig {
+            little_endian: little,
+            ..Default::default()
+        };
+        scan_memory(self, pid, patterns, &config)
+    }
+}
+
+fn slow_app(delay: Duration, regions: u64) -> (DashboardApp, Arc<AtomicUsize>) {
+    let reads = Arc::new(AtomicUsize::new(0));
+    let reader = SlowReader {
+        delay,
+        regions,
+        reads: Arc::clone(&reads),
+    };
+    (DashboardApp::new(Arc::new(reader)), reads)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_searches_are_bounded() {
+    let (app, _) = slow_app(Duration::from_millis(400), 1);
+    let uri = "/api/search?pid=1&type=u32&value=1";
+
+    let running: Vec<_> = (0..spectre_web::MAX_CONCURRENT_SEARCHES)
+        .map(|_| tokio::spawn(send_to(router(app.clone()), Method::GET, uri, &[])))
+        .collect();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let (status, ctype, body) = send_to(router(app.clone()), Method::GET, uri, &[]).await;
+    let (status, body) = parse_json(uri, status, &ctype, &body);
+    let msg = expect_error(status, &body, StatusCode::TOO_MANY_REQUESTS);
+    assert!(msg.contains("too many searches"), "{msg}");
+
+    for task in running {
+        let (status, _, _) = task.await.unwrap();
+        assert_eq!(status, StatusCode::OK);
+    }
+    // Slots are released once the scans finish.
+    let (status, _, _) = send_to(router(app), Method::GET, uri, &[]).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn search_stops_when_client_disconnects() {
+    // 1000 regions × 20 ms ≈ 20 s if the scan were never cancelled.
+    let (app, reads) = slow_app(Duration::from_millis(20), 1000);
+    let server = app.bind(0).await.unwrap();
+    let addr = server.local_addr();
+    let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
+    let handle = tokio::spawn(server.run_until(async {
+        let _ = stop_rx.await;
+    }));
+
+    tokio::task::spawn_blocking(move || {
+        let mut stream = TcpStream::connect(addr).unwrap();
+        stream
+            .write_all(
+                b"GET /api/search?pid=1&type=u32&value=1 HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+            )
+            .unwrap();
+        std::thread::sleep(Duration::from_millis(200));
+        // Client gives up: close the connection without reading a response.
+    })
+    .await
+    .unwrap();
+
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let after_disconnect = reads.load(Ordering::SeqCst);
+    assert!(after_disconnect > 0, "scan never started");
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    let later = reads.load(Ordering::SeqCst);
+    assert_eq!(
+        later, after_disconnect,
+        "scan kept reading after the client disconnected"
+    );
+
+    stop_tx.send(()).unwrap();
+    handle.await.unwrap().unwrap();
 }
 
 // ── Real socket ──────────────────────────────────────────────────────────────

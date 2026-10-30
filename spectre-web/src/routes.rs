@@ -5,12 +5,14 @@
 //! endpoints) and [`memory_routes`] (endpoints that read process memory —
 //! the natural place for rate limiting).
 
+use std::sync::Arc;
+
 use axum::extract::rejection::QueryRejection;
 use axum::extract::{Query, State};
 use axum::http::header;
 use axum::response::{Html, IntoResponse};
 use axum::routing::get;
-use axum::{Json, Router};
+use axum::{Json, Router, middleware};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use spectre_core::{
@@ -20,7 +22,10 @@ use tracing::{debug, error, warn};
 
 use crate::error::{ApiError, ApiOk, ok};
 use crate::params::{self, ReadKind};
-use crate::{DEFAULT_SEARCH_LIMIT, DashboardApp, MAX_READ_SIZE, MAX_SEARCH_LIMIT};
+use crate::{
+    DEFAULT_SEARCH_LIMIT, DashboardApp, MAX_CONCURRENT_SEARCHES, MAX_READ_SIZE, MAX_SEARCH_LIMIT,
+    cancel, guard,
+};
 
 const INDEX_HTML: &str = include_str!("../assets/index.html");
 const APP_JS: &str = include_str!("../assets/app.js");
@@ -31,13 +36,16 @@ type ApiResult<T> = Result<Json<ApiOk<T>>, ApiError>;
 /// Build the complete dashboard router for `app`.
 ///
 /// Usable without a socket (e.g. `tower::ServiceExt::oneshot` in tests) and
-/// as the base for additional middleware layers.
+/// as the base for additional middleware layers. Every route, including the
+/// 404/405 fallbacks, sits behind the same-origin guard ([`crate::guard`]).
 pub fn router(app: DashboardApp) -> Router {
     Router::new()
         .merge(ui_routes())
         .merge(meta_routes())
         .merge(memory_routes())
         .fallback(not_found)
+        .method_not_allowed_fallback(method_not_allowed)
+        .layer(middleware::from_fn(guard::same_origin_only))
         .with_state(app)
 }
 
@@ -90,6 +98,11 @@ async fn not_found() -> ApiError {
     ApiError::not_found()
 }
 
+/// JSON 405 for non-`GET` methods (axum still adds the `Allow` header).
+async fn method_not_allowed() -> ApiError {
+    ApiError::method_not_allowed()
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /// Turn axum's plain-text query rejection into the JSON error shape.
@@ -100,6 +113,18 @@ fn query<T>(q: Result<Query<T>, QueryRejection>) -> Result<T, ApiError> {
     })
 }
 
+/// Run blocking work on tokio's blocking pool.
+async fn blocking<T, F>(f: F) -> Result<T, ApiError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, ApiError> + Send + 'static,
+{
+    tokio::task::spawn_blocking(f).await.map_err(|e| {
+        error!("reader task failed: {e}");
+        ApiError::internal()
+    })?
+}
+
 /// Run a blocking reader call on tokio's blocking pool.
 async fn with_reader<T, F>(app: &DashboardApp, f: F) -> Result<T, ApiError>
 where
@@ -107,12 +132,7 @@ where
     F: FnOnce(&dyn MemoryReader) -> Result<T, ApiError> + Send + 'static,
 {
     let reader = app.reader().clone();
-    tokio::task::spawn_blocking(move || f(reader.as_ref()))
-        .await
-        .map_err(|e| {
-            error!("reader task failed: {e}");
-            ApiError::internal()
-        })?
+    blocking(move || f(reader.as_ref())).await
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
@@ -393,7 +413,22 @@ async fn api_search(
     let limit = params::parse_limit(q.limit.as_deref())?;
     let value_type = sv.value_type;
 
-    let mut found = with_reader(&app, move |reader| {
+    // Bound concurrent full-memory scans. The permit moves into the blocking
+    // task, so it is held until the scan really stops — even after the
+    // client has gone away.
+    let permit = Arc::clone(app.search_slots())
+        .try_acquire_owned()
+        .map_err(|_| {
+            ApiError::busy(format!(
+                "too many searches running (max {MAX_CONCURRENT_SEARCHES}); try again later"
+            ))
+        })?;
+    // Dropping this handler's future (client disconnect) drops `_cancel`,
+    // which makes the remaining reads of the scan fail fast.
+    let (reader, _cancel) = cancel::cancellable(Arc::clone(app.reader()));
+
+    let mut found = blocking(move || {
+        let _permit = permit;
         let align = value_type.size().max(1);
         let pattern = ScanPattern {
             name: "search".to_owned(),
@@ -411,7 +446,7 @@ async fn api_search(
             max_matches_per_pattern: limit + 1,
             ..Default::default()
         };
-        let reports = scan_memory(reader, pid, vec![pattern], &config).map_err(|e| {
+        let reports = scan_memory(&reader, pid, vec![pattern], &config).map_err(|e| {
             warn!("search in pid {pid} failed: {e:#}");
             ApiError::backend(format!("search failed for pid {pid}"))
         })?;

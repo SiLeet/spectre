@@ -20,6 +20,7 @@ spectre [FLAGS] [SUBCOMMAND]
 | [`scan`](#scan) | Scan a running game for known data structures |
 | [`dump`](#dump) | Dump raw memory bytes from a process address |
 | [`dumpdiff`](#dumpdiff) | Compare two raw dump files and show changed offsets |
+| [`chain`](#chain) | Follow a pointer chain from an address |
 | [`find`](#find) | Find processes by name |
 | [`regions`](#regions) | List memory regions of a process |
 | [`search`](#search) | Search memory for a value; refine previous results |
@@ -133,6 +134,72 @@ Example output:
 ...
 0x7FF0200  old: -  new: ee ee ee ee ee ee
 ```
+
+## chain
+
+Follow a pointer chain from an address and print every dereference.
+
+```
+spectre chain [FLAGS] [OPTIONS] <pid> <address>
+```
+
+| Argument | Description |
+|----------|-------------|
+| `<pid>` | Process ID |
+| `<address>` | Start address (hex with 0x prefix, or decimal) |
+
+| Flag / option | Description |
+|---------------|-------------|
+| `--adb` | Use ADB backend |
+| `--big-endian` | Read pointers as big-endian (default: little-endian) |
+| `--json` | Output as JSON |
+| `--depth <depth>` | Maximum number of dereferences when --offsets is not given [default: 16] |
+| `--offsets <offsets>` | Comma-separated offsets, each added before a dereference (e.g. 0x10,0x8); the last address is read but not followed. Without it, raw pointers are followed until NULL, a cycle, unreadable memory, or --depth |
+
+Two modes:
+
+- **With `--offsets`** the chain is resolved like a Cheat-Engine pointer
+  path (same semantics as `MemoryReader::resolve_ptr_chain`): each offset is
+  added *before* its dereference, the start address itself is not
+  dereferenced, and the last `pointer + offset` is the result (it is read, so
+  its u64 value is shown too, but not followed):
+
+  ```
+  <address> +o0 -> *a0 = p1 ; p1 +o1 -> *a1 = p2 ; ... ; p(n-1) +o(n-1) = resolved
+  ```
+
+  A NULL intermediate pointer stops the walk instead of reading near 0.
+- **Without `--offsets`** raw pointers are followed (`*start`, `**start`, ...)
+  until a value is 0, a pointer repeats (cycle), memory is unreadable, or
+  `--depth` reads were made. `resolved` is the last address that could be
+  read (the deepest link).
+
+`stop` says why the walk ended: `complete` (all offsets applied), `null`,
+`max_depth`, `unreadable` (with the failing address) or `cycle` (with the
+repeated address). If the chain could not be resolved, `resolved` is `-`
+(`null` in JSON); the exit code is still 0.
+
+```bash
+spectre chain 12345 0x7ff0000 --offsets 0x10,0x8,0x30
+spectre chain 12345 0x7ff0000 --depth 8 --json
+spectre chain 4321 0x12c0000 --adb --offsets 0x18,0x4
+```
+
+Example output:
+
+```
+pointer chain from 0x7ff0000 (pid 12345)
+  [0] 0x7ff0000 + 0x10 -> *0x7ff0010 = 0x2a10000
+  [1] 0x2a10000 + 0x8 -> *0x2a10008 = 0x2b20000
+  [2] 0x2b20000 + 0x30 -> *0x2b20030 = 0x3e8
+stop:     complete (all offsets applied)
+resolved: 0x2b20030
+```
+
+Raw walks (no `--offsets`) print steps as `[i] *0x7ff0000 = 0x2a10000`.
+JSON output has `pid`, `base`, `offsets`, `steps` (`pointer`, `offset`,
+`address`, `value`), `stop` (`reason`, optional `address`) and `resolved`;
+all addresses are `0x` hex strings.
 
 ## find
 

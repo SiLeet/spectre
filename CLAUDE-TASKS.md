@@ -269,17 +269,196 @@ BRANCH: feature/T10-multi-adb
 
 ---
 
-## Empfehlung: Start-Reihenfolge
+## Status
+
+- ✅ Erledigt & gemergt: T2 (WinInput), T3 (DumpDiff), T5 (Docs), T6 (Lua-API),
+  T7 (Cron), T10 (Multi-ADB) + Release v0.2.0.
+- ⬜ **Offen (Phase 2):** T1 (Web-Dashboard) → T9 (Härtung, NACH T1),
+  T4 (Chain-CLI), T8 (Challenge-Repo).
+
+## Empfehlung: Start-Reihenfolge (Phase 2)
 
 | # | Task | Schwierigkeit | Warum zuerst |
 |---|------|--------------|--------------|
-| 1 | **T3 DumpDiff** | Leicht-Mittel | eigenständig, sofort testbar, hoher Nutzen für Offsets |
-| 2 | **T2 WinInput** | Mittel | zweites Input-Backend, klar abgegrenzt |
-| 3 | **T7 Cron** | Mittel | Bot-Leistungsmerkmal, unabhängig |
-| 4 | **T6 Lua-API** | Mittel | auf bestehender Sandbox aufsetzend |
-| 5 | **T5 Docs** | Leicht | parallel zu allem (nur docs/) |
-| 6 | **T10 Multi-ADB** | Mittel | ADB-Erweiterung, letzte Priorität |
+| 1 | **T4 Chain-CLI** | Leicht-Mittel | eigenständig, klein, sofort testbar |
+| 2 | **T1 Web-Dashboard** | Mittel-Groß | großes Sichtbarkeits-Feature, eigenes Crate |
+| 3 | **T8 Challenge-Repo** | Leicht | reine Docs/Examples, parallel zu allem |
+| 4 | **T9 Web-Härtung** | Mittel | MUSS nach T1 kommen (T1 ist Voraussetzung) |
 
-**Hinweis:** Die Tasks sind unabhängig voneinander; Claude Code kann sie in
-**beliebiger Reihenfolge und bei Bedarf in parallelen Worktrees** (`claude -w`)
-abarbeiten. Ein Task = ein Branch + ein Commit-Vorschlag pro logischem Schritt.
+**Hinweis:** T4, T8 können sofort parallel laufen. T1 sollte vor T9
+bearbeitet werden (T9 hängt davon ab). Ein Task = ein Branch
+(feature/Tx-...) + ein Commit-Vorschlag pro logischem Schritt.
+
+---
+
+## T1 — Web-Dashboard (`spectre serve`)
+
+**Berührt:** neues Crate `spectre-web/` (komplett neu), `spectre-cli/src/main.rs` (Subcommand `serve`), Workspace-Root `Cargo.toml` (member hinzufügen). **KEINE** Änderungen an bestehenden Crate-Logiken (nur neue Dateien + CLI-Dispatch).
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+ZIEL: Ein Web-Dashboard, das spectre-Fähigkeiten im Browser zeigt.
+
+HINTERGRUND (existierende APIs):
+  - spectre_core::MemoryReader trait mit: find_process(&str) -> Vec<ProcessInfo>,
+    list_processes(), memory_regions(pid) -> Vec<MemoryRegion{start,end,perms,path}>,
+    read_bytes(pid,addr,size), read_u32/read_f32/read_string, scan(...)
+  - spectre_native::create_default_reader() -> Box<dyn MemoryReader>
+  - ProcessInfo { pid: u32, name: String }; MemoryRegion { start: u64, end: u64,
+    perms: String, path: Option<String> }
+  - scan: spectre_core::scan_memory(reader, pid, patterns, config) sowie
+    spectre_core::ScanPattern/PatternField/ScanValue/ValueType
+
+AUFGABE:
+  1. Neues Crate spectre-web:
+     - Cargo.toml: name spectre-web, deps: spectre-core (workspace),
+       axum (^0.7 oder aktuell), tokio (workspace), anyhow, tracing, serde,
+       serde_json. KEIN spectre-native-Dependency direkt — der/die Reader
+       werden per Trait-Objekt injiziert.
+     - src/lib.rs: pub struct DashboardApp { reader: Arc<dyn MemoryReader> }
+       mit pub fn new(reader: Arc<dyn MemoryReader>) -> Self
+     - src/routes.rs: axum-Router mit Endpunkten:
+         GET  /                     -> einfaches HTML (eingebettet)
+         GET  /api/processes        -> all processes (JSON)
+         GET  /api/regions?pid=N    -> memory regions (JSON)
+         GET  /api/read?pid=N&addr=0x...&type=u32|f32|string&size=64 -> Wert (JSON)
+         GET  /api/search?pid=N&type=u32&value=42  -> Adressen (JSON)
+       - Response-Struktur konsistent: { "ok": true, "data": ... } oder
+         { "ok": false, "error": "..." }
+     - src/lib.rs: pub async fn serve(self, port: u16) -> anyhow::Result<()>
+       (bindet 127.0.0.1:port, startet axum::serve)
+  2. CLI: spectre-cli/src/main.rs erweitern:
+     - Subcommand: #[structopt(about="Start the web dashboard")] Serve(ServeArgs)
+     - ServeArgs { port: u16 (default 8787) }
+     - run_serve: create_default_reader() -> DashboardApp::new(...).serve(port)
+     - Dispatch im main()-match + Doc-Header oben ergänzen
+  3. Workspace-Root Cargo.toml: "spectre-web" in members + workspace.dependencies
+     (falls nötig axum dort statt im Crate definieren)
+  4. Tests: spectre-web/tests/dashboard_test.rs — nutzt tokio::test mit einem
+     FakeReader (in-memory, wie spectre-core/tests/scanner_test.rs: regions +
+     kleine Bytes). Starte DashboardApp::serve auf Port 0 (oder Test-Port),
+     httptest-Requests über reqwest ODER axum::test::oneshot (aktuellstes)
+     auf /api/processes und /api/read — prüfe JSON-Shape.
+  5. cargo fmt + cargo clippy laufen lassen.
+
+WICHTIG: Das Crate muss auf Linux UND Windows kompilieren (kein CFG-auf
+Windows-only-Logik in spectre-web selbst; die Reader-Erzeugung bleibt im CLI).
+
+BRANCH: feature/T1-web-dashboard
+```
+
+---
+
+## T4 — Pointer-Chain-CLI (`spectre chain`)
+
+**Berührt:** `spectre-core/src/chain.rs` (neu) + Tests, `spectre-cli/src/main.rs` (Subcommand `chain`). **KEINE** anderen Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND (bereits vorhanden):
+  - MemoryReader::resolve_ptr_chain existeirt bereits im Trait:
+    fn resolve_ptr_chain(&self, pid, base: u64, offsets: &[u64], little: bool)
+    -> anyhow::Result<Option<u64>>   (folgt u64-Pointer-Kette)
+  - parse_u64(s) existiert in spectre-cli (dezimal oder 0x-hex)
+  - create_reader(adb, host, port) -> Box<dyn MemoryReader> existiert
+  - resolve_pid(reader, name, hint) existiert
+
+AUFGABE:
+  1. spectre-core/src/chain.rs (neu):
+     pub struct PointerChain { pub base: u64, pub offsets: Vec<u64>,
+                               pub resolved: Option<u64> }
+     - Nützliche Helfer: pub fn follow(reader:&dyn MemoryReader, pid:u32,
+       base:u64, offsets:&[u64], little:bool) -> anyhow::Result<PointerChain>,
+       resolved = resolve_ptr_chain(...)
+     - pub fn follow_until_end(reader, pid, start:u64, max_depth:u32,
+       little:bool) -> anyhow::Result<PointerChain> — liest u64 am start,
+       springt zu diesem Pointer, wiederholt bis max_depth oder 0/NULL.
+       Sammelt dabei alle Zwischen-Offsets.
+     - Tests in spectre-core/tests/chain_test.rs mit FakeReader:
+       * follow mit 2 Offsets -> korrekter Endwert
+       * follow_until_end bricht bei NULL ab
+       * follow_until_end respektiert max_depth
+  2. CLI-Subcommand `chain`:
+     struct ChainArgs { pid: Option<u32> (optional, auto-detect über name),
+                        address: String (positional, dezimal/0x),
+                        #[structopt(long="depth", default_value="16")] depth: u32,
+                        #[structopt(long="little")] little: bool (default true),
+                        #[structopt(long="adb")] adb: bool }
+     - run_chain: reader -> follow_until_end(pid, addr, depth, little)
+       -> druckt jede Stufe: "addr: 0x... -> *0x... = 0x..." und final
+       resolved Adresse. JSON via --json.
+     - Dispatch + Doc-Header.
+  3. cargo fmt.
+
+BRANCH: feature/T4-chain
+```
+
+---
+
+## T8 — Challenge-Repo / Quickstart-Beispiel
+
+**Berührt:** NUR `examples/`, `docs/getting-started.md`, evtl. `README.md`. **KEINE** Crate-Dateien.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+ZIEL: Jemand soll das Projekt in ~10 Minuten von 0 auf einen laufenden
+Scan bringen („Challenge-Repo"-Erlebnis).
+
+VORHANDEN: examples/afk-bot.lua, examples/bot-config.yaml,
+games/afk-journey/offsets.yaml (Platzhalter-Offsets), docs/getting-started.md.
+
+AUFGABE:
+  1. examples/README.md (neu) — „10-Minuten-Quickstart":
+     - Schritt 0: cargo build + Binary installieren (GNU-Toolchain-Hinweis
+       für Windows, siehe Kopf)
+     - Schritt 1: Probe ausprobieren ohne echtes Spiel: wie man mit
+       `spectre dump`/`search` auf einem eigenen Prozess Werte findet
+       (z.B. Öffne einen Prozess, suche 42 — allgemein halten)
+     - Schritt 2: AFK-Journey-Beispiel: `spectre find`, `spectre search`
+       Workflow, `spectre scan --dump` mit einer selbst erzeugten Dump-Datei
+     - Schritt 3: Bot: `spectre bot examples/bot-config.yaml --dry-run`
+     - Schritt 4: Lua: `spectre script examples/afk-bot.lua`
+  2. examples/bot-config.yaml ergänzen: 1 Task mit `schedule:` (cron)
+     statt nur interval_ms (Doku, dass T7 das unterstützt).
+  3. docs/getting-started.md: oben einen „TL;DR"-Block (3 Zeilen: build,
+     find, search) + Link auf examples/README.md.
+  4. Prüfen: alle im Quickstart genannten Befehle existieren wirklich —
+     nötigenfalls `--help` jedes Subcommands checken.
+
+BRANCH: feature/T8-challenge
+```
+
+---
+
+## T9 — Web-Dashboard-Härtung (nach T1)
+
+**Berührt:** `spectre-web/` (wird in T1 angelegt). **Setzt T1 voraus** — erst nach T1 mergen!
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+ZIEL: Das Dashboard sicherer machen, bevor es jemand öffentlich exposed.
+
+VORAUSSETZUNG: Task T1 (spectre-web) ist gemergt. Dieser Brief nur danach.
+
+AUFGABE:
+  1. Read-only-Prinzip fixieren:
+     - KEINE write/execute-Endpunkte (Bots starten, Werte schreiben) —
+       falls T1 versehentlich welche hat: entfernen.
+     - CORS: keine wildcard-Zugriffe; Origin-Whitelist (leer = nur localhost)
+  2. Rate-Limiting: einfacher In-Memory-Limiter pro IP für /api/read und
+     /api/search (z.B. max 60 req/min), mit tracing::warn bei Überschreitung.
+  3. Keine Secrets/Pfade leaken: Fehler-Antworten enthalten KEINE
+     absoluten Pfade, keine Umgebungsvariablen. (Nur "read failed".)
+  4. CLI: `serve` bindet standardmäßig 127.0.0.1. Falls ein
+     --host-Flag existiert: bei 0.0.0.0 Warnung + Bestätigung nötig — sonst
+     gar kein --host-Flag anbieten.
+  5. Tests: Rate-Limiter-Einheit (N erlaubt, N+1 blockiert), CORS-Header
+     Test, Fehler-Antwort-Shape ohne Pfad-Leak.
+  6. cargo fmt + clippy.
+
+BRANCH: feature/T9-web-hardening
+```

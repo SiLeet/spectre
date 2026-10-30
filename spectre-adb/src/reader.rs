@@ -205,8 +205,7 @@ impl MemoryReader for AdbReader {
     // ── Scanning ─────────────────────────────────────────────────────
 
     fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> Result<Vec<ScanReport>> {
-        let mut config = ScanConfig::default();
-        config.little_endian = little;
+        let config = ScanConfig { little_endian: little, ..Default::default() };
         scan_memory(self, pid, patterns, &config)
     }
 }

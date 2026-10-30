@@ -10,10 +10,8 @@ spectre-adb = { workspace = true }
 spectre-native = { workspace = true }
 spectre-game = { workspace = true }
 spectre-bot = { workspace = true }
-# spectre-lua is intentionally NOT linked: the workspace mlua dependency has no
-# Lua feature enabled (mlua-sys fails to build) and the CLI has no script
-# command yet. Re-add `spectre-lua = { workspace = true }` once spectre-lua
-# builds with an enabled Lua feature.
+spectre-lua = { workspace = true }
+# Lua backend is provided by spectre-lua's mlua features (lua54 + vendored).
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = "0.3"

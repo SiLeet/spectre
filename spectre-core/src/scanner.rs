@@ -90,7 +90,10 @@ fn scan_single_pattern(
                 if idx + span as usize > chunk.len() {
                     break;
                 }
-                if let Some(m) = try_match(&chunk, idx, pattern, config.little_endian) {
+                // try_match returns the match with chunk-relative offsets; we
+                // must translate to the absolute address before recording it.
+                if let Some(mut m) = try_match(&chunk, idx, pattern, config.little_endian) {
+                    m.address = cursor + idx as u64;
                     all_matches.push(m);
                     if max_matches > 0 && all_matches.len() >= max_matches as usize {
                         return Ok(all_matches);
@@ -124,7 +127,7 @@ fn try_match(
         }
         fields.push((field_abs as u32, f.name.clone(), bytes.to_vec()));
         let align = usize::max(1, f.alignment as usize);
-        field_abs = ((field_abs + size + align - 1) / align) * align;
+        field_abs = (field_abs + size).div_ceil(align) * align;
     }
 
     Some(ScanMatch { address: offset as u64, fields })
@@ -180,7 +183,7 @@ fn align_up(val: u64, alignment: u64) -> u64 {
     if alignment <= 1 {
         return val;
     }
-    ((val + alignment - 1) / alignment) * alignment
+    val.div_ceil(alignment) * alignment
 }
 
 fn filter_regions(regions: Vec<MemoryRegion>, permission_filter: Option<&str>) -> Vec<MemoryRegion> {

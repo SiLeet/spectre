@@ -309,7 +309,7 @@ async fn tick(
             default_interval_ms
         };
         let interval = Duration::from_millis(interval_ms as u64);
-        let due = ts.last_run.map_or(true, |last| now >= last + interval);
+        let due = ts.last_run.is_none_or(|last| now >= last + interval);
         if !due {
             continue;
         }

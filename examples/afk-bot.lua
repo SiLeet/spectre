@@ -1,7 +1,7 @@
 -- AFK Journey — AFK bot example for Spectre
 -- Runs an automated loop: checks battle status, collects rewards, starts next fight.
 --
--- Usage:  spectre-cli --backend native --lua examples/afk-bot.lua
+-- Usage:  spectre script examples/afk-bot.lua --input-backend adb
 
 bot.log("=== AFK Journey Bot Starting ===")
 

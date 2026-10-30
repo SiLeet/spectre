@@ -117,11 +117,10 @@ impl LuaSandbox {
         // Clear all user globals, skipping built-in modules.
         for key in keys {
             let name = key.as_string().map(|s| s.to_string_lossy());
-            if let Some(name) = name {
-                if keep.contains(&name.as_str()) {
+            if let Some(name) = name
+                && keep.contains(&name.as_str()) {
                     continue;
                 }
-            }
             globals.set(key, Nil)?;
         }
 

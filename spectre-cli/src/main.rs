@@ -68,6 +68,10 @@ pub enum SubCommand {
     #[structopt(about = "Run a bot automation script")]
     Bot(BotArgs),
 
+    /// Execute a Lua bot script.
+    #[structopt(about = "Execute a Lua bot script")]
+    Script(ScriptArgs),
+
     /// Show version and available backend info.
     #[structopt(about = "Show version and available backends")]
     Info(InfoArgs),
@@ -202,6 +206,19 @@ pub struct BotArgs {
     pub dry_run: bool,
 }
 
+// ── Script Command ───────────────────────────────────────────────────────────
+
+#[derive(StructOpt)]
+pub struct ScriptArgs {
+    /// Path to a Lua script file.
+    #[structopt(name = "script")]
+    pub script: String,
+
+    /// Input backend for bot.* actions (default: adb).
+    #[structopt(long = "input-backend")]
+    pub input_backend: Option<String>,
+}
+
 // ── Info Command ─────────────────────────────────────────────────────────────
 
 #[derive(StructOpt)]
@@ -247,6 +264,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Find(cmd)) => run_find(cmd),
         Some(SubCommand::Regions(cmd)) => run_regions(cmd),
         Some(SubCommand::Bot(cmd)) => run_bot(cmd),
+        Some(SubCommand::Script(cmd)) => run_script(cmd),
         Some(SubCommand::Info(cmd)) => run_info(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
         None => {
@@ -296,8 +314,8 @@ fn run_info(args: InfoArgs) -> Result<()> {
     println!();
     println!("Backends:");
     println!(
-        "  native           — {}",
-        format!("{:?}", spectre_native::native_backend_kind())
+        "  native           — {:?}",
+        spectre_native::native_backend_kind()
     );
     println!(
         "  adb              — {}",
@@ -797,7 +815,7 @@ fn run_find(args: FindArgs) -> Result<()> {
         );
         println!("{}", serde_json::to_string_pretty(&value)?);
     } else {
-        println!("{:<8}  {}", "PID", "NAME");
+        println!("{:<8}  NAME", "PID");
         for p in &processes {
             println!("{:<8}  {}", p.pid, p.name);
         }
@@ -845,7 +863,7 @@ fn run_regions(args: RegionsArgs) -> Result<()> {
         );
         println!("{}", serde_json::to_string_pretty(&value)?);
     } else {
-        println!("{:<16} {:<16} {:<6}  {}", "START", "END", "PERMS", "PATH");
+        println!("{:<16} {:<16} {:<6}  PATH", "START", "END", "PERMS");
         for r in &filtered {
             let path = r.path.as_deref().unwrap_or("-");
             println!("{:016x} {:016x} {:<6}  {}", r.start, r.end, r.perms, path);
@@ -903,7 +921,7 @@ fn adb_list_devices() -> Result<()> {
         return Ok(());
     }
 
-    println!("{:<24}  {:<12}  {}", "DEVICE", "STATE", "MODEL");
+    println!("{:<24}  {:<12}  MODEL", "DEVICE", "STATE");
     for (serial, state, model) in &devices {
         let model = if model.is_empty() { "-" } else { model };
         println!("{serial:<24}  {state:<12}  {model}");
@@ -1194,4 +1212,55 @@ fn load_bot_fields(meta: Option<&HashMap<String, String>>) -> Result<HashMap<Str
         }
     }
     Ok(fields)
+}
+
+// ── Lua Script Execution ─────────────────────────────────────────────────────
+
+/// Adapts `CliInputSimulator` to the Lua `BotApi` trait.
+struct LuaBotApi {
+    input: CliInputSimulator,
+}
+
+impl spectre_lua::BotApi for LuaBotApi {
+    fn click(&self, x: u32, y: u32) -> anyhow::Result<bool> {
+        self.input.run_input(&["tap", &x.to_string(), &y.to_string()])?;
+        Ok(true)
+    }
+
+    fn swipe(&self, x1: u32, y1: u32, x2: u32, y2: u32, duration_ms: u32) -> anyhow::Result<bool> {
+        self.input.run_input(&[
+            "swipe",
+            &x1.to_string(),
+            &y1.to_string(),
+            &x2.to_string(),
+            &y2.to_string(),
+            &duration_ms.to_string(),
+        ])?;
+        Ok(true)
+    }
+
+    fn wait(&self, ms: u32) -> anyhow::Result<()> {
+        std::thread::sleep(Duration::from_millis(ms as u64));
+        Ok(())
+    }
+
+    fn log(&self, message: &str) -> anyhow::Result<()> {
+        println!("[lua] {message}");
+        Ok(())
+    }
+}
+
+/// Execute a Lua bot script through the spectre-lua sandbox.
+fn run_script(args: ScriptArgs) -> Result<()> {
+    let backend = args.input_backend.unwrap_or_else(|| "adb".to_owned());
+    let input = CliInputSimulator::new(backend);
+    let bot = LuaBotApi { input };
+    let reader: Box<dyn MemoryReader + Send + 'static> = create_reader(false, None, None)?;
+
+    let sandbox = spectre_lua::LuaSandbox::create(reader, Box::new(bot))
+        .context("failed to create Lua sandbox")?;
+    sandbox
+        .run_file(&args.script)
+        .with_context(|| format!("failed to execute Lua script '{}'", args.script))?;
+    Ok(())
 }

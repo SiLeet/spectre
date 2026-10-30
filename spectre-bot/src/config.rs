@@ -85,6 +85,8 @@ fn default_enabled() -> bool {
 
 impl BotConfig {
     /// Create a default configuration.
+    /// (Inherent; the struct also derives `Default` for serde field defaults.)
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> BotConfig {
         BotConfig {
             tasks: Vec::new(),

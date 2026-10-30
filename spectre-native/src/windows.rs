@@ -2,6 +2,7 @@
 //!
 //! No external Windows crates: we declare the handful of functions we need
 //! via `extern "system"` and define the minimal types ourselves.
+#![allow(clippy::upper_case_acronyms)] // Win32 type names (BOOL, DWORD, ...) use ALL_CAPS by convention.
 
 use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
 use spectre_core::scanner::{scan_memory, ScanConfig};
@@ -214,8 +215,7 @@ impl MemoryReader for WindowsReader {
     }
 
     fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> Result<Vec<ScanReport>> {
-        let mut config = ScanConfig::default();
-        config.little_endian = little;
+        let config = ScanConfig { little_endian: little, ..Default::default() };
         scan_memory(self, pid, patterns, &config)
     }
 }

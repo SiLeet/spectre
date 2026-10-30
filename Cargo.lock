@@ -530,6 +530,7 @@ dependencies = [
  "spectre-bot",
  "spectre-core",
  "spectre-game",
+ "spectre-lua",
  "spectre-native",
  "structopt",
  "tokio",

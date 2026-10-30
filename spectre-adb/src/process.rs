@@ -29,7 +29,7 @@ pub fn parse_ps_output(output: &str) -> Result<Vec<ProcessInfo>> {
         }
 
         // Skip header lines containing "PID" as a column label.
-        if trimmed.contains("PID") && !trimmed.chars().all(|c| c.is_digit(10) || c.is_whitespace())
+        if trimmed.contains("PID") && !trimmed.chars().all(|c| c.is_ascii_digit() || c.is_whitespace())
         {
             continue;
         }

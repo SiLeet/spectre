@@ -476,7 +476,7 @@ mod tests {
     fn make_engine() -> BotEngine {
         BotEngine::new(
             Box::new(TestReader),
-            Box::new(NoopInput::default()),
+            Box::new(NoopInput),
             Box::new(TestCtx),
             HookRegistry::new(),
         )

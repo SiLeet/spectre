@@ -21,7 +21,7 @@ pub enum LogLevel {
 
 impl LogLevel {
     /// Parse a log level from its lowercased string name.
-    pub fn from_str(s: &str) -> Option<LogLevel> {
+    pub fn parse(s: &str) -> Option<LogLevel> {
         match s.to_lowercase().as_str() {
             "info" => Some(LogLevel::Info),
             "warn" => Some(LogLevel::Warn),
@@ -264,7 +264,7 @@ impl BotTask {
         self.conditions.iter().all(|cond| {
             field_values
                 .get(&cond.field)
-                .map_or(false, |bytes| cond.evaluate(bytes))
+                .is_some_and(|bytes| cond.evaluate(bytes))
         })
     }
 }

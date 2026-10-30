@@ -93,7 +93,7 @@ impl ScanPattern {
         let mut end: u64 = 0;
         for f in &self.fields {
             let align = u64::max(1, f.alignment as u64);
-            end = ((end + align - 1) / align) * align + f.value_type.size() as u64;
+            end = end.div_ceil(align) * align + f.value_type.size() as u64;
         }
         end
     }
@@ -177,8 +177,14 @@ pub struct AdbConfig {
 }
 
 impl AdbConfig {
-    pub fn default() -> Self {
+    pub fn localhost() -> Self {
         Self { host: "localhost".to_owned(), port: 5555 }
+    }
+}
+
+impl Default for AdbConfig {
+    fn default() -> Self {
+        Self::localhost()
     }
 }
 

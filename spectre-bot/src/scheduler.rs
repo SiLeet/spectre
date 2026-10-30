@@ -1,8 +1,9 @@
 /// Task scheduler — runs bot actions on a configurable timer loop.
 ///
 /// The scheduler owns the main execution loop: it ticks each enabled task
-/// at its configured interval, evaluates guard conditions, and delegates
-/// to `BotEngine` for action execution.
+/// at its configured interval (or, for tasks with a cron `schedule`, once
+/// per matching local-time minute), evaluates guard conditions, and
+/// delegates to `BotEngine` for action execution.
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -10,7 +11,13 @@ use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, Instant};
 
 use crate::actions::{BotCondition, BotTask};
+use crate::cron::CronTrigger;
 use crate::engine::BotEngine;
+
+/// Upper bound for the tick period whenever at least one cron-scheduled task
+/// is registered. Well below 60 s so that no matching minute is skipped even
+/// with loop drift; it is folded into the GCD so interval tasks stay aligned.
+const CRON_TICK_MS: u32 = 1000;
 
 // ── Scheduling State ────────────────────────────────────────────────────────
 
@@ -25,16 +32,19 @@ struct TaskState {
     enabled: bool,
     /// Number of consecutive failures.
     fail_count: u32,
+    /// Cron trigger when the task has a `schedule` (overrides `interval_ms`).
+    cron: Option<CronTrigger>,
 }
 
 impl TaskState {
-    fn from_task(task: &BotTask) -> TaskState {
-        TaskState {
+    fn from_task(task: &BotTask) -> anyhow::Result<TaskState> {
+        Ok(TaskState {
             task: task.clone(),
             last_run: None,
             enabled: task.enabled,
             fail_count: 0,
-        }
+            cron: task.cron_schedule()?.map(CronTrigger::new),
+        })
     }
 }
 
@@ -94,14 +104,27 @@ impl TaskScheduler {
     // ── Task Management ────────────────────────────────────────────────
 
     /// Add a task to the scheduler. Tasks are snapshotted at start-time.
-    pub fn add_task(&mut self, task: &BotTask) {
-        self.tasks.push(TaskState::from_task(task));
-        tracing::info!(
-            "scheduler: added task '{}' (interval={}ms, enabled={})",
-            task.name,
-            task.interval_ms,
-            task.enabled
-        );
+    ///
+    /// Fails (without adding the task) if the task's cron `schedule` is
+    /// invalid; the error names the task.
+    pub fn add_task(&mut self, task: &BotTask) -> anyhow::Result<()> {
+        let state = TaskState::from_task(task)?;
+        match &state.cron {
+            Some(trigger) => tracing::info!(
+                "scheduler: added task '{}' (schedule='{}', enabled={})",
+                task.name,
+                trigger.schedule(),
+                task.enabled
+            ),
+            None => tracing::info!(
+                "scheduler: added task '{}' (interval={}ms, enabled={})",
+                task.name,
+                task.interval_ms,
+                task.enabled
+            ),
+        }
+        self.tasks.push(state);
+        Ok(())
     }
 
     /// Remove a task by name. Returns `true` if it was found and removed.
@@ -161,18 +184,8 @@ impl TaskScheduler {
         let global_enabled = self.global_enabled;
         let default_interval_ms = self.default_interval_ms;
 
-        // Determine tick granularity: use GCD-like minimum of all intervals.
-        let intervals: Vec<u32> = tasks
-            .iter()
-            .map(|ts| {
-                if ts.task.interval_ms > 0 {
-                    ts.task.interval_ms
-                } else {
-                    default_interval_ms
-                }
-            })
-            .collect();
-        let tick_ms = compute_tick_ms(&intervals);
+        // Determine tick granularity: GCD of all intervals (capped for cron).
+        let tick_ms = tick_ms_for_tasks(&tasks, default_interval_ms);
         tracing::info!(
             "scheduler: starting tick loop at {}ms granularity with {} tasks",
             tick_ms,
@@ -295,6 +308,7 @@ async fn tick(
     engine: &BotEngine,
 ) {
     let now = Instant::now();
+    let wall_now = chrono::Local::now();
 
     for ts in tasks.iter_mut() {
         // 1. Skip disabled tasks or when globally disabled
@@ -302,14 +316,21 @@ async fn tick(
             continue;
         }
 
-        // 2. Check if the task is due
-        let interval_ms = if ts.task.interval_ms > 0 {
-            ts.task.interval_ms
-        } else {
-            default_interval_ms
+        // 2. Check if the task is due. Cron tasks fire at most once per
+        //    matching minute (the minute is consumed even if the guard
+        //    below fails, mirroring how interval tasks consume their slot).
+        let due = match ts.cron.as_mut() {
+            Some(trigger) => trigger.should_fire(&wall_now),
+            None => {
+                let interval_ms = if ts.task.interval_ms > 0 {
+                    ts.task.interval_ms
+                } else {
+                    default_interval_ms
+                };
+                let interval = Duration::from_millis(interval_ms as u64);
+                ts.last_run.is_none_or(|last| now >= last + interval)
+            }
         };
-        let interval = Duration::from_millis(interval_ms as u64);
-        let due = ts.last_run.is_none_or(|last| now >= last + interval);
         if !due {
             continue;
         }
@@ -389,6 +410,27 @@ fn collect_guard_field_names(conditions: &[BotCondition]) -> Vec<String> {
     names
 }
 
+/// Tick period for a task set: GCD of the interval tasks' periods, with
+/// [`CRON_TICK_MS`] folded in when any task is cron-scheduled (so the tick
+/// never exceeds it). Cron tasks' own `interval_ms` does not contribute.
+fn tick_ms_for_tasks(tasks: &[TaskState], default_interval_ms: u32) -> u32 {
+    let mut intervals: Vec<u32> = tasks
+        .iter()
+        .filter(|ts| ts.cron.is_none())
+        .map(|ts| {
+            if ts.task.interval_ms > 0 {
+                ts.task.interval_ms
+            } else {
+                default_interval_ms
+            }
+        })
+        .collect();
+    if tasks.iter().any(|ts| ts.cron.is_some()) {
+        intervals.push(CRON_TICK_MS);
+    }
+    compute_tick_ms(&intervals)
+}
+
 /// Compute the tick interval as the GCD of all task intervals (min 10ms).
 fn compute_tick_ms(intervals: &[u32]) -> u32 {
     if intervals.is_empty() {
@@ -443,8 +485,9 @@ mod tests {
             interval_ms: 10,
             enabled: true,
             conditions: vec![],
+            schedule: None,
         };
-        sched.add_task(&task);
+        sched.add_task(&task).unwrap();
 
         #[derive(Debug, Default)]
         struct DumpReader;
@@ -495,6 +538,72 @@ mod tests {
         assert!(sched.is_running());
         sched.stop().await;
         assert!(!sched.is_running());
+    }
+
+    fn task(name: &str, interval_ms: u32, schedule: Option<&str>) -> BotTask {
+        BotTask {
+            name: name.into(),
+            actions: vec![],
+            interval_ms,
+            enabled: true,
+            conditions: vec![],
+            schedule: schedule.map(str::to_owned),
+        }
+    }
+
+    fn states(tasks: &[BotTask]) -> Vec<TaskState> {
+        tasks
+            .iter()
+            .map(|t| TaskState::from_task(t).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn interval_only_tick_unchanged() {
+        let ts = states(&[task("a", 500, None), task("b", 300, None)]);
+        assert_eq!(tick_ms_for_tasks(&ts, 100), 100);
+        // interval_ms = 0 falls back to the default interval, as before.
+        let ts = states(&[task("a", 0, None)]);
+        assert_eq!(tick_ms_for_tasks(&ts, 5000), 5000);
+        assert_eq!(tick_ms_for_tasks(&[], 5000), 100);
+    }
+
+    #[test]
+    fn cron_tasks_cap_tick_below_a_minute() {
+        // Cron-only task without interval_ms: default interval is ignored.
+        let ts = states(&[task("c", 0, Some("*/15 * * * *"))]);
+        assert_eq!(tick_ms_for_tasks(&ts, 120_000), CRON_TICK_MS);
+
+        // A large interval_ms on a cron task does not slow the tick.
+        let ts = states(&[task("c", 3_600_000, Some("0 * * * *"))]);
+        assert_eq!(tick_ms_for_tasks(&ts, 500), CRON_TICK_MS);
+
+        // Mixed: GCD keeps interval tasks aligned and stays <= CRON_TICK_MS.
+        let ts = states(&[
+            task("a", 15_000, None),
+            task("b", 2_000, None),
+            task("c", 0, Some("0 */6 * * *")),
+        ]);
+        assert_eq!(tick_ms_for_tasks(&ts, 5000), 1000);
+        let ts = states(&[task("a", 750, None), task("c", 0, Some("* * * * *"))]);
+        assert_eq!(tick_ms_for_tasks(&ts, 5000), 250);
+        let ts = states(&[task("a", 120_000, None), task("c", 0, Some("* * * * *"))]);
+        assert!(tick_ms_for_tasks(&ts, 5000) <= 60_000);
+    }
+
+    #[test]
+    fn add_task_rejects_invalid_schedule() {
+        let mut sched = TaskScheduler::new(100);
+        let err = sched
+            .add_task(&task("bad-cron", 0, Some("61 * * * *")))
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("bad-cron"));
+        assert!(sched.task_names().is_empty());
+
+        sched
+            .add_task(&task("good-cron", 0, Some("*/5 * * * *")))
+            .unwrap();
+        assert_eq!(sched.task_names(), vec!["good-cron".to_owned()]);
     }
 
     #[derive(Default)]

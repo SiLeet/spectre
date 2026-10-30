@@ -7,6 +7,7 @@
 /// ADB (Android), native Windows input, and other backends.
 pub mod actions;
 pub mod config;
+pub mod cron;
 pub mod engine;
 pub mod scheduler;
 

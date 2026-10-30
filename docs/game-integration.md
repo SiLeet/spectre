@@ -53,10 +53,22 @@ structures:
 
 Finding offsets is the hard part. Common approaches:
 
-**a. Memory scanning with known values:**
+**a. Memory scanning with known values (Spectre `search`):**
 - Set your character level to a known value (e.g. 42)
-- Search for the u32 value `42` in process memory
-- Narrow down by checking nearby values
+- Find the game's PID: `spectre find my-game`
+- Search for the value in process memory:
+  ```bash
+  spectre search <pid> u32 42 --limit 100
+  ```
+  Results are saved to `.spectre-search.json` by default.
+- Perform an action that changes the value (level up, spend gold, ...)
+- Refine the candidate list with the new value — this drops stale addresses
+  and converges on the real location:
+  ```bash
+  spectre search <pid> u32 55 --continue
+  ```
+- Repeat until one address remains, then note its offset relative to a
+  stable base (pointer chain).
 
 **b. Pointer chain traversal:**
 - Find a global pointer in the game's binary

@@ -27,6 +27,7 @@ spectre [FLAGS] [SUBCOMMAND]
 | [`bot`](#bot) | Run a bot automation script |
 | [`script`](#script) | Execute a Lua bot script |
 | [`info`](#info) | Show version and available backends |
+| [`serve`](#serve) | Start the read-only web dashboard (127.0.0.1 only) |
 | [`adb`](#adb) | ADB device management |
 
 **Backends.** Commands that read memory use the native backend
@@ -373,6 +374,50 @@ and the games found under `games/`.
 ```bash
 spectre info
 spectre info --json
+```
+
+## serve
+
+Start the read-only web dashboard (127.0.0.1 only).
+
+```
+spectre serve [FLAGS] [OPTIONS]
+```
+
+| Flag / option | Description |
+|---------------|-------------|
+| `-p`, `--port <port>` | Port to listen on; always bound to 127.0.0.1 (0 = pick a free port) [default: 8787] |
+| `--adb` | Use ADB backend instead of native |
+| `--adb-host <adb-host>` | ADB host (default: localhost) |
+| `--adb-port <adb-port>` | ADB port (default: 5555) |
+
+Prints the dashboard URL (`http://127.0.0.1:<port>/`) and serves until
+Ctrl+C. The server only binds the loopback interface; there is no `--host`
+option. The browser UI is embedded in the binary (no CDN, works offline) and
+offers a process list with filter, the region table of the selected process,
+a read form and a value search.
+
+All endpoints are read-only `GET` requests returning
+`{ "ok": true, "data": ... }` or `{ "ok": false, "error": "..." }`:
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/info` | Version, backend kind and request limits |
+| `/api/processes[?name=S]` | All processes, or those whose name contains `S` |
+| `/api/regions?pid=N[&perms=S]` | Memory regions (optionally filtered by permission substring) |
+| `/api/read?pid=N&addr=A&type=T[&size=S][&endian=little\|big]` | Read one value; `type` is `u8`..`u64`, `i8`..`i64`, `f32`, `f64`, `string` or `bytes`; `size` (string/bytes) defaults to 64, max 4096 |
+| `/api/search?pid=N&type=T&value=V[&limit=L][&endian=little\|big]` | Exact-value search in writable regions; `limit` defaults to 1000, max 10000 |
+
+Invalid parameters return HTTP 400, backend failures (unreadable address,
+unknown pid, ADB offline) HTTP 502. Requests addressed to a non-loopback
+`Host` or coming from another website (`Origin` / `Sec-Fetch-Site`) are
+refused with HTTP 403 (DNS-rebinding protection); at most two searches run at
+once (HTTP 429 otherwise). See `spectre-web/README.md` for details.
+
+```bash
+spectre serve                 # http://127.0.0.1:8787/
+spectre serve --port 0        # pick a free port, print it
+spectre serve --adb           # inspect an Android emulator via ADB
 ```
 
 ## adb

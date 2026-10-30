@@ -9,6 +9,7 @@ members = [
     "spectre-bot",
     "spectre-lua",
     "spectre-cli",
+    "spectre-web",
 ]
 
 [workspace.package]
@@ -28,12 +29,15 @@ structopt = "0.3"
 mlua = "0.12"
 quest = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+axum = "0.8"
+tower = { version = "0.5", features = ["util"] }
 spectre-core = { path = "spectre-core" }
 spectre-adb = { path = "spectre-adb" }
 spectre-native = { path = "spectre-native" }
 spectre-game = { path = "spectre-game" }
 spectre-bot = { path = "spectre-bot" }
 spectre-lua = { path = "spectre-lua" }
+spectre-web = { path = "spectre-web" }
 
 [profile.release]
 codegen-units = 2

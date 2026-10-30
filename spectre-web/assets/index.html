@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spectre Dashboard</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header>
+    <h1>Spectre <span class="muted">dashboard</span></h1>
+    <span id="backend" class="badge">connecting…</span>
+    <span class="badge ro">read-only · 127.0.0.1</span>
+  </header>
+
+  <main>
+    <section id="processes-panel" class="panel">
+      <div class="panel-head">
+        <h2>Processes</h2>
+        <button id="proc-refresh" type="button">Refresh</button>
+      </div>
+      <input id="proc-filter" type="search" placeholder="Filter by name or PID" autocomplete="off">
+      <p id="proc-status" class="status"></p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="num">PID</th><th>Name</th></tr></thead>
+          <tbody id="proc-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="stack">
+      <section id="regions-panel" class="panel">
+        <div class="panel-head">
+          <h2>Regions <span id="region-pid" class="muted"></span></h2>
+          <input id="region-filter" type="search" placeholder="perms, e.g. rw" autocomplete="off">
+        </div>
+        <p id="region-status" class="status">Select a process.</p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Start</th><th>End</th><th class="num">Size</th><th>Perms</th><th>Path</th></tr></thead>
+            <tbody id="region-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="read-panel" class="panel">
+        <h2>Read</h2>
+        <form id="read-form" class="grid-form">
+          <label>PID <input name="pid" inputmode="numeric" required></label>
+          <label>Address <input name="addr" placeholder="0x…" required></label>
+          <label>Type
+            <select name="type">
+              <option>u8</option><option>u16</option><option selected>u32</option><option>u64</option>
+              <option>i8</option><option>i16</option><option>i32</option><option>i64</option>
+              <option>f32</option><option>f64</option><option>string</option><option>bytes</option>
+            </select>
+          </label>
+          <label>Size <input name="size" value="64" inputmode="numeric" title="string / bytes only"></label>
+          <label>Endian
+            <select name="endian"><option selected>little</option><option>big</option></select>
+          </label>
+          <button type="submit">Read</button>
+        </form>
+        <pre id="read-result" class="result"></pre>
+      </section>
+
+      <section id="search-panel" class="panel">
+        <h2>Search</h2>
+        <form id="search-form" class="grid-form">
+          <label>PID <input name="pid" inputmode="numeric" required></label>
+          <label>Type
+            <select name="type">
+              <option>u8</option><option>u16</option><option selected>u32</option><option>u64</option>
+              <option>i8</option><option>i16</option><option>i32</option><option>i64</option>
+              <option>f32</option><option>f64</option>
+            </select>
+          </label>
+          <label>Value <input name="value" required></label>
+          <label>Limit <input name="limit" value="1000" inputmode="numeric"></label>
+          <button type="submit">Search</button>
+        </form>
+        <p id="search-status" class="status"></p>
+        <ul id="search-results" class="addr-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

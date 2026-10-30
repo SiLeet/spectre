@@ -11,6 +11,7 @@ spectre-native = { workspace = true }
 spectre-game = { workspace = true }
 spectre-bot = { workspace = true }
 spectre-lua = { workspace = true }
+spectre-web = { workspace = true }
 # Lua backend is provided by spectre-lua's mlua features (lua54 + vendored).
 anyhow = { workspace = true }
 tracing = { workspace = true }

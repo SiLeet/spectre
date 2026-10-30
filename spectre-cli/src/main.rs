@@ -606,27 +606,56 @@ fn field_type_to_value_type(ft: FieldType) -> ValueType {
 }
 
 fn build_scan_patterns(offsets: &GameOffsets) -> Vec<ScanPattern> {
-    // TODO(scan): fields currently match on `ScanValue::Any`, so patterns
-    // locate structures by layout/size only. FieldDef.offset is not yet
-    // expressed in PatternField (which uses sequential alignment padding);
-    // a future pass can map offsets onto alignment gaps.
+    // Translate the declarative structure layout (base_offset + per-field
+    // offsets) into a scanner pattern. Fields are NOT packed sequentially:
+    // gaps between field offsets are emitted as anonymous `Bytes` fields, so
+    // the scanner validates the exact structure geometry. This cuts false
+    // positives massively compared to layout-only matching.
     offsets
         .structures
         .iter()
-        .map(|sd| ScanPattern {
-            name: sd.name.clone(),
-            fields: sd
-                .fields
-                .iter()
-                .map(|fd| PatternField {
+        .map(|sd| {
+            // Sort fields by declared offset (offset files may not be ordered).
+            let mut fields: Vec<&FieldDef> = sd.fields.iter().collect();
+            fields.sort_by_key(|f| f.offset);
+
+            // Field offsets are RELATIVE to the structure base; the scanner
+            // matches at any address X and validates geometry at X+offset.
+            // Starting at base_offset (= the *expected* absolute address)
+            // would inject a multi-gigabyte filler gap for real games.
+            let mut pattern_fields: Vec<PatternField> = Vec::new();
+            let mut cursor: u64 = 0;
+
+            for fd in fields {
+                // Leading gap before this field.
+                if fd.offset > cursor {
+                    pattern_fields.push(gap_field(fd.offset - cursor));
+                }
+                // The field itself. Naming is kept on the real field so scan
+                // reports carry meaningful names; pointer fields are left
+                // unconstrained since their value is process-dependent.
+                pattern_fields.push(PatternField {
                     name: fd.name.clone(),
                     value_type: field_type_to_value_type(fd.field_type),
                     value: ScanValue::Any,
-                    alignment: 4,
-                })
-                .collect(),
+                    alignment: 1, // scanner runs aligned by ScanConfig stride anyway
+                });
+                cursor = fd.offset + field_type_to_value_type(fd.field_type).size() as u64;
+            }
+
+            ScanPattern { name: sd.name.clone(), fields: pattern_fields }
         })
         .collect()
+}
+
+/// Build an anonymous fixed-size filler field for a gap between offsets.
+fn gap_field(size: u64) -> PatternField {
+    PatternField {
+        name: "gap".to_owned(),
+        value_type: ValueType::Bytes(size as u32),
+        value: ScanValue::Any,
+        alignment: 1,
+    }
 }
 
 fn run_scan(args: ScanArgs) -> Result<()> {
@@ -1263,4 +1292,59 @@ fn run_script(args: ScriptArgs) -> Result<()> {
         .run_file(&args.script)
         .with_context(|| format!("failed to execute Lua script '{}'", args.script))?;
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn offsets() -> GameOffsets {
+        GameOffsets {
+            game: "test".to_owned(),
+            version: "1.0".to_owned(),
+            structures: vec![StructDef {
+                name: "Player".to_owned(),
+                base_offset: 0x1000,
+                fields: vec![
+                    FieldDef { name: "level".to_owned(), field_type: FieldType::U32, offset: 0x00, desc: None },
+                    FieldDef { name: "gold".to_owned(), field_type: FieldType::U64, offset: 0x10, desc: None },
+                    FieldDef { name: "hp".to_owned(), field_type: FieldType::F32, offset: 0x18, desc: None },
+                ],
+            }],
+        }
+    }
+
+    #[test]
+    fn patterns_include_geometry_gaps() {
+        let patterns = build_scan_patterns(&offsets());
+        assert_eq!(patterns.len(), 1);
+        let p = &patterns[0];
+        // level(4) + gap(0x10-4=12) + gold(8) + gap(0x18-0x18=0) + hp(4)
+        let expected_span: u64 = 28;
+        // Sum individual value sizes; PatternField alignment is 1 so span
+        // equals the sum.
+        assert_eq!(p.span(), expected_span, "span must cover all real fields plus gaps");
+        // Fields: level, gap, gold, hp (gap between level and gold only).
+        let names: Vec<&str> = p.fields.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, vec!["level", "gap", "gold", "hp"]);
+        // The gap must be 12 bytes (0x10 - 4).
+        assert!(matches!(p.fields[1].value_type, ValueType::Bytes(12)));
+    }
+
+    #[test]
+    fn span_respects_unsorted_field_offsets() {
+        // Sorted internally even if the YAML lists fields out of order.
+        let mut go = offsets();
+        go.structures[0].fields.swap(0, 2); // hp first, level last
+        let p = &build_scan_patterns(&go)[0];
+        let names: Vec<&str> = p.fields.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names[0], "level", "fields must be sorted by offset");
+    }
+
+    #[test]
+    fn empty_offsets_yield_empty_patterns() {
+        let go = GameOffsets { game: "x".into(), version: "1".into(), structures: vec![] };
+        assert!(build_scan_patterns(&go).is_empty());
+    }
 }

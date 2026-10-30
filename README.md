@@ -24,8 +24,8 @@ the game binary**.
 
 - **🔎 Memory Scanning** — Aligned pattern search across process memory regions
 - **📦 Structure Mapping** — Declarative YAML offset files define game structures
-- **🔌 Pluggable Backends** — ADB (Android emulators), Native (Windows/Linux), Dump files
-- **🤖 Bot Automation** — Lua-scripted bot execution with cron scheduling
+- **🔌 Pluggable Backends** — ADB (Android emulators), Native (Windows/Linux), offline Dump files (`scan --dump`)
+- **🤖 Bot Automation** — Lua-scripted bot execution with interval scheduling
 - **📐 Clean Architecture** — 8 workspace crates with clear separation of concerns
 - **🪶 Typed Reads** — U8–U64, I8–I64, F32/F64, strings, and pointer chain resolution
 - **📄 Multi-format Output** — Table, JSON, YAML
@@ -76,6 +76,18 @@ cargo build -r
 # Copy binary to PATH
 cp target/release/spectre ~/.local/bin/
 ```
+
+## Scanning an offline memory dump
+
+Save a raw dump with `spectre dump`, then scan it without a live process:
+
+```bash
+spectre dump 12345 0x7ff0000 65536 --format raw --output game.dump
+spectre scan afk-journey --dump game.dump --dump-base 0x7ff0000
+```
+
+`--dump-base` tells the reader the virtual address of the first byte in the
+file (default `0`). Useful for forensic analysis, offset discovery, and tests.
 
 Requires Rust (≥ edition 2024). ADB backend requires `adb` on PATH.
 

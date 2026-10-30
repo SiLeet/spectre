@@ -116,6 +116,14 @@ pub struct ScanArgs {
     /// ADB port (default: 5555).
     #[structopt(long = "adb-port")]
     pub adb_port: Option<u16>,
+
+    /// Scan an offline memory dump file instead of a live process.
+    #[structopt(long = "dump")]
+    pub dump: Option<String>,
+
+    /// Virtual address of the first byte in the dump file (default: 0).
+    #[structopt(long = "dump-base", default_value = "0")]
+    pub dump_base: String,
 }
 
 // ── Dump Command ─────────────────────────────────────────────────────────────
@@ -659,6 +667,37 @@ fn gap_field(size: u64) -> PatternField {
 }
 
 fn run_scan(args: ScanArgs) -> Result<()> {
+    // Offline mode: scan a dump file instead of a live process.
+    if let Some(dump_path) = args.dump.as_deref() {
+        let base = parse_u64(&args.dump_base).ok_or_else(|| {
+            anyhow!("invalid dump base '{}' (use 0x-prefixed hex or decimal)", args.dump_base)
+        })?;
+        let reader = spectre_core::DumpFileReader::from_file(
+            Path::new(dump_path),
+            base,
+            format!("{}-dump", args.game),
+        )
+        .with_context(|| format!("failed to load dump '{}'", dump_path))?;
+        info!(
+            "scanning dump '{}' ({} bytes @ {base:#x})",
+            dump_path,
+            reader.len()
+        );
+
+        let offsets = load_game_offsets(&args.game, args.offsets.as_deref())?;
+        let patterns = build_scan_patterns(&offsets);
+        info!(
+            "loaded {} structure(s) for '{}' v{}",
+            offsets.structures.len(),
+            offsets.game,
+            offsets.version
+        );
+        let reports = scan_memory(&reader, 0, patterns, &ScanConfig::default())?;
+        let total: usize = reports.iter().map(|r| r.matches.len()).sum();
+        info!("scan complete: {} pattern(s), {total} total match(es)", reports.len());
+        return output_scan_reports(&reports, args.format.as_deref(), args.output.as_deref());
+    }
+
     let reader = create_reader(args.adb, args.adb_host, args.adb_port)?;
     let pid = resolve_pid(reader.as_ref(), &args.game, args.pid)?;
     info!("scanning game '{}' (pid {pid})", args.game);

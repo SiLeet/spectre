@@ -1,0 +1,37 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+target/
+build/
+*.rs.bk
+# Cargo.lock is COMMITTED — this is a binary/workspace project (reproducibility)
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ── Logs & Databases ─────────────────────────────────────────────────────────
+*.log
+*.db
+*.sqlite
+*.sqlite3
+dump.rdb
+
+# ── Python (Lua scripting venv might use it) ──────────────────────────────────
+__pycache__/
+*.pyc
+.env/
+
+# ── Users can dump files here ─────────────────────────────────────────────────
+*.bin
+*.dump
+*.dmp

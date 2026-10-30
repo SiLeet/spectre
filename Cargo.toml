@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+members = [
+    "spectre",
+    "spectre-core",
+    "spectre-adb",
+    "spectre-native",
+    "spectre-game",
+    "spectre-bot",
+    "spectre-lua",
+    "spectre-cli",
+]
+
+[workspace.package]
+authors = ["Sergej Dukart"]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/sergej-dukart/spectre"
+
+[workspace.dependencies]
+anyhow = "^1"
+tracing = "0.1"
+tokio = { version = "^1", features = ["full"] }
+serde = "^1"
+serde_yaml = "0.9"
+serde_json = "^1"
+structopt = "0.3"
+mlua = "0.12"
+quest = "0.3"
+spectre-core = { path = "spectre-core" }
+spectre-adb = { path = "spectre-adb" }
+spectre-native = { path = "spectre-native" }
+spectre-game = { path = "spectre-game" }
+spectre-bot = { path = "spectre-bot" }
+spectre-lua = { path = "spectre-lua" }
+
+[profile.release]
+codegen-units = 2
+strip = "symbols"
+lto = true

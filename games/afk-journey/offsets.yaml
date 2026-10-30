@@ -1,0 +1,109 @@
+# AFK Journey — Memory Offset Definitions
+# Game version: 1.0.45
+
+game: "afk-journey"
+version: "1.0.45"
+structures:
+  - name: "PlayerState"
+    base_offset: 0x1A2B3C00
+    fields:
+      - name: "player_id"
+        field_type: U32
+        offset: 0x00
+        desc: "Account ID"
+      - name: "level"
+        field_type: U32
+        offset: 0x04
+        desc: "Player level"
+      - name: "exp"
+        field_type: U64
+        offset: 0x08
+        desc: "Current experience points"
+      - name: "nickname"
+        field_type: String(32)
+        offset: 0x10
+        desc: "Player display name"
+      - name: "vip_level"
+        field_type: U32
+        offset: 0x30
+        desc: "VIP / battle pass tier"
+      - name: "create_time"
+        field_type: U64
+        offset: 0x34
+        desc: "Account creation timestamp (unix)"
+
+  - name: "Resources"
+    base_offset: 0x1A2B3D00
+    fields:
+      - name: "gold"
+        field_type: I64
+        offset: 0x00
+        desc: "Gold coins"
+      - name: "gems"
+        field_type: I64
+        offset: 0x08
+        desc: "Premium gems"
+      - name: "energy"
+        field_type: U32
+        offset: 0x10
+        desc: "Stamina energy"
+      - name: "arena_tokens"
+        field_type: U32
+        offset: 0x14
+        desc: "Arena currency"
+      - name: "guild_tokens"
+        field_type: U32
+        offset: 0x18
+        desc: "Guild currency"
+
+  - name: "TeamState"
+    base_offset: 0x2A3B4C00
+    fields:
+      - name: "hero_count"
+        field_type: U32
+        offset: 0x00
+        desc: "Number of deployed heroes"
+      - name: "team_power"
+        field_type: U64
+        offset: 0x04
+        desc: "Total team combat power"
+      - name: "formation_id"
+        field_type: U32
+        offset: 0x0C
+        desc: "Active formation slot ID"
+      - name: "heroes_ptr"
+        field_type: Pointer64
+        offset: 0x10
+        desc: "Pointer to hero array in memory"
+
+  - name: "HeroInfo"
+    base_offset: 0x3A4B5C00
+    fields:
+      - name: "hero_id"
+        field_type: U32
+        offset: 0x00
+        desc: "Hero template ID"
+      - name: "level"
+        field_type: U32
+        offset: 0x04
+        desc: "Hero level"
+      - name: "ascension"
+        field_type: U32
+        offset: 0x08
+        desc: "Ascension tier"
+      - name: "power"
+        field_type: U64
+        offset: 0x0C
+        desc: "Hero combat power"
+      - name: "stars"
+        field_type: U32
+        offset: 0x14
+        desc: "Star count"
+      - name: "gear_ptr"
+        field_type: Pointer64
+        offset: 0x18
+        desc: "Pointer to equipment data"
+      - name: "skills_ptr"
+        field_type: Pointer64
+        offset: 0x20
+        desc: "Pointer to skill data"

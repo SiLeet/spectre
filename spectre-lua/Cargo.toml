@@ -1,0 +1,11 @@
+[package]
+name = "spectre-lua"
+description = "Lua scripting bindings for spectre bot automation"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spectre-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+mlua = { workspace = true, features = ["lua54", "vendored", "send", "anyhow"] }

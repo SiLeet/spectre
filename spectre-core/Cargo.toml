@@ -1,0 +1,11 @@
+[package]
+name = "spectre-core"
+description = "Core memory reading traits, types, and scanner for game memory analysis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true, features = ["derive"] }

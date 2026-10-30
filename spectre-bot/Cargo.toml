@@ -1,0 +1,13 @@
+[package]
+name = "spectre-bot"
+description = "Bot execution engine with scheduling and action primitives"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spectre-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }

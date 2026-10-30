@@ -1,0 +1,18 @@
+[package]
+name = "spectre"
+description = "Spectre — modular mobile game memory reading and bot framework"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spectre-core = { workspace = true }
+spectre-adb = { workspace = true }
+spectre-native = { workspace = true }
+spectre-game = { workspace = true }
+spectre-bot = { workspace = true }
+spectre-lua = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

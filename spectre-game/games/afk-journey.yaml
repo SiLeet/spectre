@@ -1,0 +1,107 @@
+game: "AFK Journey"
+version: "1.0.0"
+platforms: ["bluestacks", "android"]
+structures:
+  - name: "PlayerState"
+    base_offset: 0
+    fields:
+      - name: "name"
+        type: "string"
+        offset: 0x1234
+        desc: "Player display name"
+      - name: "level"
+        type: "u32"
+        offset: 0x1260
+        desc: "Current player level"
+      - name: "exp"
+        type: "u32"
+        offset: 0x1264
+        desc: "Current experience points"
+      - name: "max_exp"
+        type: "u32"
+        offset: 0x1268
+        desc: "Experience needed for next level"
+      - name: "vip_level"
+        type: "u32"
+        offset: 0x126C
+        desc: "VIP / monthly pass tier"
+      - name: "gold"
+        type: "u64"
+        offset: 0x1270
+        desc: "Gold currency amount"
+      - name: "diamonds"
+        type: "u64"
+        offset: 0x1280
+        desc: "Premium currency amount"
+      - name: "stamina"
+        type: "u32"
+        offset: 0x1290
+        desc: "Current stamina / energy"
+      - name: "max_stamina"
+        type: "u32"
+        offset: 0x1294
+        desc: "Maximum stamina capacity"
+      - name: "is_online"
+        type: "bool"
+        offset: 0x1298
+        desc: "Whether player appears online"
+      - name: "last_login"
+        type: "u64"
+        offset: 0x12A0
+        desc: "Unix timestamp of last login"
+
+  - name: "BattleState"
+    base_offset: 0x2000
+    fields:
+      - name: "battle_id"
+        type: "u32"
+        offset: 0x00
+        desc: "Unique battle instance ID"
+      - name: "stage_id"
+        type: "u32"
+        offset: 0x04
+        desc: "Current stage / wave number"
+      - name: "hp"
+        type: "f32"
+        offset: 0x10
+        desc: "Player current HP fraction (0.0 - 1.0)"
+      - name: "energy"
+        type: "f32"
+        offset: 0x14
+        desc: "Player energy / ult charge"
+      - name: "time_remaining"
+        type: "f32"
+        offset: 0x18
+        desc: "Seconds remaining in battle"
+      - name: "is_paused"
+        type: "bool"
+        offset: 0x1C
+        desc: "Whether battle is paused (auto/manual)"
+      - name: "auto_battle"
+        type: "bool"
+        offset: 0x1D
+        desc: "Auto-battle toggle state"
+
+  - name: "GachaState"
+    base_offset: 0x4000
+    fields:
+      - name: "pity_counter"
+        type: "u32"
+        offset: 0x00
+        desc: "Current pity counter for the active banner"
+      - name: "hard_pity"
+        type: "u32"
+        offset: 0x04
+        desc: "Hard pity threshold"
+      - name: "banner_id"
+        type: "u32"
+        offset: 0x08
+        desc: "Currently active gacha banner ID"
+      - name: "total_pulls"
+        type: "u32"
+        offset: 0x0C
+        desc: "Total pulls across all banners"
+      - name: "guarantee_type"
+        type: "u32"
+        offset: 0x10
+        desc: "0 = rate-up not guaranteed, 1 = guaranteed rate-up"

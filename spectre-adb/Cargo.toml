@@ -1,0 +1,11 @@
+[package]
+name = "spectre-adb"
+description = "ADB-based memory reader backend for Android emulators"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spectre-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

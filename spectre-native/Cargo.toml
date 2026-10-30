@@ -1,0 +1,15 @@
+[package]
+name = "spectre-native"
+description = "OS-native process memory reader (Windows/Linux)"
+version = "0.1.0"
+edition = "2024"
+
+# Raw FFI only — no windows-rs / libc wrappers.
+# Win32 API functions are linked via extern "C" blocks;
+# Linux uses std::fs::File for /proc/pid/mem access.
+
+[dependencies]
+spectre-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }

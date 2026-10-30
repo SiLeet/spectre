@@ -6,6 +6,7 @@
 //!   spectre dump <pid> <address> <size> [--output PATH] [--format hex|raw|ascii] [--adb]
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
+//!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
 //!   spectre adb list | adb ping [serial]

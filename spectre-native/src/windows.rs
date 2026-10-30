@@ -52,12 +52,11 @@ struct MEMORY_BASIC_INFORMATION {
     pub BaseAddress: *mut c_void,
     pub AllocationBase: *mut c_void,
     pub AllocationProtect: DWORD,
-    pub __alignment1: usize,
+    pub PartitionId: u16,
     pub RegionSize: usize,
     pub State: DWORD,
     pub Protect: DWORD,
     pub Type: DWORD,
-    pub __alignment2: usize,
 }
 
 unsafe extern "system" {
@@ -71,8 +70,11 @@ unsafe extern "system" {
     ) -> BOOL;
     fn CloseHandle(hObject: HANDLE) -> BOOL;
     fn CreateToolhelp32Snapshot(dwFlags: DWORD, th32ProcessID: DWORD) -> HANDLE;
-    fn Process32First(hSnapshot: HANDLE, lppe: *mut PROCESSENTRY32) -> BOOL;
-    fn Process32Next(hSnapshot: HANDLE, lppe: *mut PROCESSENTRY32) -> BOOL;
+    // NOTE: explict W-suffix — the unsuffixed entry points resolve to the
+    // ANSI (A) variants on kernel32, which write ANSI bytes to szExeFile.
+    // Reading those as UTF-16 produces mojibake.
+    fn Process32FirstW(hSnapshot: HANDLE, lppe: *mut PROCESSENTRY32) -> BOOL;
+    fn Process32NextW(hSnapshot: HANDLE, lppe: *mut PROCESSENTRY32) -> BOOL;
     fn VirtualQueryEx(
         hProcess: HANDLE,
         lpAddress: LPVOID,
@@ -140,13 +142,13 @@ impl MemoryReader for WindowsReader {
         }
         let mut entry: PROCESSENTRY32 = unsafe { std::mem::zeroed() };
         entry.dwSize = size_of::<PROCESSENTRY32>() as DWORD;
-        let mut ok = unsafe { Process32First(snap, &mut entry) } != 0;
+        let mut ok = unsafe { Process32FirstW(snap, &mut entry) } != 0;
         while ok {
             out.push(ProcessInfo {
                 pid: entry.th32ProcessID,
                 name: Self::wide_to_string(&entry.szExeFile),
             });
-            ok = unsafe { Process32Next(snap, &mut entry) } != 0;
+            ok = unsafe { Process32NextW(snap, &mut entry) } != 0;
         }
         unsafe { CloseHandle(snap) };
         Ok(out)
@@ -165,15 +167,23 @@ impl MemoryReader for WindowsReader {
         let h = Self::open(pid)?;
         let mut regions = Vec::new();
         let mut addr: *mut c_void = std::ptr::null_mut();
+        let mut guard: u32 = 0;
+        let max_iterations: u32 = 10_000_000; // hard safety cap against runaway loops
         loop {
+            if guard >= max_iterations {
+                tracing::warn!("memory_regions hit iteration cap; stopping scan");
+                break;
+            }
+            guard += 1;
             let mut mbi: MEMORY_BASIC_INFORMATION = unsafe { std::mem::zeroed() };
             let len = unsafe { VirtualQueryEx(h, addr, &mut mbi, size_of::<MEMORY_BASIC_INFORMATION>()) };
-            if len == 0 {
+            if len == 0 || mbi.RegionSize == 0 {
                 break;
             }
             let start = mbi.BaseAddress as u64;
             let size = mbi.RegionSize as u64;
-            // Only committed memory (MEM_COMMIT = 0x1000).
+            // Only committed memory (MEM_COMMIT = 0x1000); the mem of other
+            // states (e.g. RESERVE) yields ERROR_INVALID_ADDRESS on read.
             if mbi.State == 0x1000 && size > 0 {
                 regions.push(MemoryRegion {
                     start,
@@ -182,7 +192,14 @@ impl MemoryReader for WindowsReader {
                     path: None,
                 });
             }
-            addr = (mbi.BaseAddress as u64 + size) as *mut c_void;
+            let next = start.checked_add(size);
+            let Some(next) = next else {
+                break;
+            };
+            if next <= start {
+                break; // no progress — stop to avoid an infinite loop
+            }
+            addr = next as *mut c_void;
         }
         unsafe { CloseHandle(h) };
         Ok(regions)

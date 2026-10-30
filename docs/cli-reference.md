@@ -367,9 +367,13 @@ A complete example lives in [`examples/bot-config.yaml`](../examples/bot-config.
 | `enabled` | `true` | Master switch |
 | `metadata` | – | `game`, `process`, `offsets` (path to the offsets YAML used to resolve field names) |
 
-Each task has `name`, `interval_ms`, `enabled`, `conditions` and `actions`
-(all required). `conditions` are guard conditions for the bot crate's
-scheduler; see the limitation under [`bot`](#bot).
+Each task has `name`, `enabled`, `conditions` and `actions` (required),
+plus either `interval_ms` (`0` or omitted = `default_interval_ms`) or a
+cron-style `schedule` such as `"0 */6 * * *"` (minute hour day month
+weekday; supports `*`, values, ranges, `*/n` steps and lists). A bad
+`schedule` is rejected when the config is loaded. `conditions` are guard
+conditions for the bot crate's scheduler; see the limitation under
+[`bot`](#bot) — the CLI loop validates `schedule` but does not honour it yet.
 
 Actions and values are Rust enums and are written with **YAML tags**:
 

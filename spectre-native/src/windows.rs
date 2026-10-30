@@ -19,8 +19,6 @@ type BOOL = i32;
 #[allow(non_camel_case_types)]
 type DWORD = u32;
 #[allow(non_camel_case_types)]
-type WORD = u16;
-#[allow(non_camel_case_types)]
 type LPVOID = *mut c_void;
 
 const PROCESS_VM_READ: DWORD = 0x0010;

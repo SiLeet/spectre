@@ -118,32 +118,48 @@ spectre scan afk-journey --adb --adb-host 192.168.1.10 --adb-port 5555
 
 ## Running a Bot
 
-Create a bot config file `my-bot.yaml`:
+Bots are driven by a YAML config that references game memory fields by name
+(defined in the game's `offsets.yaml`) and chains actions. A working demo lives
+at `examples/bot-config.yaml`.
+
+Minimal config:
 
 ```yaml
-name: "daily-farmer"
-game: "afk-journey"
-strategy: "farm-and-collect"
-actions:
-  - name: "login"
-    script: "scripts/login.lua"
-  - name: "collect-daily"
-    script: "scripts/collect.lua"
-schedules:
-  - cron: "0 */6 * * *"
-    action: "collect-daily"
+metadata:
+  game: afk-journey
+  process: afk_journey.exe
+  offsets: games/afk-journey/offsets.yaml
+
+input_backend: adb
+tasks:
+  - name: collect-rewards
+    enabled: true
+    interval_ms: 15000
+    conditions: []
+    actions:
+      - !MemoryCheck
+        field: battle_state
+        op: Eq
+        value: !U64 2
+      - !InputClick
+        x: 960
+        y: 980
 ```
+
+> serde_yaml deserializes enum variants using YAML tags: a `BotAction`
+> variant is written as `!MemoryCheck` / `!InputClick` / `!Wait` / `!Log`,
+> and a `ValueSpec` as `!U64` / `!I64` / `!F64` / `!Bytes`.
 
 Run the bot:
 
 ```bash
-spectre bot my-bot.yaml
+spectre bot examples/bot-config.yaml
 ```
 
 Validate without running:
 
 ```bash
-spectre bot my-bot.yaml --dry-run
+spectre bot examples/bot-config.yaml --dry-run
 ```
 
 Run once:
@@ -151,6 +167,18 @@ Run once:
 ```bash
 spectre bot my-bot.yaml --once
 ```
+
+## Running a Lua Script
+
+The `script` command executes a Lua bot script through the spectre-lua sandbox:
+
+```bash
+spectre script examples/afk-bot.lua --input-backend adb
+```
+
+Lua scripts get two modules: `spectre` (memory reads: `read_u32`,
+`read_f32`, `read_string`, `find_process`, `scan`) and `bot` (input:
+`click`, `swipe`, `wait`, `log`).
 
 ## Next Steps
 

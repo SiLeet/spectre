@@ -1,0 +1,55 @@
+# Spectre demo bot configuration
+# Usage:  spectre bot examples/bot-config.yaml --dry-run
+#
+# This is a *demonstration* config: the field names below reference the
+# AFK Journey sample offsets in games/afk-journey/offsets.yaml. Replace the
+# pointer/base offsets with real ones for your game version before running.
+#
+# Note: serde_yaml deserializes enum variants using YAML tags,
+# e.g. `!MemoryCheck` for a BotAction and `!U64` / `!I64` for ValueSpec.
+
+metadata:
+  game: afk-journey
+  process: afk_journey.exe
+  offsets: games/afk-journey/offsets.yaml
+
+# Input backend: currently only 'adb' is wired end-to-end.
+input_backend: adb
+enabled: true
+default_interval_ms: 5000
+memory_poll_ms: 250
+
+tasks:
+  - name: health-watch
+    enabled: true
+    interval_ms: 2000
+    conditions:
+      - field: gold
+        op: Gt
+        value: !I64 100
+    actions:
+      - !MemoryCheck
+        field: level
+        op: Lt
+        value: !U64 200
+      - !Log
+        message: "health-watch run"
+        level: Info
+
+  - name: collect-rewards
+    enabled: true
+    interval_ms: 15000
+    conditions: []
+    actions:
+      - !MemoryCheck
+        field: battle_state
+        op: Eq
+        value: !U64 2
+      - !InputClick
+        x: 960
+        y: 980
+      - !Wait
+        millis: 500
+      - !Log
+        message: "collected rewards"
+        level: Info

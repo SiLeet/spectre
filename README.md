@@ -48,6 +48,8 @@ the game binary**.
 
 ## Quick Start
 
+New here? The [10-minute quickstart](examples/README.md) needs no game: it finds a changing value in a small practice process.
+
 ```bash
 # Build
 cargo build -r

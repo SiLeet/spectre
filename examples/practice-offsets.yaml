@@ -1,0 +1,32 @@
+# Offsets for the practice target (examples/practice-target.ps1 /
+# examples/practice_target.py), in the format `spectre scan --offsets` reads.
+#
+# Usage, with the 32-byte raw dump taken at the score address in the
+# quickstart (examples/README.md, step 1):
+#   spectre scan practice --offsets examples/practice-offsets.yaml --dump after.dump --dump-base <score-address>
+#
+# `scan` builds a pattern from the field layout only (every field matches any
+# value) and tests every 4-byte-aligned position. The scanner currently skips
+# the last <structure size> bytes of a region, so a 32-byte dump of this
+# 16-byte structure yields exactly one match - at the score address - and the
+# scan works as a structure viewer for the dump. (A 16-byte dump yields none.)
+
+game: practice
+version: "1"
+structures:
+  - name: PracticeScore
+    base_offset: 0
+    fields:
+      - name: score
+        type: u32
+        offset: 0
+        desc: "the number the target prints"
+      - name: round
+        type: u8
+        offset: 4
+        desc: "how often Enter was pressed (mod 256)"
+      - name: marker
+        type: string
+        length: 11
+        offset: 5
+        desc: "0xAB filler bytes"

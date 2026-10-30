@@ -46,6 +46,19 @@ it), otherwise game offset files are not found. The examples below call it
 `spectre`; with the single `.exe`, rename it to `spectre.exe` or type the full
 file name.
 
+> **Practice files are not in the 0.2.0 packages.** The v0.2.0 zip/tar.gz
+> only has `afk-bot.lua` and `bot-config.yaml` in `examples/`, and the single
+> `.exe` has no `examples/` at all. The practice files arrive with the next
+> release. Until then, get them from the repository: clone it (see (b)), or
+> download them into an `examples\` folder next to spectre:
+>
+> ```powershell
+> New-Item -ItemType Directory -Force examples | Out-Null
+> foreach ($f in 'practice-target.ps1','practice_target.py','practice-offsets.yaml','practice.lua') {
+>   Invoke-WebRequest "https://raw.githubusercontent.com/SiLeet/spectre/main/examples/$f" -OutFile "examples\$f"
+> }
+> ```
+
 **(b) Build from source.** You need Rust (<https://rustup.rs>) and, on
 Windows, the Visual Studio C++ Build Tools.
 
@@ -72,8 +85,9 @@ Installed Games:
 ```
 
 `adb` is only needed for Android emulators and for bot clicks; everything in
-step 1 works without it. Run all following commands from the repository (or
-unpacked release) folder.
+step 1 works without it. Run all following commands from the folder that
+contains `examples/` with the practice files: the cloned repository, or the
+release folder you downloaded them into.
 
 ---
 

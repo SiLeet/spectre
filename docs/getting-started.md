@@ -27,7 +27,11 @@ Prebuilt binaries are on the
 [Releases page](https://github.com/SiLeet/spectre/releases/latest):
 `spectre-v0.2.0-windows-x64.exe` (single file) or the `.zip` / `.tar.gz`
 packages, which also contain `games/` and `examples/`. Run `spectre` from the
-folder that contains `games/` so offset files are found.
+folder that contains `games/` so offset files are found. The v0.2.0 packages
+predate the quickstart's practice files (`practice-target.ps1`,
+`practice_target.py`, `practice-offsets.yaml`, `practice.lua`); get those from
+the repository's `examples/` folder until the next release, as described in
+the [quickstart](../examples/README.md#step-0--get-spectre).
 
 ### From source
 

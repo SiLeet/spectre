@@ -293,3 +293,11 @@ einen Key. Light/Will sind „Not Available“ (Wochentag-abhängig).
 **verbraucht die begrenzten Keys** — deshalb wie T33 blockiert auf Sergejs
 Ressourcen-Regel (Vorschlag: Keys nur verbrauchen, wenn Sergej es sagt, da sie
 ggf. für andere Türme/Progression vorgehalten werden sollen).
+
+### 🟦 T30-Update (22:3x): Homestead-Ernte — Mechanik noch ungeklärt
+Feld-Taps (1420,710) senden den Helden NICHT zum Feld (er bleibt auf dem
+Respawn-Kreis). Die Beträge je Feld wachsen kontinuierlich (3078→3140 in
+Minuten) = anrechenbare Ernte. Offen: Abholung über Interact-Menü am Feld oder
+zentralen Collect-Button? Nächster Schritt: Held von Hand an ein Feld schicken,
+Interact-Menü analysieren (Harvest-Button?), dann Skript mit walk-waits.
+Kamera-Abhängigkeit der Feld-Positionen: Icon-Probe statt fixer Koordinaten.

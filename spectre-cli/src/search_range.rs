@@ -55,7 +55,12 @@ pub(crate) fn parse_search_range(type_name: &str, min: &str, max: &str) -> Resul
                 if f.is_nan() {
                     bail!("{flag} must not be NaN");
                 }
-                Ok(f)
+                // Round f32 bounds to f32 so `--max 1.2` includes a stored 1.2f32.
+                Ok(if vt == ValueType::F32 {
+                    f64::from(f as f32)
+                } else {
+                    f
+                })
             };
             Bounds::Float(parse(min, "--min")?, parse(max, "--max")?)
         }
@@ -343,6 +348,51 @@ mod tests {
             scan_range(&reader, 0, &r, 0, BATCH).unwrap(),
             vec![BASE + 2]
         );
+    }
+
+    #[test]
+    fn scan_decodes_unsigned_high_values() {
+        // -3i16 read as u16 is 65533: only an unsigned decode hits this range.
+        let reader = DumpFileReader::from_bytes(BASE, (-3i16).to_le_bytes().to_vec(), "fake");
+        let r = parse_search_range("u16", "65530", "65535").unwrap();
+        assert_eq!(scan_range(&reader, 0, &r, 0, BATCH).unwrap(), vec![BASE]);
+        let reader = u32_dump(&[1, 0x8000_0005]);
+        let r = parse_search_range("u32", "0x80000000", "0xFFFFFFFF").unwrap();
+        assert_eq!(
+            scan_range(&reader, 0, &r, 0, BATCH).unwrap(),
+            vec![BASE + 4]
+        );
+        let data = [1u64, u64::MAX - 1]
+            .iter()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+        let reader = DumpFileReader::from_bytes(BASE, data, "fake");
+        let r = parse_search_range("u64", "9223372036854775808", "18446744073709551615").unwrap();
+        assert_eq!(
+            scan_range(&reader, 0, &r, 0, BATCH).unwrap(),
+            vec![BASE + 8]
+        );
+    }
+
+    #[test]
+    fn f32_bounds_match_stored_f32_values() {
+        let data: Vec<u8> = [1.2f32, 1.3, 0.2, 0.7]
+            .iter()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+        let reader = DumpFileReader::from_bytes(BASE, data, "fake");
+        let hits = |min, max| {
+            let r = parse_search_range("f32", min, max).unwrap();
+            scan_range(&reader, 0, &r, 0, BATCH).unwrap()
+        };
+        assert_eq!(hits("1.0", "1.2"), vec![BASE]);
+        assert_eq!(hits("1.3", "2"), vec![BASE + 4]);
+        assert_eq!(hits("1.2", "1.2"), vec![BASE]);
+        assert_eq!(hits("0.1", "0.2"), vec![BASE + 8]);
+        assert_eq!(hits("0.7", "0.7"), vec![BASE + 12]);
+        // f64 keeps the typed bound exactly.
+        let r = parse_search_range("f64", "0.1", "0.2").unwrap();
+        assert_eq!(r.bounds, Bounds::Float(0.1, 0.2));
     }
 
     #[test]

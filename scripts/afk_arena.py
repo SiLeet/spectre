@@ -29,6 +29,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from afk_claim_vision import classify  # verified WORLD check (back-arrow probes)
+
 REPO = Path(__file__).resolve().parent.parent
 TMP = REPO / '.spectre' / 'shots'
 TMP.mkdir(parents=True, exist_ok=True)
@@ -42,6 +44,7 @@ BATTLE_MODES = (890, 1060)  # Battle Modes entry button, world view
 ARENA_CARD = (1200, 300)    # Arena card inside Battle Modes
 CHALLENGE = (1080, 1004)    # green Challenge button, arena lobby
 OPPONENT_LEFT = (750, 500)  # left opponent card (weakest of the 3)
+ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 
 sys.path.insert(0, str(REPO / 'scripts'))
@@ -77,9 +80,8 @@ def dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
 
 
 def at_world(img: Image.Image) -> bool:
-    """Heuristic: the world view has the back-arrow-free top bar — the top
-    centre strip is game scenery, while menu screens have UI chrome there."""
-    return sum(avg(img, (960, 60))) > 200 or sum(avg(img, (1500, 500))) > 220
+    """Verified world-view check via the back-arrow probes from afk_claim_vision."""
+    return classify(img) == 'WORLD'
 
 
 def reach_world(max_steps: int = 6) -> Image.Image:
@@ -127,11 +129,13 @@ def main() -> int:
     wins = 0
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
-        tap(OPPONENT_LEFT, 2.0)
+        if fight > 1:
+            # after a resolved fight: Challenge! -> Select Opponent -> prep
+            tap(CHALLENGE_AGAIN, 3.0)
+            tap(OPPONENT_LEFT, 2.0)
+        # the prep screen (Arena I, teams placed) has its own Battle button
+        tap(ARENA_BATTLE, 3.0)
         img = shot(f'arena_3_f{fight}_start')
-        if at_world(img):
-            print('    ERROR: landed back in the world view — aborting', flush=True)
-            return 1
         sig_before = screen_signature(img)
 
         # the fight runs on its own; wait for it to resolve
@@ -141,15 +145,9 @@ def main() -> int:
         changed = sum(dist(a, b) for a, b in zip(sig_before, sig_after)) > 40
         print(f'    changed={changed} sig_before={sig_before} sig_after={sig_after}', flush=True)
         if not changed:
-            print('    WARN: screen unchanged after the fight — counting it as an attempt anyway', flush=True)
-        wins += 1
-
-        # next attempt: Challenge! again
-        tap(CHALLENGE_AGAIN, 3.0)
-        img = shot(f'arena_4_f{fight}_next')
-        if at_world(img):
-            print('    INFO: back in world view — attempts exhausted', flush=True)
+            print('    WARN: screen unchanged after the fight — aborting', flush=True)
             break
+        wins += 1
 
     print(f'done: {wins} arena fights driven', flush=True)
     return 0

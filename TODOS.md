@@ -138,6 +138,22 @@
   Claim → Slot bestätigen. Tooling dafür liegt in `scripts/gold-hunt.sh` + `scripts/gold-analyze.py`
   (3-Zeitpunkt-Dump A/B/C über die großen Heaps, Wallet-Kriterium A≠B, B==C, stabil im Idle).
 
+### ❌ T23: Wallet-Hunt vollständig negativ (2026-10-31) — Gold ist clientseitig nicht auffindbar
+- **Letzter, erschöpfender Versuch** (`scripts/wallet-hunt-all.py`): ALLE 625 noch nicht
+  abgedeckten anonymen rw-Regionen (535 MB) plus die bereits geprüften Bereiche ≈ 1 GB,
+  drei Zeitpunkte A (idle) → Claim → B (sofort) → 90 s → C, **modellfrei** (kein Rate×Zeit):
+  Kriterium A≠B, B==C, B>A, 200 ≤ Δ ≤ 20 000, Wert 500..50 Mio.
+- Ergebnis: 377 631 Rohtreffer, nach Float-Filter und Gruppenbildung **nur Alloc-Muster**
+  (0→4096, 0→8192, 1→16385 …) — kein Wallet-Kandidat, auch nicht als Kopie-Gruppe.
+- Ebenfalls negativ: AFK-Zeit als Sekundenzähler (Δ=+25 s exakt), als Epoch, big-endian,
+  f32/f64; AFK-Raten (20743/56170/1529) in allen großen Heaps; Raten im offenen Popup.
+- **Schlussfolgerung:** Gold ist server-autoritativ; der Client hält den Wert offenbar nur
+  transient (Netzwerkpuffer beim Öffnen des Panels) oder gar nicht. Ein Offset dafür ist mit
+  Read-only-Tools **nicht** zu pinnen. Konsequenz: Der Bot bleibt bei `team_power` als Guard;
+  Gold-Guards sind nur über UI-Feedback möglich (Screenshot/Popup), nicht über Memory.
+- **Nicht weiter verfolgen**, außer mit einem anderen Ansatz (z. B. Netzwerk-Traffic,
+  Hook auf die UI-Bindung oder Server-API).
+
 ### 🟦 T22: ui_state-Offset (Panel offen vs. Welt) — Methode gescheitert, Heuristik bleibt
 - Ziel: Claim im Bot verifizierbar machen (statt Reset-Tap-Heuristik).
 - Versuch 1: 4-Zustands-Schnitt W1/P1/W2/P2 über die ersten 4 MB des Hot-Heaps

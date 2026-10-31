@@ -75,11 +75,15 @@
   Nachher-Dump suchen → Adresse in `games/afk-journey/offsets.yaml` eintragen.
 - 📌 User-Hinweis: **Memory-first statt Pixel** (docs/memory-first.md) — UI-State-Offset
   finden (Town ↔ Open World Wechsel + dumpdiff), dann Navigation per Memory.
-- ✅ **hot-Scan Root-Cause gefunden + gefixt** (Commit `b56f897`): toybox `grep -bo` liefert
-  pro Zeile nur EINEN Offset → `tr` machte alles einzeilig → `end`-Sentinel verloren →
-  „no memory readable" trotz lesbarem Speicher. Fix: `od -w256 | sed 's/^ //'` + `grep -bF`
-  (ein Offset pro Zeile), Parser scannt Zeileninhalt byte-aligned. 25 adb-Tests grün.
-  ⚠️ Rest-Trade-off: Muster über 256er-Zeilengrenze unsichtbar (~0.4-1.2%, Recheck per dump).
+- ✅ **hot-Scan Root-Cause gefunden + gefixt** (Commits `b56f897` + `97b32ee`): toybox `grep -bo`
+  liefert pro Zeile nur EINEN Offset → `tr` machte alles einzeilig → `end`-Sentinel verloren →
+  „no memory readable" trotz lesbarem Speicher. Fix: `od -w256 | sed "s/^ //"` + `grep -bF`
+  (ein Offset pro Zeile), Parser scannt Zeileninhalt byte-aligned. **Zweiter Teil-Bug:** `sed 's/^ //'`
+  mit Single-Quotes im Rust-Code brach das `su -c '...'`-Quoting → Double-Quotes (`97b32ee`).
+- ✅ **LIVE-BEWEIS (`97b32ee`)**: 16-Seiten-Scan des Spiel-Heap für Muster `0a f7 03 00` (259850)
+  über die echte Geräte-Pipeline → errechnet exakt **0x724DF000A578** (bekannte Team-Power-Adresse!).
+  25 adb-Tests grün. ⚠️ Rest-Trade-off: Muster über 256er-Zeilengrenze unsichtbar (~0.4-1.2%,
+  Recheck per dump). Volle `hot`-Scan-Läufe laufen noch (Performance: alle >GB Regionen über ADB).
 
 ### ✅ T12: Game-Orientierung + Übergabe
 - docs/afk-journey-guide.md (Screens, Währungen, sichere Trigger-Aktionen), docs/memory-first.md.

@@ -227,3 +227,18 @@
 - ⬜ T34: Stage-Push --auto + x2-Speed in Scheduler-Idle-Fenster integrieren.
 - ⬜ T35: ×4-Speed: nur falls Sergej Premium kauft (Button gesperrt — Shop-
   Risiko); vorher nicht anfassen.
+
+### 🟦 T27 (Teilstand): Arena-Flow kartiert — Skript folgt
+Verifizierte Koordinaten/Sequenz (19:0x Uhr, 2 Kämpfe live):
+1. Battle Modes (890,1060) → Arena-Karte (1200,300) → Lobby (Rang Novice III,
+   Tokens oben rechts 1200 + Versuche "4").
+2. Challenge (1080,1004) → Select Opponent: 3 Gegner, Fight-Buttons links
+   (760,870) / Mitte (980,830) / rechts (1160,750); Schwächsten nehmen (Power
+   1150 < 1250 < 1365). Ganze Karte antippen (750,500) startet auch.
+3. Kampf läuft automatisch (unsere Formation) → Ergebnis → zurück zur Auswahl
+   mit "Challenge!" (1080,1010), Refresh 6/6 (830,1010), Back (704,1010).
+4. Arena-I-Prep (Heldengrid + Battle (960,1010)) erscheint im Kette-Modus.
+Achtung: Zahlen oben links/rechts (50,090 / 10,971) wechseln pro Screen —
+vermutlich berechnete Team-Power, NICHT Gold (Gold nur im Menü-Kopf "4856K").
+Rest: Skript `afk_arena.py` (Schwächsten wählen → x Kämpfe → Defeat-Stop)
++ Daily-Integration ("Challenge in Arena x6" 4/6).

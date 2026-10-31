@@ -281,3 +281,13 @@ Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9
   `scripts/afk_dream_realm.py` gebaut; offene Fix-Baustelle: Hero-Card-State
   (hell Vollbild, L(960,300) > 190) als eigener Zustand + Dismiss. Versuche:
   Chances 7/7, jedes Fight-Ergebnis verbraucht einen Versuch.
+
+### 🟦 T29-Update: Legend Trial + Arcane Labyrinth explor — key-gated
+Beide Modi öffnen dieselbe Turm-Struktur (Light/Nature/Eternity/Will bzw. die
+Labyrinth-Variante), Floor 1/80 mit „Challenge!“ (z. B. 1080,730) und einem
+**Key-Vorrat ×3** oben links („5 more floors required“). Jeder Floor kostet
+einen Key. Light/Will sind „Not Available“ (Wochentag-abhängig).
+→ Automatisierung wäre trivial (Go → Challenge → Battle, gleiche Gates), aber
+**verbraucht die begrenzten Keys** — deshalb wie T33 blockiert auf Sergejs
+Ressourcen-Regel (Vorschlag: Keys nur verbrauchen, wenn Sergej es sagt, da sie
+ggf. für andere Türme/Progression vorgehalten werden sollen).

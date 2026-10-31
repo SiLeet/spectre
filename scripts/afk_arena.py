@@ -68,8 +68,8 @@ def shot(name: str) -> Image.Image:
 
 def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, int]:
     x, y = xy
-    px = img.crop((x - r, y - r, x + r, y + r)).resize((1, 1), Image.Resampling.BILINEAR).getpixel((0, 0))
-    return tuple(int(v) for v in px)
+    px: tuple[int, int, int] = img.crop((x - r, y - r, x + r, y + r)).resize((1, 1), Image.Resampling.BILINEAR).getpixel((0, 0))  # type: ignore[assignment]
+    return (int(px[0]), int(px[1]), int(px[2]))
 
 
 def dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:

@@ -9,9 +9,7 @@ use spectre_core::scanner::{scan_memory, ScanConfig};
 use spectre_core::MemoryReader;
 use anyhow::{anyhow, Context, Result};
 use std::fs;
-use std::path::Path;
-
-const PAGE_SIZE: u64 = 4096;
+use std::os::unix::fs::FileExt;
 
 /// Linux native backend.
 #[derive(Debug, Default)]
@@ -35,12 +33,19 @@ impl LinuxReader {
     /// Open `/proc/<pid>/mem` for reading, returning an error with a hint
     /// when permission is denied.
     fn open_mem(pid: u32) -> Result<fs::File> {
-        fs::File::open(Self::mem_path(pid)).map_err(|e| {
+        fs::File::open(Self::mem_path(pid)).map_err(|e| Self::mem_error(pid, e))
+    }
+
+    /// EPERM and EACCES both map to `ErrorKind::PermissionDenied`.
+    fn mem_error(pid: u32, e: std::io::Error) -> anyhow::Error {
+        if e.kind() == std::io::ErrorKind::PermissionDenied {
             anyhow!(
-                "{e}. Note: reading /proc/{pid}/mem needs the same UID or root; \
-                 try `sudo setcap cap_sys_ptrace=ep $(which spectre)`"
+                "/proc/{pid}/mem: permission denied (need root or ptrace): {e}. \
+                 Try `sudo setcap cap_sys_ptrace=ep $(which spectre)`"
             )
-        })
+        } else {
+            anyhow!("/proc/{pid}/mem: {e}")
+        }
     }
 }
 
@@ -91,11 +96,10 @@ impl MemoryReader for LinuxReader {
                 continue;
             };
             let perms = parts.next().unwrap_or("---").to_owned();
-            // Skip the offset/dev/inode columns to reach the optional path.
-            let _ = parts.next();
-            let _ = parts.next();
-            let _ = parts.next();
-            let path = parts.next().map(|s| s.to_owned());
+            // Skip the offset/dev/inode columns to reach the optional path,
+            // which may itself contain spaces (same as the ADB parser).
+            let rest: Vec<&str> = parts.skip(3).collect();
+            let path = (!rest.is_empty()).then(|| rest.join(" "));
             // Only anonymous/heap or unexpected regions that are readable.
             if perms.contains('r') {
                 regions.push(MemoryRegion { start, end, perms, path });
@@ -108,29 +112,28 @@ impl MemoryReader for LinuxReader {
         if size == 0 {
             return Ok(Vec::new());
         }
-        // Start at a page boundary and rewind to the requested address,
-        // because pread on /proc/pid/mem must be page-aligned.
-        let page_start = address & !(PAGE_SIZE - 1);
-        let offset_in_page = (address - page_start) as usize;
-        let total = size as usize + offset_in_page;
-
-        let mut file = Self::open_mem(pid)?;
-        use std::io::{Read, Seek, SeekFrom};
-        file.seek(SeekFrom::Start(page_start))?;
-
-        let mut buf = vec![0u8; total];
+        // pread (read_at) at the virtual address; no alignment needed.
+        let file = Self::open_mem(pid)?;
+        let mut buf = vec![0u8; size as usize];
         let mut filled = 0usize;
-        while filled < total {
-            let n = file.read(&mut buf[filled..])?;
-            if n == 0 {
-                break;
+        while filled < buf.len() {
+            match file.read_at(&mut buf[filled..], address + filled as u64) {
+                Ok(0) => break,
+                Ok(n) => filled += n,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                // Partial read into an unmapped page: return what we have,
+                // like ReadProcessMemory on Windows.
+                Err(_) if filled > 0 => break,
+                Err(e) => {
+                    return Err(Self::mem_error(pid, e).context(format!("read at {address:#x}")));
+                }
             }
-            filled += n;
         }
-        if filled <= offset_in_page {
-            return Err(anyhow!("short read at {address:#x}: got {filled} bytes"));
+        if filled == 0 {
+            return Err(anyhow!("short read at {address:#x}: got 0 bytes"));
         }
-        Ok(buf[offset_in_page..offset_in_page + size as usize].to_vec())
+        buf.truncate(filled);
+        Ok(buf)
     }
 
     fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> Result<Vec<ScanReport>> {

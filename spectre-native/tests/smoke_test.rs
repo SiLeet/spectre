@@ -1,7 +1,9 @@
 //! Smoke test for the native backend on the real OS.
 //! Verifies process enumeration works (requires a Windows/Linux host).
 
-use spectre_native::{create_default_reader, NativeReader};
+use spectre_native::create_default_reader;
+#[cfg(windows)]
+use spectre_native::NativeReader;
 
 #[test]
 fn native_backend_lists_processes() {
@@ -36,8 +38,7 @@ fn find_process_matches_self() {
     // On a Windows host there is always `svchost.exe` and the System process;
     // the only environment where none match would be an empty container.
     // Keep the assertion strict on Windows, lenient elsewhere.
-    #[cfg(windows)]
-    assert!(any, "expected at least one common Windows process to be enumerable");
+    assert!(any || cfg!(not(windows)), "expected at least one common Windows process to be enumerable");
 
     let _ = &reader;
 }

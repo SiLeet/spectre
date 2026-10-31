@@ -264,3 +264,8 @@ Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9
   Sig-Vergleich bestätigt: Screen nach Fight 2-Tap = unverändert grau (Select).
   Fix offen: zwischen „Challenge!“ und Opponent-Tap ein Card-Dismiss (Tap 480,300
   oder Back) einbauen + Sig-Verifikation. Danach Daily-Integration (x6-Zähler).
+- 🟦 T27a (Sergej-Klarstellung 19:08): Die Zahl in der roten Box je Gegnerkarte
+  ist die **Kampfkraft** (10K / 39K / 75K) — nicht die Rangpunkte (1150/1250/1365).
+  Schwächster Gegner = kleinste Kampfkraft. Zu prüfen: ist die Liste aufsteigend
+  sortiert (dann ist "linke Karte" korrekt)? Wenn nicht: Ziffern-Reader für den
+  Power-Strip (Template-Matching) oder Refresh-bis-schwächster-links.

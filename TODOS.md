@@ -63,6 +63,25 @@
 
 ---
 
+## P3 — Live-Offset-Discovery (AFK Journey) — läuft seit 2026-10-31
+
+### 🟦 T11: AdbReader live gegen AFK Journey (BlueStacks)
+- ✅ Prozess finden, 4200+ Regionen lesen, u32-Scan, Dumps (4K-Block-Reads, ~3.3 MB/s)
+- ✅ `spectre hunt <pid> <min> <max>` (neues CLI-Feature, Commit `3e742dd`)
+- ✅ Gold-Kandidat 259850 identifiziert — ABER: nach Gold-Erhalt durch Belohnung **unverändert**
+  → war NICHT der echte Gold-Wert. Die echte Adresse muss per Aktion-Diff bestätigt werden
+  (kurzer Zeitabstand! 1h-Diff = 244k Churn-Slots, unbrauchbar).
+- ⏸️ **NÄCHSTER SCHRITT:** Im Town-Screen Gold-Wert OCR-lesen → exakte Zahl in frischem
+  Nachher-Dump suchen → Adresse in `games/afk-journey/offsets.yaml` eintragen.
+- 📌 User-Hinweis: **Memory-first statt Pixel** (docs/memory-first.md) — UI-State-Offset
+  finden (Town ↔ Open World Wechsel + dumpdiff), dann Navigation per Memory.
+
+### ✅ T12: Game-Orientierung + Übergabe
+- docs/afk-journey-guide.md (Screens, Währungen, sichere Trigger-Aktionen), docs/memory-first.md.
+- TODOS.md + CLAUDE-TASKS.md als Übergabe für parallele Claude-Arbeit.
+
+---
+
 ## Bonus (Claude)
 
 ### ✅ Release-Workflow (PR #7)

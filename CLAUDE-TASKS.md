@@ -272,9 +272,12 @@ BRANCH: feature/T10-multi-adb
 ## Status
 
 - ✅ Erledigt & gemergt: T2 (WinInput), T3 (DumpDiff), T5 (Docs), T6 (Lua-API),
-  T7 (Cron), T10 (Multi-ADB) + Release v0.2.0.
-- ⬜ **Offen (Phase 2):** T1 (Web-Dashboard) → T9 (Härtung, NACH T1),
-  T4 (Chain-CLI), T8 (Challenge-Repo).
+  T7 (Cron), T10 (Multi-ADB), T1 (Web-Dashboard), T9 (Web-Härtung),
+  T4 (Chain-CLI), T8 (Challenge-Repo) + Release v0.2.0/v0.3.0.
+- ✅ Live-ADB-Fixes (2026-10-31): Root-Fallback, Android-ps-Parser, Serial-Pinning,
+  page-aware 4K-Reads (`6a36d58`), `spectre hunt` (`3e742dd`), Game-Guides (`b330dd8`).
+- ⬜ **Neu:** T13 (On-device hot-scan) — von Hermes vorbereitet, kann Claude
+  parallel nehmen. Hermes arbeitet an der Live-Offset-Bestätigung (T11).
 
 ## Empfehlung: Start-Reihenfolge (Phase 2)
 
@@ -461,4 +464,47 @@ AUFGABE:
   6. cargo fmt + clippy.
 
 BRANCH: feature/T9-web-hardening
+```
+
+---
+
+## T13 — On-device hot-scan (`spectre hot`) für kürzere Diff-Zyklen
+
+**Berührt:** `spectre-adb/src/reader.rs` (neue Methode), `spectre-adb/src/lib.rs`, `spectre-cli/src/main.rs` (Subcommand `hot` + hunt erweitern optional). **KEINE** Änderung an spectre-core.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND (aus Live-Session 2026-10-31, AFK Journey auf BlueStacks):
+  - Offset-Discovery braucht VORHER/NACHHER-Dumps um kurze Abstände (Sekunden),
+    sonst ist der Diff mit Animations-Churn verrauscht (1h-Abstand = 244k Slots).
+  - toybox-dd auf Android kann kein iflag=skip_bytes,count_bytes; read_bytes
+    splittet bereits: Kopf/Tail bs=1, alignierter Mittelteil bs=4096 (~3.3 MB/s).
+  - Der Flaschenhals ist HEX-TEXT über die adb-Pipe, nicht dd.
+
+AUFGABE:
+  1. Neue Methode in spectre-adb/src/reader.rs (impl AdbReader):
+     pub fn grep_memory(&self, pid: u32, patterns: &[Vec<u8>], chunk: u32)
+       -> anyhow::Result<Vec<(u64 /*abs addr*/, usize /*pattern idx*/)>>
+     - Führt pro 4K-aligned Chunk (default 1 MiB) auf dem GERÄT aus:
+         su -c 'dd if=/proc/<pid>/mem bs=4096 skip=<n> count=<k> 2>/dev/null
+                | grep -aboF -e <pat1> -e <pat2> ...'
+       Hinweis: grep -abo liefert `offset:match` Zeilen; offset ist relativ zum
+       Chunk-Start. -F = literale Bytes (Patterns als Binär?). Wenn Binär-Patterns
+       mit GREP nicht gehen (NUL-Bytes), nutze stattdessen xxd -p auf dem Gerät
+       und grep nach den HEX-Strings:
+         ... | xxd -p -c <n> | grep -nF <hexpattern>
+       und rechne Zeilennummer * Spaltenbreite zurück. Implementiere die
+       xxd-Variante zuerst (robuster), dokumentiere die Wahl im Code.
+     - Geänderter Bereich: nur für AdbReader; native bleibt unverändert.
+  2. CLI-Subcommand `spectre hot <pid> <hex> [--adb] [--base 0] [--limit N] [--json]`:
+     - Search across all readable anonymous rw regions for the byte pattern,
+       printing absolute addresses; only matches cross the wire.
+     - Dispatch in main() + Doc-Header.
+  3. Unit-Tests (spectre-adb/src/reader.rs #[cfg(test)]):
+     - hex -> xxd-line -> offset Rückrechnung
+     - grep-Ausgabe-Parser (offset:match) für ein Beispiel
+  4. cargo fmt + clippy. KEINE spectre-core-Änderungen.
+
+BRANCH: feature/T13-hot-scan
 ```

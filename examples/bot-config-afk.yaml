@@ -43,9 +43,11 @@ default_interval_ms: 300000    # one round every 5 minutes (see above)
 memory_poll_ms: 250
 
 tasks:
-  # a) Claim Daily/Login rewards (Journey's Gift) — only while gold reads > 0.
-  #    gold > 0 is a sanity check: with a wrong address the read fails or
-  #    yields garbage, and no click is sent.
+  # a) Claim Daily/Login rewards (Journey's Gift) — only while 0 < gold < 10^10.
+  #    This guard is weak: it only skips the clicks when the address is
+  #    unreadable (then the task logs an error, e.g. with the placeholder) or
+  #    the value is out of range. A wrong but readable address (stale after a
+  #    game restart, a copy from `hunt`) usually still passes and clicks.
   - name: claim_rewards
     enabled: true
     conditions: []
@@ -55,24 +57,32 @@ tasks:
           field: gold              # REPLACE: 0xDEADBEEF in afk-offsets-placeholder.yaml
           op: Gt
           value: !I64 0
-        then_: !Loop
-          count: 1
-          array:
-            - !InputClick          # Login Rewards button, Town screen (guide: 1804,662)
-              x: 1804
-              y: 662
-            - !Wait
-              millis: 1500
-            - !InputClick          # Claim — REPLACE with the Journey's Gift Claim
-              x: 960               # button on your screen (not in the guide; the
-              y: 935               # Esperia Monthly Claim is at ~959,935)
-            - !Wait
-              millis: 1000
-            - !Log
-              message: "claim_rewards: tapped Login Rewards + Claim"
-              level: Info
+        then_: !Condition          # upper bound filters pointer-sized garbage
+          cond:
+            field: gold
+            op: Lt
+            value: !I64 10000000000
+          then_: !Loop
+            count: 1
+            array:
+              - !InputClick        # Login Rewards button, Town screen (guide: 1804,662)
+                x: 1804
+                y: 662
+              - !Wait
+                millis: 1500
+              - !InputClick        # Claim — REPLACE with the Journey's Gift Claim
+                x: 960             # button on your screen (not in the guide; the
+                y: 935             # Esperia Monthly Claim is at ~959,935)
+              - !Wait
+                millis: 1000
+              - !Log
+                message: "claim_rewards: tapped Login Rewards + Claim"
+                level: Info
+          else_: !Log
+            message: "claim_rewards: gold >= 10^10 (implausible) — skipped"
+            level: Warn
         else_: !Log
-          message: "claim_rewards: gold not > 0 — skipped (offset not set?)"
+          message: "claim_rewards: gold <= 0 — skipped"
           level: Warn
 
   # b) Idle check — read gold and EXP every round (= every 5 minutes, see

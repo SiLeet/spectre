@@ -396,6 +396,10 @@ To replace a placeholder — here gold, shown in the Town screen top-left:
    keeps values inside the range that did not change. Do not touch the game
    meanwhile.
 
+   > **Not in the 0.2.0 or 0.3.0 release binaries:** `hunt` is only in a
+   > build from source of the current `main` (step 0 (b)). With a release
+   > binary, narrow the value down with `search` as in step 2 instead.
+
    ```powershell
    spectre hunt 12345 259000 259999 --context
    spectre hunt 12345 259000 259999 --type u64 --context   # if gold is 8 bytes
@@ -404,17 +408,20 @@ To replace a placeholder — here gold, shown in the Town screen top-left:
    Note the top few candidate addresses.
 
 3. **Confirm with a safe action and `dumpdiff`.** Dump a range around a
-   candidate, claim the login rewards (gold goes up), dump again:
+   candidate, do a safe action that gives gold, dump again. Check first that
+   it really gives gold: the Journey's Gift reward can be diamonds only, or
+   nothing ("Tomorrow"); the AFK Treasure Chest in Homestead gives gold.
 
    ```powershell
    spectre dump 12345 0x1a2b3c00 4096 --format raw --output before.dump
-   # ...claim Journey's Gift / login rewards in the game...
+   # ...claim Journey's Gift (if it has gold) or the AFK Treasure Chest...
    spectre dump 12345 0x1a2b3c00 4096 --format raw --output after.dump
    spectre dumpdiff before.dump after.dump --base 0x1a2b3c00
    ```
 
    The address whose bytes grew by the claimed amount is gold. A value that
-   did not move, or moved by something else, is a copy or unrelated.
+   moved by something else is a copy or unrelated; one that did not move
+   only rules itself out if the action really gave gold.
 
 4. **Put it into the offsets file.** In `examples/afk-offsets-placeholder.yaml`
    replace `base_offset: 0xDEADBEEF` with the address (the bot reads

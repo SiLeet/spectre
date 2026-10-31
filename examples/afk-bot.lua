@@ -83,21 +83,23 @@ function safe_claim_loop(pid)
         local exp  = try_read(spectre.read_u64, pid, OFFSET_EXP)
         bot.log("  Gold: " .. tostring(gold) .. "  EXP: " .. tostring(exp))
 
-        -- gold > 0 doubles as a sanity check that OFFSET_GOLD is real
-        if gold and gold > 0 then
+        -- Weak guard: skips only an unreadable address or an implausible value;
+        -- a wrong but readable address (stale, a copy) usually still clicks.
+        if gold and gold > 0 and gold < 10000000000 then
             bot.log("  Opening Login Rewards → Claim")
             bot.click(BTN_LOGIN_REWARDS.x, BTN_LOGIN_REWARDS.y)
             bot.wait(1500)
             bot.click(BTN_CLAIM.x, BTN_CLAIM.y)
             bot.wait(2000)
 
-            -- A changed value right after the claim confirms the gold offset.
+            -- A change by the claimed amount supports the gold offset; no change
+            -- proves nothing if today's reward had no gold (or nothing to claim).
             local after = try_read(spectre.read_u64, pid, OFFSET_GOLD)
             if after then
                 bot.log("  Gold after claim: " .. after .. "  (delta " .. (after - gold) .. ")")
             end
         else
-            bot.log("  Gold not readable or 0 — not clicking (REPLACE OFFSET_GOLD?)")
+            bot.log("  Gold not readable or out of range — not clicking (REPLACE OFFSET_GOLD?)")
         end
 
         bot.wait(CLAIM_INTERVAL)

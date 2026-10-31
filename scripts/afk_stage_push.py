@@ -125,7 +125,13 @@ def main() -> int:
             print(f'    WARN: auto battle needs the prep screen (state={st})', flush=True)
             return 1
         v.tap(AUTO_BATTLE_BTN, 4.0)
-        st, _ = wait_for({'BATTLE', 'LOADING'}, 30, 'sp_auto_start')
+        st, _ = wait_for({'BATTLE', 'LOADING'}, 12, 'sp_auto_start')
+        if st in ('PREP', 'RESULT', 'DEFEAT'):
+            # Auto Battle is not available right now (observed locked after a
+            # defeat); fall back to a single battle via the green button.
+            print('    auto battle not available — using a single battle', flush=True)
+            v.tap(BATTLE_BTN, 3.0)
+            st, _ = wait_for({'BATTLE', 'LOADING'}, 25, 'sp_single_start')
         print(f'    auto battle started ({st})', flush=True)
         if st == 'BATTLE':
             v.tap(SPEED_X2_BTN, 1.5)      # 2x speed; x4 needs premium (locked)

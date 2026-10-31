@@ -4,24 +4,30 @@
 //! (no socket), plus one test that binds port 0 and speaks real HTTP.
 
 use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpStream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use axum::body::Body;
-use axum::http::{Method, Request, StatusCode, header};
+use axum::extract::ConnectInfo;
+use axum::http::{HeaderMap, Method, Request, StatusCode, header};
 use serde_json::Value;
 use spectre_core::reader::MemoryReader;
 use spectre_core::scanner::{ScanConfig, scan_memory};
 use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
-use spectre_web::{DashboardApp, router};
+use spectre_web::{DashboardApp, ManualClock, RateLimit, router};
 use tower::ServiceExt;
 
 const PID: u32 = 1234;
 const BASE: u64 = 0x10000;
 /// Appears in backend errors; must never reach an HTTP response.
 const SECRET_PATH: &str = "C:\\Users\\victim\\secret\\game.exe";
+/// An environment variable name and value that appear in backend errors.
+const SECRET_ENV: &str = "SPECTRE_TEST_TOKEN";
+const SECRET_ENV_VALUE: &str = "hunter2-token-value";
+/// Reading this address makes [`FakeReader`] panic.
+const PANIC_ADDR: u64 = 0xbad0_0000;
 
 /// Minimal in-memory MemoryReader: one readable region at [`BASE`].
 #[derive(Debug)]
@@ -63,6 +69,9 @@ impl MemoryReader for FakeReader {
     }
 
     fn find_process(&self, name: &str) -> anyhow::Result<Vec<ProcessInfo>> {
+        if name == "boom" {
+            anyhow::bail!("adb failed: {SECRET_ENV}={SECRET_ENV_VALUE} in {SECRET_PATH}");
+        }
         let lower = name.to_lowercase();
         Ok(self
             .processes
@@ -97,6 +106,9 @@ impl MemoryReader for FakeReader {
     }
 
     fn read_bytes(&self, _pid: u32, address: u64, size: u32) -> anyhow::Result<Vec<u8>> {
+        if address == PANIC_ADDR {
+            panic!("reader crashed on {SECRET_PATH} ({SECRET_ENV}={SECRET_ENV_VALUE})");
+        }
         let off = address
             .checked_sub(BASE)
             .map(|o| o as usize)
@@ -182,7 +194,39 @@ fn expect_error(status: StatusCode, body: &Value, want: StatusCode) -> String {
         !msg.contains("secret") && !msg.contains('\\'),
         "path leaked: {msg}"
     );
+    assert!(
+        !msg.contains(SECRET_ENV) && !msg.contains(SECRET_ENV_VALUE),
+        "environment leaked: {msg}"
+    );
     msg
+}
+
+/// Send a prepared request through `router`; return status, headers, body.
+async fn request(router: axum::Router, req: Request<Body>) -> (StatusCode, HeaderMap, Vec<u8>) {
+    let res = router.oneshot(req).await.unwrap();
+    let status = res.status();
+    let headers = res.headers().clone();
+    let body = axum::body::to_bytes(res.into_body(), 1 << 20)
+        .await
+        .unwrap();
+    (status, headers, body.to_vec())
+}
+
+/// Build a request with the given method, URI and headers.
+fn build(method: Method, uri: &str, headers: &[(&str, &str)]) -> Request<Body> {
+    let mut req = Request::builder().method(method).uri(uri);
+    for (name, value) in headers {
+        req = req.header(*name, *value);
+    }
+    req.body(Body::empty()).unwrap()
+}
+
+/// Header value as `&str` (empty if missing).
+fn hval(headers: &HeaderMap, name: impl axum::http::header::AsHeaderName) -> &str {
+    headers
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
 }
 
 // ── UI ───────────────────────────────────────────────────────────────────────
@@ -251,6 +295,7 @@ async fn foreign_host_is_rejected_dns_rebinding() {
         "evil.example",
         "attacker.example:8787",
         "rebind.attacker.example",
+        "[::1]:8787",
     ] {
         for uri in [
             "/api/processes",
@@ -264,7 +309,7 @@ async fn foreign_host_is_rejected_dns_rebinding() {
         }
     }
 
-    for host in ["127.0.0.1:8787", "localhost:8787", "[::1]:8787"] {
+    for host in ["127.0.0.1:8787", "localhost:8787"] {
         let (status, _, _) = send_to(
             router(app()),
             Method::GET,
@@ -411,7 +456,7 @@ async fn read_u64_is_string_for_js_precision() {
 async fn read_unmapped_address_is_ok_false_without_path() {
     let (status, body) = get_json("/api/read?pid=1234&addr=0xdead0000&type=u32").await;
     let msg = expect_error(status, &body, StatusCode::BAD_GATEWAY);
-    assert!(msg.contains("read failed"));
+    assert_eq!(msg, "read failed");
 }
 
 #[tokio::test]
@@ -589,7 +634,8 @@ async fn search_stops_when_client_disconnects() {
         let mut stream = TcpStream::connect(addr).unwrap();
         stream
             .write_all(
-                b"GET /api/search?pid=1&type=u32&value=1 HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+                format!("GET /api/search?pid=1&type=u32&value=1 HTTP/1.1\r\nHost: {addr}\r\n\r\n")
+                    .as_bytes(),
             )
             .unwrap();
         std::thread::sleep(Duration::from_millis(200));
@@ -631,7 +677,8 @@ async fn serves_real_http_on_port_zero() {
         let mut stream = TcpStream::connect(addr).unwrap();
         stream
             .write_all(
-                b"GET /api/processes HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+                format!("GET /api/processes HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n")
+                    .as_bytes(),
             )
             .unwrap();
         let mut response = String::new();
@@ -649,4 +696,461 @@ async fn serves_real_http_on_port_zero() {
 
     stop_tx.send(()).unwrap();
     handle.await.unwrap().unwrap();
+}
+
+// ── Read-only surface ────────────────────────────────────────────────────────
+
+/// Every route the dashboard serves.
+const ROUTES: [&str; 9] = [
+    "/",
+    "/app.js",
+    "/app.css",
+    "/favicon.ico",
+    "/api/info",
+    "/api/processes",
+    "/api/regions",
+    "/api/read",
+    "/api/search",
+];
+
+#[tokio::test]
+async fn api_has_no_write_or_execute_endpoints() {
+    for uri in ROUTES {
+        for method in [Method::POST, Method::PUT, Method::PATCH, Method::DELETE] {
+            let (status, headers, _) =
+                request(router(app()), build(method.clone(), uri, &[])).await;
+            assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED, "{method} {uri}");
+            assert!(!hval(&headers, header::ALLOW).contains("POST"), "{uri}");
+        }
+    }
+    for uri in [
+        "/api/write?pid=1234&addr=0x10000&value=1",
+        "/api/exec",
+        "/api/bot/start",
+        "/api/memory",
+    ] {
+        for method in [Method::GET, Method::POST] {
+            let (status, _, _) = request(router(app()), build(method.clone(), uri, &[])).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{method} {uri}");
+        }
+    }
+}
+
+// ── Rate limiting ────────────────────────────────────────────────────────────
+
+/// `app()` limited to `n` memory requests per minute, on a manual clock.
+fn limited_app(n: u32) -> (DashboardApp, ManualClock) {
+    let clock = ManualClock::new();
+    let app = app()
+        .with_clock(Arc::new(clock.clone()))
+        .with_rate_limit(RateLimit::per_minute(n).unwrap());
+    (app, clock)
+}
+
+/// A GET for `uri` as if it arrived over TCP from `ip`.
+fn from_ip(uri: &str, ip: [u8; 4]) -> Request<Body> {
+    let mut req = build(Method::GET, uri, &[("host", "127.0.0.1:8787")]);
+    req.extensions_mut()
+        .insert(ConnectInfo(SocketAddr::from((ip, 50_000))));
+    req
+}
+
+const READ_URI: &str = "/api/read?pid=1234&addr=0x10000&type=u32";
+const SEARCH_URI: &str = "/api/search?pid=1234&type=u32&value=42";
+const LOCAL: [u8; 4] = [127, 0, 0, 1];
+
+#[tokio::test]
+async fn memory_endpoints_allow_n_then_block_until_window_resets() {
+    const N: u32 = 3;
+    let (app, clock) = limited_app(N);
+
+    // /api/read and /api/search share one budget per client.
+    for (i, uri) in [READ_URI, SEARCH_URI, READ_URI].into_iter().enumerate() {
+        let (status, _, _) = request(router(app.clone()), from_ip(uri, LOCAL)).await;
+        assert_eq!(status, StatusCode::OK, "request {i}");
+    }
+
+    // Request N+1 is refused with the JSON error shape and Retry-After.
+    let (status, headers, body) = request(router(app.clone()), from_ip(SEARCH_URI, LOCAL)).await;
+    let (status, body) = parse_json(
+        SEARCH_URI,
+        status,
+        hval(&headers, header::CONTENT_TYPE),
+        &body,
+    );
+    let msg = expect_error(status, &body, StatusCode::TOO_MANY_REQUESTS);
+    assert!(msg.contains("rate limit exceeded"), "{msg}");
+    assert_eq!(hval(&headers, header::RETRY_AFTER), "60");
+
+    // Cheap endpoints are not limited.
+    for uri in ["/api/info", "/api/processes", "/api/regions?pid=1234", "/"] {
+        let (status, _, _) = request(router(app.clone()), from_ip(uri, LOCAL)).await;
+        assert_eq!(status, StatusCode::OK, "{uri}");
+    }
+
+    // Every loopback peer shares that budget: another 127.x source address,
+    // or a request without a peer address, does not get a fresh one.
+    let (status, _, _) = request(router(app.clone()), from_ip(READ_URI, [127, 0, 0, 2])).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let no_peer = build(Method::GET, READ_URI, &[("host", "127.0.0.1:8787")]);
+    let (status, _, _) = request(router(app.clone()), no_peer).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+
+    // Still blocked within the window, with a shrinking Retry-After...
+    clock.advance(Duration::from_secs(45));
+    let (status, headers, _) = request(router(app.clone()), from_ip(READ_URI, LOCAL)).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(hval(&headers, header::RETRY_AFTER), "15");
+
+    // ...and allowed again once it has elapsed.
+    clock.advance(Duration::from_secs(15));
+    for _ in 0..N {
+        let (status, _, _) = request(router(app.clone()), from_ip(READ_URI, LOCAL)).await;
+        assert_eq!(status, StatusCode::OK);
+    }
+    let (status, _, _) = request(router(app), from_ip(READ_URI, LOCAL)).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+}
+
+#[tokio::test]
+async fn default_rate_limit_is_60_per_minute() {
+    let app = app();
+    assert_eq!(app.rate_limit(), RateLimit::per_minute(60).unwrap());
+    let (_, body) = get_json("/api/info").await;
+    assert_eq!(body["data"]["rate_limit_max_requests"], 60);
+    assert_eq!(body["data"]["rate_limit_window_secs"], 60);
+
+    for i in 0..60 {
+        let (status, _, _) = request(router(app.clone()), from_ip(READ_URI, LOCAL)).await;
+        assert_eq!(status, StatusCode::OK, "request {i}");
+    }
+    let (status, _, _) = request(router(app), from_ip(READ_URI, LOCAL)).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+}
+
+#[tokio::test]
+async fn guard_rejections_do_not_use_up_the_budget() {
+    let (app, _) = limited_app(1);
+    for _ in 0..5 {
+        let req = build(Method::GET, READ_URI, &[("host", "evil.example")]);
+        let (status, _, _) = request(router(app.clone()), req).await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+    let (status, _, _) = request(router(app), from_ip(READ_URI, LOCAL)).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+
+const HOST: (&str, &str) = ("host", "127.0.0.1:8787");
+
+#[tokio::test]
+async fn cors_is_same_origin_only_by_default() {
+    let app = app().with_port(8787);
+    assert!(app.allowed_origins().is_empty());
+
+    // The dashboard's own fetch(): allowed, and no CORS headers are needed.
+    let req = build(
+        Method::GET,
+        "/api/info",
+        &[
+            HOST,
+            ("origin", "http://127.0.0.1:8787"),
+            ("sec-fetch-site", "same-origin"),
+        ],
+    );
+    let (status, headers, _) = request(router(app.clone()), req).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+
+    // Other origins, including other local ports, are refused without CORS headers.
+    for origin in ["https://tool.example", "http://localhost:3000", "null"] {
+        let req = build(Method::GET, "/api/info", &[HOST, ("origin", origin)]);
+        let (status, headers, _) = request(router(app.clone()), req).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{origin}");
+        assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+
+        let preflight = build(
+            Method::OPTIONS,
+            "/api/info",
+            &[
+                HOST,
+                ("origin", origin),
+                ("access-control-request-method", "GET"),
+            ],
+        );
+        let (status, headers, _) = request(router(app.clone()), preflight).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "preflight {origin}");
+        assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+    }
+}
+
+#[tokio::test]
+async fn cors_allow_list_echoes_only_listed_origins() {
+    let app = app()
+        .with_port(8787)
+        .with_allowed_origins(["https://tool.example"])
+        .unwrap();
+
+    let req = build(
+        Method::GET,
+        "/api/info",
+        &[
+            HOST,
+            ("origin", "https://tool.example"),
+            ("sec-fetch-site", "cross-site"),
+        ],
+    );
+    let (status, headers, _) = request(router(app.clone()), req).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        hval(&headers, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+        "https://tool.example"
+    );
+    assert!(hval(&headers, header::ACCESS_CONTROL_ALLOW_METHODS).contains("GET"));
+    assert!(hval(&headers, header::VARY).contains("Origin"));
+    assert!(
+        headers
+            .get(header::ACCESS_CONTROL_ALLOW_CREDENTIALS)
+            .is_none()
+    );
+
+    // Preflight (with Private Network Access) for GET is answered...
+    let preflight = |method| {
+        build(
+            Method::OPTIONS,
+            "/api/read",
+            &[
+                HOST,
+                ("origin", "https://tool.example"),
+                ("access-control-request-method", method),
+                ("access-control-request-private-network", "true"),
+            ],
+        )
+    };
+    let (status, headers, _) = request(router(app.clone()), preflight("GET")).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert_eq!(
+        hval(&headers, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+        "https://tool.example"
+    );
+    assert_eq!(
+        hval(&headers, header::ACCESS_CONTROL_ALLOW_METHODS),
+        "GET, HEAD"
+    );
+    assert_eq!(
+        hval(&headers, "access-control-allow-private-network"),
+        "true"
+    );
+    // ...but write methods are not.
+    let (status, headers, _) = request(router(app.clone()), preflight("POST")).await;
+    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+
+    // Unlisted origins still get 403 and no CORS headers.
+    let req = build(
+        Method::GET,
+        "/api/info",
+        &[HOST, ("origin", "https://evil.example")],
+    );
+    let (status, headers, _) = request(router(app.clone()), req).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+
+    // Same-origin requests carry no Access-Control-Allow-Origin, only Vary.
+    let req = build(
+        Method::GET,
+        "/api/info",
+        &[HOST, ("origin", "http://localhost:8787")],
+    );
+    let (status, headers, _) = request(router(app), req).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+    assert!(hval(&headers, header::VARY).contains("Origin"));
+}
+
+#[test]
+fn cors_allow_list_never_accepts_wildcards() {
+    for bad in [
+        "*",
+        "null",
+        "https://*.example.com",
+        "https://tool.example/api",
+    ] {
+        assert!(app().with_allowed_origins([bad]).is_err(), "{bad}");
+    }
+}
+
+// ── Security headers and Host pinning ────────────────────────────────────────
+
+#[tokio::test]
+async fn security_headers_on_html_and_api_responses() {
+    let (status, headers, body) = request(router(app()), build(Method::GET, "/", &[])).await;
+    assert_eq!(status, StatusCode::OK);
+    let csp = hval(&headers, header::CONTENT_SECURITY_POLICY);
+    for directive in [
+        "default-src 'none'",
+        "script-src 'self'",
+        "style-src 'self'",
+        "connect-src 'self'",
+        "frame-ancestors 'none'",
+    ] {
+        assert!(csp.contains(directive), "{csp}");
+    }
+    assert!(
+        !csp.contains("unsafe-inline") && !csp.contains('*'),
+        "{csp}"
+    );
+    // The embedded page must work under that policy: no inline code or styles.
+    let html = String::from_utf8(body).unwrap();
+    assert!(!html.contains("<script>") && !html.contains("<style"));
+    assert!(!html.contains(" style=") && !html.contains(" onclick="));
+
+    for req in [
+        build(Method::GET, "/", &[]),
+        build(Method::GET, "/app.js", &[]),
+        build(Method::GET, "/api/info", &[]),
+        build(Method::GET, "/api/nope", &[]),
+        build(Method::POST, "/api/read", &[]),
+        build(Method::GET, "/api/info", &[("host", "evil.example")]),
+    ] {
+        let uri = req.uri().to_string();
+        let (_, headers, _) = request(router(app()), req).await;
+        assert_eq!(
+            hval(&headers, header::X_CONTENT_TYPE_OPTIONS),
+            "nosniff",
+            "{uri}"
+        );
+        assert_eq!(
+            hval(&headers, header::REFERRER_POLICY),
+            "no-referrer",
+            "{uri}"
+        );
+        assert_eq!(hval(&headers, header::X_FRAME_OPTIONS), "DENY", "{uri}");
+        assert_eq!(hval(&headers, header::CACHE_CONTROL), "no-store", "{uri}");
+        assert!(
+            hval(&headers, header::CONTENT_SECURITY_POLICY).starts_with("default-src 'none'"),
+            "{uri}"
+        );
+    }
+    let (_, headers, _) = request(router(app()), build(Method::GET, "/api/info", &[])).await;
+    assert!(hval(&headers, header::CONTENT_SECURITY_POLICY).contains("sandbox"));
+}
+
+#[tokio::test]
+async fn host_must_name_the_dashboard_port() {
+    let pinned = || router(app().with_port(8787));
+    for host in ["127.0.0.1:8787", "localhost:8787"] {
+        let req = build(Method::GET, "/api/info", &[("host", host)]);
+        let (status, _, _) = request(pinned(), req).await;
+        assert_eq!(status, StatusCode::OK, "{host}");
+    }
+    for host in [
+        "127.0.0.1:8788",
+        "localhost:80",
+        "localhost",
+        "127.0.0.1",
+        "[::1]:8787",
+        "evil.example:8787",
+    ] {
+        let req = build(Method::GET, "/api/info", &[("host", host)]);
+        let (status, headers, body) = request(pinned(), req).await;
+        let (status, body) = parse_json(host, status, hval(&headers, header::CONTENT_TYPE), &body);
+        expect_error(status, &body, StatusCode::FORBIDDEN);
+    }
+}
+
+/// Send raw HTTP to `addr` with the given `Host` and return the status line.
+fn raw_status(addr: SocketAddr, host: &str) -> String {
+    let mut stream = TcpStream::connect(addr).unwrap();
+    let req = format!("GET /api/info HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n");
+    stream.write_all(req.as_bytes()).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    response.lines().next().unwrap_or_default().to_owned()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn bound_server_pins_host_to_its_port() {
+    let server = app().bind(0).await.unwrap();
+    let addr = server.local_addr();
+    let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
+    let handle = tokio::spawn(server.run_until(async {
+        let _ = stop_rx.await;
+    }));
+
+    let port = addr.port();
+    let statuses = tokio::task::spawn_blocking(move || {
+        [
+            format!("127.0.0.1:{port}"),
+            format!("localhost:{port}"),
+            format!("127.0.0.1:{}", port.wrapping_add(1)),
+            format!("rebind.attacker.example:{port}"),
+        ]
+        .map(|host| raw_status(addr, &host))
+    })
+    .await
+    .unwrap();
+    assert!(statuses[0].starts_with("HTTP/1.1 200"), "{statuses:?}");
+    assert!(statuses[1].starts_with("HTTP/1.1 200"), "{statuses:?}");
+    assert!(statuses[2].starts_with("HTTP/1.1 403"), "{statuses:?}");
+    assert!(statuses[3].starts_with("HTTP/1.1 403"), "{statuses:?}");
+
+    stop_tx.send(()).unwrap();
+    handle.await.unwrap().unwrap();
+}
+
+// ── Error responses ──────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn error_responses_are_generic_without_paths_or_env() {
+    let cases = [
+        (
+            "/api/processes?name=boom",
+            StatusCode::BAD_GATEWAY,
+            "failed to list processes",
+        ),
+        (
+            "/api/regions?pid=99",
+            StatusCode::BAD_GATEWAY,
+            "failed to list memory regions",
+        ),
+        (
+            "/api/read?pid=1234&addr=0xdead0000&type=u32",
+            StatusCode::BAD_GATEWAY,
+            "read failed",
+        ),
+        (
+            "/api/search?pid=99&type=u32&value=1",
+            StatusCode::BAD_GATEWAY,
+            "search failed",
+        ),
+        (
+            "/api/read?pid=1234&addr=0xbad00000&type=u32",
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal error",
+        ),
+        (
+            "/C:/Users/victim/secret/game.exe",
+            StatusCode::NOT_FOUND,
+            "not found",
+        ),
+    ];
+    for (uri, want_status, want_msg) in cases {
+        let (status, ctype, body) = send(Method::GET, uri).await;
+        let raw = String::from_utf8_lossy(&body).into_owned();
+        for secret in [SECRET_PATH, "victim", SECRET_ENV, SECRET_ENV_VALUE, "C:\\"] {
+            assert!(!raw.contains(secret), "{uri} leaked {secret}: {raw}");
+        }
+        let (status, body) = parse_json(uri, status, &ctype, &body);
+        let msg = expect_error(status, &body, want_status);
+        assert_eq!(msg, want_msg, "{uri}");
+        // Exactly { ok, error } — no extra detail fields.
+        assert_eq!(body.as_object().unwrap().len(), 2, "{uri}: {body}");
+    }
+
+    // Validation errors do not echo the offending input either.
+    let (status, body) = get_json("/api/read?pid=1234&addr=C:%5CUsers%5Cvictim&type=u32").await;
+    let msg = expect_error(status, &body, StatusCode::BAD_REQUEST);
+    assert!(!msg.contains("victim"), "{msg}");
 }

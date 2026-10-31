@@ -94,3 +94,38 @@ fn permission_denied_is_reported_clearly() {
         "unexpected error: {err:#}"
     );
 }
+
+#[test]
+fn read_across_end_of_mapping_errors_instead_of_short_buffer() {
+    let reader = create_default_reader();
+    let pid = std::process::id();
+    let regions = reader.memory_regions(pid).expect("memory_regions");
+    // memory_regions drops `---p` guard mappings, which /proc/<pid>/mem can
+    // still read (FOLL_FORCE), so look for real gaps in the raw maps.
+    let maps = std::fs::read_to_string("/proc/self/maps").expect("maps");
+    let starts: Vec<u64> = maps
+        .lines()
+        .filter_map(|l| u64::from_str_radix(l.split('-').next()?, 16).ok())
+        .collect();
+    // A readable region followed by unmapped memory whose last bytes are
+    // actually readable through /proc/<pid>/mem.
+    let r = regions
+        .iter()
+        .find(|r| {
+            r.path.as_deref() != Some("[vsyscall]")
+                && !starts.contains(&r.end)
+                && reader.read_bytes(pid, r.end - 2, 2).is_ok()
+        })
+        .expect("a readable region bordering a gap");
+
+    let err = reader
+        .read_bytes(pid, r.end - 2, 4)
+        .expect_err("read crossing into the gap must fail");
+    assert!(
+        format!("{err:#}").contains("short read"),
+        "unexpected error: {err:#}"
+    );
+    // Typed reads must surface the error, not panic on a short buffer.
+    assert!(reader.read_u32(pid, r.end - 2, true).is_err());
+    assert!(reader.read_u64(pid, r.end - 4, true).is_err());
+}

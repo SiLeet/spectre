@@ -83,29 +83,12 @@ impl MemoryReader for LinuxReader {
     fn memory_regions(&self, pid: u32) -> Result<Vec<MemoryRegion>> {
         let map_text = fs::read_to_string(format!("/proc/{pid}/maps"))
             .with_context(|| format!("cannot read /proc/{pid}/maps"))?;
-        let mut regions = Vec::new();
-        for line in map_text.lines() {
-            // Format: start-end perms offset dev inode [path]
-            let mut parts = line.split_whitespace();
-            let Some(range) = parts.next() else { continue };
-            let Some((start_s, end_s)) = range.split_once('-') else { continue };
-            let (Ok(start), Ok(end)) = (
-                u64::from_str_radix(start_s, 16),
-                u64::from_str_radix(end_s, 16),
-            ) else {
-                continue;
-            };
-            let perms = parts.next().unwrap_or("---").to_owned();
-            // Skip the offset/dev/inode columns to reach the optional path,
-            // which may itself contain spaces (same as the ADB parser).
-            let rest: Vec<&str> = parts.skip(3).collect();
-            let path = (!rest.is_empty()).then(|| rest.join(" "));
-            // Only anonymous/heap or unexpected regions that are readable.
-            if perms.contains('r') {
-                regions.push(MemoryRegion { start, end, perms, path });
-            }
-        }
-        Ok(regions)
+        // Only readable regions are worth scanning.
+        Ok(map_text
+            .lines()
+            .filter_map(parse_maps_line)
+            .filter(|r| r.perms.contains('r'))
+            .collect())
     }
 
     fn read_bytes(&self, pid: u32, address: u64, size: u32) -> Result<Vec<u8>> {
@@ -121,23 +104,65 @@ impl MemoryReader for LinuxReader {
                 Ok(0) => break,
                 Ok(n) => filled += n,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
-                // Partial read into an unmapped page: return what we have,
-                // like ReadProcessMemory on Windows.
+                // Range runs into an unmapped page: fail like ReadProcessMemory.
                 Err(_) if filled > 0 => break,
                 Err(e) => {
                     return Err(Self::mem_error(pid, e).context(format!("read at {address:#x}")));
                 }
             }
         }
-        if filled == 0 {
-            return Err(anyhow!("short read at {address:#x}: got 0 bytes"));
+        // Callers (typed reads) rely on exactly `size` bytes.
+        if filled < buf.len() {
+            return Err(anyhow!(
+                "short read at {address:#x}: got {filled} of {size} bytes"
+            ));
         }
-        buf.truncate(filled);
         Ok(buf)
     }
 
     fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> Result<Vec<ScanReport>> {
         let config = ScanConfig { little_endian: little, ..Default::default() };
         scan_memory(self, pid, patterns, &config)
+    }
+}
+
+/// Parse one `/proc/<pid>/maps` line: `start-end perms offset dev inode [path]`.
+fn parse_maps_line(line: &str) -> Option<MemoryRegion> {
+    let mut parts = line.split_whitespace();
+    let (start_s, end_s) = parts.next()?.split_once('-')?;
+    let start = u64::from_str_radix(start_s, 16).ok()?;
+    let end = u64::from_str_radix(end_s, 16).ok()?;
+    let perms = parts.next().unwrap_or("---").to_owned();
+    // Skip the offset/dev/inode columns to reach the optional path,
+    // which may itself contain spaces (same as the ADB parser).
+    let rest: Vec<&str> = parts.skip(3).collect();
+    let path = (!rest.is_empty()).then(|| rest.join(" "));
+    Some(MemoryRegion {
+        start,
+        end,
+        perms,
+        path,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_maps_line;
+
+    #[test]
+    fn maps_line_keeps_path_with_spaces() {
+        let r = parse_maps_line("7f00-7f01 r--p 00000000 08:01 123 /tmp/my file (deleted)")
+            .expect("parse");
+        assert_eq!((r.start, r.end), (0x7f00, 0x7f01));
+        assert_eq!(r.perms, "r--p");
+        assert_eq!(r.path.as_deref(), Some("/tmp/my file (deleted)"));
+    }
+
+    #[test]
+    fn maps_line_anonymous_and_garbage() {
+        let r = parse_maps_line("1000-2000 rw-p 00000000 00:00 0").expect("parse");
+        assert_eq!(r.path, None);
+        assert!(parse_maps_line("").is_none());
+        assert!(parse_maps_line("zzzz-2000 rw-p 0 00:00 0").is_none());
     }
 }

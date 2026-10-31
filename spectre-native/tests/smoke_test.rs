@@ -38,7 +38,10 @@ fn find_process_matches_self() {
     // On a Windows host there is always `svchost.exe` and the System process;
     // the only environment where none match would be an empty container.
     // Keep the assertion strict on Windows, lenient elsewhere.
-    assert!(any || cfg!(not(windows)), "expected at least one common Windows process to be enumerable");
+    assert!(
+        any || cfg!(not(windows)),
+        "expected at least one common Windows process to be enumerable"
+    );
 
     let _ = &reader;
 }

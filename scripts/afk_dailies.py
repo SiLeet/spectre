@@ -32,6 +32,8 @@ QUICK_CLAIM = (1360, 850)
 READ_ALL = (1080, 1010)
 DAILY_TAB = (800, 934)
 GUILD_TAB = (1020, 934)
+LUCKY_FLIP_TAB = (910, 1034)
+GROWTH_TAB = (1010, 1034)
 DISMISS = (480, 300)
 
 
@@ -120,6 +122,10 @@ def run_dailies(min_idle: float) -> int:
     quick_claim_tab('homestead')
     v.tap(DAILY_TAB, 2.5)
     quick_claim_tab('daily')
+    v.tap(LUCKY_FLIP_TAB, 2.5)     # Lucky Flip: free daily flip claims
+    quick_claim_tab('lucky')
+    v.tap(GROWTH_TAB, 2.5)         # Growth Trials: milestone claims
+    quick_claim_tab('growth')
     v.tap(GUILD_TAB, 2.5)          # the guild tab has to be selected explicitly
     quick_claim_tab('guild')
     v.tap(v.BACK, 1.5)

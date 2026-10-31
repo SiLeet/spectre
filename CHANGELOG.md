@@ -12,6 +12,7 @@
 
 ### Improvements
 
+- bot: ADB memory backend for `spectre bot` + verified AFK Journey live bot config (examples/bot-config-afk-live.yaml) (b60401f)
 - bot: `spectre bot` honours per-task `schedule` > `interval_ms` > default and head `conditions`; Ctrl+C stops promptly, tick-loop panics exit non-zero (43999b2, 08f8c78, T19)
 - adb: live Android support (root fallback, Android `ps` format, serial pinning) (7f8c258)
 - adb: page-aware 4K reads, 7x faster dumps (6a36d58)

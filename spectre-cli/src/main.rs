@@ -10,6 +10,7 @@
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
+//!   spectre search <pid> <type> --min A --max B [--limit N] [--continue] [--state PATH]
 //!   spectre hot <pid> <hex> --adb [--base ADDR] [--limit N] [--json]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
@@ -37,6 +38,7 @@ mod hunt;
 use hunt::{HuntArgs, run_hunt};
 mod hot;
 use hot::{HotArgs, run_hot};
+mod search_range;
 
 // ── Top-Level CLI ────────────────────────────────────────────────────────────
 
@@ -180,9 +182,17 @@ pub struct SearchArgs {
     #[structopt(name = "type")]
     pub value_type: String,
 
-    /// Value to find (decimal, hex with 0x, or float).
-    #[structopt(name = "value")]
-    pub value: String,
+    /// Value to find (decimal, hex with 0x, or float); omit when using --min/--max.
+    #[structopt(name = "value", required_unless_all = &["min", "max"], conflicts_with_all = &["min", "max"])]
+    pub value: Option<String>,
+
+    /// Range search: lower bound, inclusive (use with --max instead of <value>).
+    #[structopt(long = "min", requires = "max", allow_hyphen_values = true)]
+    pub min: Option<String>,
+
+    /// Range search: upper bound, inclusive (use with --min instead of <value>).
+    #[structopt(long = "max", requires = "min", allow_hyphen_values = true)]
+    pub max: Option<String>,
 
     /// Refine the previous search results instead of scanning all memory.
     #[structopt(long = "continue")]
@@ -1667,9 +1677,9 @@ struct SearchValue {
     type_name: String,
 }
 
-/// Parse `type` + `value` (decimal, 0x-hex, or float) into a concrete value.
-fn parse_search_value(type_name: &str, value_str: &str) -> Result<SearchValue> {
-    let vt = match type_name.to_lowercase().as_str() {
+/// Parse a search type name (u8..u64, i8..i64, f32, f64).
+fn parse_search_type(type_name: &str) -> Result<ValueType> {
+    Ok(match type_name.to_lowercase().as_str() {
         "u8" => ValueType::U8,
         "u16" => ValueType::U16,
         "u32" => ValueType::U32,
@@ -1681,7 +1691,12 @@ fn parse_search_value(type_name: &str, value_str: &str) -> Result<SearchValue> {
         "f32" => ValueType::F32,
         "f64" => ValueType::F64,
         _ => bail!("unknown value type '{type_name}' (use u8..u64, i8..i64, f32, f64)"),
-    };
+    })
+}
+
+/// Parse `type` + `value` (decimal, 0x-hex, or float) into a concrete value.
+fn parse_search_value(type_name: &str, value_str: &str) -> Result<SearchValue> {
+    let vt = parse_search_type(type_name)?;
 
     let bytes = match vt {
         ValueType::U8 | ValueType::I8 => {
@@ -1774,7 +1789,11 @@ fn search_matches(reader: &dyn MemoryReader, pid: u32, sv: &SearchValue, limit: 
 }
 
 fn run_search(args: SearchArgs) -> Result<()> {
-    let sv = parse_search_value(&args.value_type, &args.value)?;
+    if args.min.is_some() || args.max.is_some() {
+        return search_range::run_search_range(args);
+    }
+    let value = args.value.as_deref().ok_or_else(|| anyhow!("value is required (or use --min/--max)"))?;
+    let sv = parse_search_value(&args.value_type, value)?;
     let state_path = search_state_path(&args.state);
 
     if args.continue_search {
@@ -1817,7 +1836,7 @@ fn run_search(args: SearchArgs) -> Result<()> {
     info!(
         "searching pid {pid} for {} = {}...",
         sv.type_name,
-        args.value
+        value
     );
     let found = search_matches(reader.as_ref(), pid, &sv, args.limit)?;
     save_search_state(&state_path, &found)?;

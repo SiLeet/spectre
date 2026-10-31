@@ -39,6 +39,48 @@ use tracing::{debug, info, warn};
 
 use crate::reader::AdbReader;
 
+/// Locate the `adb` executable: PATH first, then common install locations
+/// (Android SDK platform-tools, BlueStacks NXT). Returns `adb` (so the
+/// `Command` spawn error remains the source of truth) if not found.
+pub fn adb_path() -> String {
+    if which_in_path("adb") {
+        return "adb".to_owned();
+    }
+    let home = std::env::var_os("LOCALAPPDATA")
+        .or_else(|| std::env::var_os("HOME"))
+        .unwrap_or_default();
+    let program_data = std::env::var_os("PROGRAMDATA").unwrap_or_default();
+    let mut candidates: Vec<std::path::PathBuf> = [
+        // Android SDK (common layout): %LOCALAPPDATA%/Android/Sdk/platform-tools
+        std::path::PathBuf::from(&home).join("Android/Sdk/platform-tools/adb.exe"),
+        // BlueStacks NXT ships its own ADB.
+        std::path::PathBuf::from("C:/Program Files/BlueStacks_nxt/HD-Adb.exe"),
+        std::path::PathBuf::from(&program_data).join("BlueStacks_nxt/HD-Adb.exe"),
+    ]
+    .into_iter()
+    .collect();
+    // Also try plain "adb.exe" on PATH-adjacent dirs.
+    candidates.push(std::path::PathBuf::from("adb.exe"));
+
+    for candidate in candidates {
+        if candidate.is_file() {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+    "adb".to_owned()
+}
+
+/// True if `name` resolves on PATH.
+fn which_in_path(name: &str) -> bool {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    for dir in std::env::split_paths(&path) {
+        if dir.join(name).is_file() {
+            return true;
+        }
+    }
+    false
+}
+
 /// Host used when a serial carries no TCP endpoint of its own.
 const DEFAULT_HOST: &str = "localhost";
 /// Port used when a serial carries no TCP endpoint of its own
@@ -194,7 +236,7 @@ impl AdbManager {
     /// Fails only if `adb` cannot be run or exits non-zero; an empty device
     /// list yields an empty manager.
     pub fn discover() -> Result<AdbManager> {
-        let output = Command::new("adb")
+        let output = Command::new(adb_path())
             .args(["devices", "-l"])
             .output()
             .context("failed to run 'adb devices' — is adb on PATH?")?;
@@ -206,9 +248,22 @@ impl AdbManager {
             );
         }
 
-        let manager = AdbManager::from_devices_output(&String::from_utf8_lossy(&output.stdout));
+        let mut manager = AdbManager::from_devices_output(&String::from_utf8_lossy(&output.stdout));
+        if manager.readers.is_empty() {
+            // Fall back to known local emulators: BlueStacks NXT keeps its
+            // instance ADB ports in %PROGRAMDATA%/BlueStacks_nxt/bluestacks.conf.
+            info!("no adb devices found; probing BlueStacks instance ports");
+            manager.readers = bluestacks_readers();
+        }
         info!("discovered {} ready ADB device(s)", manager.readers.len());
         Ok(manager)
+    }
+
+    /// Try to connect to every BlueStacks instance's ADB port from the
+    /// BlueStacks config, returning ready readers. Best-effort: connection
+    /// failures are logged, not fatal.
+    pub fn discover_bluestacks() -> Result<AdbManager> {
+        Ok(AdbManager { readers: bluestacks_readers() })
     }
 
     /// Build a manager from already captured `adb devices [-l]` output.
@@ -268,6 +323,84 @@ fn reader_id(reader: &AdbReader) -> String {
         .serial
         .clone()
         .unwrap_or_else(|| format!("{}:{}", reader.host, reader.port))
+}
+
+// ── BlueStacks discovery ─────────────────────────────────────────────────────
+
+/// Best-effort list of BlueStacks instance ADB ports from the NXT config.
+///
+/// BlueStacks NXT keeps one entry per instance in
+/// `%PROGRAMDATA%/BlueStacks_nxt/bluestacks.conf`:
+///
+/// ```text
+/// bst.instance.Pie64.adb_port="5555"
+/// ```
+///
+/// Returns `(instance_name, port)` sorted by port.
+fn bluestacks_ports_from_conf() -> Vec<(String, u16)> {
+    let base = std::env::var_os("PROGRAMDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from("C:/ProgramData"));
+    let conf = base.join("BlueStacks_nxt/bluestacks.conf");
+    let Ok(text) = std::fs::read_to_string(&conf) else {
+        return Vec::new();
+    };
+
+    let mut ports = Vec::new();
+    for line in text.lines() {
+        // bst.instance.<Name>.adb_port="5555"
+        let Some(name) = line.split("bst.instance.").nth(1) else { continue };
+        let Some(rest) = name.split_once(".adb_port=") else { continue };
+        let value = rest.1.trim().trim_matches('"');
+        let Ok(port) = value.parse::<u16>() else { continue };
+        ports.push((rest.0.trim().to_owned(), port));
+    }
+    ports.sort_by_key(|(_, p)| *p);
+    ports.dedup_by_key(|(_, p)| *p);
+    ports
+}
+
+/// Build an [`AdbReader`] for every BlueStacks instance discovered in the
+/// NXT config. Only readers whose `adb connect` succeeds and reports
+/// `device` state are kept (best-effort per reader).
+pub fn bluestacks_readers() -> Vec<AdbReader> {
+    let ports = bluestacks_ports_from_conf();
+    if ports.is_empty() {
+        warn!("BlueStacks config has no instance ports (is BlueStacks NXT installed?)");
+        return Vec::new();
+    }
+    info!("BlueStacks instances configured: {}", ports.len());
+
+    ports
+        .into_iter()
+        .filter_map(|(name, port)| {
+            let serial = format!("127.0.0.1:{port}");
+            match adb_connect(&serial) {
+                Ok(true) => {
+                    info!("BlueStacks instance '{name}' ready on {serial}");
+                    Some(AdbReader::with_serial("127.0.0.1", port, &serial))
+                }
+                Ok(false) => {
+                    warn!("BlueStacks instance '{name}' on {serial} not ready (is the emulator running?)");
+                    None
+                }
+                Err(err) => {
+                    warn!("BlueStacks instance '{name}' on {serial} failed: {err:#}");
+                    None
+                }
+            }
+        })
+        .collect()
+}
+
+/// Run `adb connect <serial>` and report whether the device state is ready.
+fn adb_connect(serial: &str) -> anyhow::Result<bool> {
+    let out = Command::new(adb_path())
+        .args(["connect", serial])
+        .output()
+        .context("failed to run 'adb connect'")?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    Ok(text.contains("connected") && !text.contains("failed"))
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────

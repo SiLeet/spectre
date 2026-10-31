@@ -502,7 +502,7 @@ fn info_to_json() -> serde_json::Value {
 }
 
 fn adb_available() -> bool {
-    Command::new("adb")
+    Command::new(spectre_adb::multi::adb_path())
         .arg("version")
         .output()
         .map(|o| o.status.success())
@@ -1232,7 +1232,7 @@ fn run_adb(args: AdbArgs) -> Result<()> {
 }
 
 fn adb_list_devices() -> Result<()> {
-    let output = Command::new("adb")
+    let output = Command::new(spectre_adb::multi::adb_path())
         .args(["devices", "-l"])
         .output()
         .context("failed to run 'adb devices' — is adb on PATH?")?;
@@ -1265,10 +1265,29 @@ fn adb_list_devices() -> Result<()> {
     }
 
     if devices.is_empty() {
-        println!("no ADB devices found");
-        println!("ensure the ADB daemon is running and devices are connected");
-        return Ok(());
-    }
+            println!("no ADB devices found");
+            println!("ensure the ADB daemon is running and devices are connected");
+            println!("probing BlueStacks instance ports from the NXT config...");
+            match spectre_adb::AdbManager::discover_bluestacks() {
+                Ok(manager) if !manager.readers.is_empty() => {
+                    println!("{:<24}  {:<12}  MODEL", "DEVICE", "STATE");
+                    for reader in &manager.readers {
+                        let serial = reader
+                            .serial
+                            .clone()
+                            .unwrap_or_else(|| format!("{}:{}", reader.host, reader.port));
+                        println!("{serial:<24}  {:<12}  BlueStacks", "device");
+                    }
+                    println!(
+                        "found {} BlueStacks instance(s) — start the emulator if none are ready",
+                        manager.readers.len()
+                    );
+                }
+                Ok(_) => println!("no BlueStacks instance ready (is the emulator running?)"),
+                Err(err) => println!("BlueStacks discovery failed: {err:#}"),
+            }
+            return Ok(());
+        }
 
     println!("{:<24}  {:<12}  MODEL", "DEVICE", "STATE");
     for (serial, state, model) in &devices {
@@ -1281,7 +1300,7 @@ fn adb_list_devices() -> Result<()> {
 
 fn adb_ping_device(serial: Option<String>) -> Result<()> {
     let start = Instant::now();
-    let mut cmd = Command::new("adb");
+    let mut cmd = Command::new(spectre_adb::multi::adb_path());
     if let Some(s) = &serial {
         cmd.arg("-s").arg(s);
     }
@@ -1353,7 +1372,7 @@ impl CliInputSimulator {
                 self.backend
             );
         }
-        let status = Command::new("adb")
+        let status = Command::new(spectre_adb::multi::adb_path())
             .arg("shell")
             .arg("input")
             .args(args)

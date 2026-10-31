@@ -405,7 +405,7 @@ fn grep_regions(
 }
 
 /// Bytes per od output line: `-w256` prints 256 bytes, each as `"xx"` joined
-/// by single spaces with NO trailing space on the line, after `sed 's/^ //'`
+/// by single spaces with NO trailing space on the line, after `sed "s/^ //"`
 /// strips the leading space — 767 hex chars (`256*3 - 1`). With the trailing
 /// newline, one stream line occupies 768 chars.
 pub const OD_LINE_BYTES: u64 = 256;
@@ -435,7 +435,7 @@ pub const OD_LINE_CHARS: u64 = 768;
 fn grep_chunk_command(pid: u32, skip: u64, count: u64, tokens: &[String]) -> String {
     let es: String = tokens.iter().map(|t| format!(" -e \"{}\"", t.trim_end())).collect();
     let body = format!(
-        "dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null | od -An -tx1 -v -w256 | sed 's/^ //'; echo end"
+        "dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null | od -An -tx1 -v -w256 | sed \"s/^ //\"; echo end"
     );
     format!("su -c '({body}) | grep -bF{es} -e end' 2>/dev/null")
 }
@@ -596,10 +596,10 @@ mod tests {
         let cmd = grep_chunk_command(1234, 5, 257, &[hex_tokens(&[0xb8, 0xf3]), "00 ".into()]);
         assert_eq!(
             cmd,
-            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null | od -An -tx1 -v -w256 | sed 's/^ //'; echo end) | grep -bF -e \"b8 f3\" -e \"00\" -e end' 2>/dev/null"
+            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null | od -An -tx1 -v -w256 | sed \"s/^ //\"; echo end) | grep -bF -e \"b8 f3\" -e \"00\" -e end' 2>/dev/null"
         );
-        // Two quotes wrap the su -c script; sed 's/^ //' adds two more.
-        assert_eq!(cmd.matches('\'').count(), 4);
+        // Only the two quotes wrapping the su -c script (sed now uses double quotes).
+        assert_eq!(cmd.matches('\'').count(), 2);
     }
 
     #[test]

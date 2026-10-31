@@ -154,17 +154,20 @@ def main() -> int:
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
-    reach_world()
+    if not v.open_battle_modes():
+        print('    ERROR: Battle Modes did not open', flush=True)
+        return 1
     if args.dry_run:
-        print('[dry-run] would open Battle Modes -> Arena and fight', flush=True)
+        print('[dry-run] would open Arena and fight', flush=True)
         return 0
 
-    print('--- Battle Modes -> Arena', flush=True)
-    tap(BATTLE_MODES, 3.0)
+    print('--- Arena card -> lobby', flush=True)
     tap(ARENA_CARD, 4.0)
     img = shot('arena_1_lobby')
-    sig = screen_signature(img)
-    print(f'    arena lobby signature: {sig}', flush=True)
+    lobby = v.lum(v.avg(img, (1080, 1004))) > 150 and v.lum(v.avg(img, (480, 270))) < 200
+    if not lobby:
+        print('    ERROR: arena lobby did not open', flush=True)
+        return 1
 
     tap(CHALLENGE, 4.0)
     img = shot('arena_2_select')

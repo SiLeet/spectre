@@ -26,6 +26,8 @@ REPO = Path(__file__).resolve().parent.parent
 BATTLE_BTN = (1280, 1000)
 AUTO_BATTLE_BTN = (780, 1000)
 SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
+SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
+SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
 
 
@@ -180,38 +182,31 @@ def main() -> int:
             if st == 'BATTLE':
                 v.tap(SPEED_X2_BTN, 1.5)   # x4 is premium-locked; never tap it
                 print('    2x speed enabled', flush=True)
+            # Auto Battle chains the fights; each running fight is skipped
+            # instantly via the Skip button (verified: 21 s remaining -> PREP).
             t0 = time.time()
-            stable, last = 0, st
+            skipped = 0
             while time.time() - t0 < args.auto_minutes * 60:
-                time.sleep(20)
+                time.sleep(3)
                 st = classify_battle(v.shot(f'sp_auto_{int(time.time()-t0)}'))
-                print(f'    t+{int(time.time()-t0):>3}s: {st}', flush=True)
-                if st == 'CONFIRM':
+                if st == 'BATTLE':
+                    v.tap(SKIP_BTN, 1.5)   # resolve the fight instantly
+                    skipped += 1
+                elif st == 'CONFIRM':
                     v.tap((1014, 710), 1.5)   # cancel "turn off auto battle?"
-                    stable = 0
                 elif st == 'STATS':
                     v.tap(v.BACK, 1.5)
-                    stable = 0
                 elif st == 'DEFEAT':
-                    print(f'    DEFEAT after {int(time.time()-t0)}s — stage wall reached', flush=True)
+                    print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
+                          '— stage wall reached', flush=True)
                     break
-                elif st in ('BATTLE', 'LOADING', 'RESULT'):
-                    stable = 0
-                elif st == 'UNKNOWN':
-                    stable += 1 if last == 'UNKNOWN' else 0
-                    if stable >= 3:
-                        print(f'    auto battle stuck on an unknown screen after {int(time.time()-t0)}s', flush=True)
-                        break
-                elif st == last:
-                    stable += 1
-                    if stable >= 2:
-                        print(f'    auto battle ended ({st}) after {int(time.time()-t0)}s', flush=True)
-                        break
-                else:
-                    stable = 0
-                last = st
+                elif st == 'PREP':
+                    print(f'    wall reached: {skipped} fights skipped in {int(time.time()-t0)}s',
+                          flush=True)
+                    break
             else:
-                print(f'    auto battle still running after {args.auto_minutes:.0f} min — leaving it', flush=True)
+                print(f'    still fighting after {args.auto_minutes:.0f} min ({skipped} skipped)',
+                      flush=True)
             return 0
 
     for i in range(1, args.battles + 1):

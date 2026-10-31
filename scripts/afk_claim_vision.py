@@ -121,6 +121,38 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     return 'stale', power
 
 
+BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
+
+
+def is_battle_modes(img: Image.Image) -> bool:
+    """Battle Modes menu open: bright cream body + bright tab bar."""
+    return (lum(avg(img, (480, 270))) > 200
+            and lum(avg(img, (890, 934))) > 200)
+
+
+def reach_world(max_steps: int = 6) -> bool:
+    """Tap BACK until the verified world view is up."""
+    for i in range(max_steps):
+        img = shot(f'rw_{i}')
+        if classify(img) == 'WORLD':
+            return True
+        tap(BACK, 1.5)
+    return classify(shot('rw_final')) == 'WORLD'
+
+
+def open_battle_modes(max_steps: int = 4) -> bool:
+    """From the world view, open the Battle Modes menu and verify it.""
+    if not reach_world():
+        return False
+    tap(GROUND, 0.8)               # dismiss any interact menu first
+    for i in range(max_steps):
+        img = shot(f'bm_{i}')
+        if is_battle_modes(img):
+            return True
+        tap(BATTLE_MODES_BTN, 3.0)
+    return is_battle_modes(shot('bm_final'))
+
+
 def idle_seconds() -> float | None:
     """Seconds since the last keyboard/mouse input (Windows). None if unknown.
 

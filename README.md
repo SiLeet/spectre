@@ -28,6 +28,7 @@ the game binary**.
 - **🤖 Bot Automation** — Lua-scripted bot execution with interval scheduling
 - **📐 Clean Architecture** — 8 workspace crates with clear separation of concerns
 - **🪶 Typed Reads** — U8–U64, I8–I64, F32/F64, strings, and pointer chain resolution
+- **🧭 Live Offset Discovery** — range search, `hunt`, on-device `hot` grep and `offsets` validation (builds from `main` only; see [Live offset discovery](#live-offset-discovery))
 - **📄 Multi-format Output** — Table, JSON, YAML
 
 ## Commands
@@ -109,7 +110,7 @@ spectre scan afk-journey --dump game.dump --dump-base 0x7ff0000
 `--dump-base` tells the reader the virtual address of the first byte in the
 file (default `0`). Useful for forensic analysis, offset discovery, and tests.
 
-Requires Rust (≥ edition 2024). ADB backend requires `adb` on PATH.
+Requires Rust (≥ edition 2024). ADB backend requires `adb` on PATH; builds from `main` also find the Android SDK or BlueStacks NXT adb ([details](docs/cli-reference.md#adb)).
 
 ## Live offset discovery
 
@@ -213,6 +214,7 @@ Spielbinärdatei**.
 - **🤖 Bot-Automatisierung** — Lua-gesteuerte Bot-Ausführung mit Cron-Planung
 - **📐 Saubere Architektur** — 8 Workspace-Crates mit klarer Trennung der Zuständigkeiten
 - **🪶 Typisierte Lesevorgänge** — U8–U64, I8–I64, F32/F64, Zeichenketten, Pointer-Chains
+- **🧭 Live-Offset-Discovery** — Bereichssuche, `hunt`, `hot`-grep auf dem Gerät und `offsets`-Prüfung (nur Builds aus `main`; siehe [Live-Offset-Discovery](#live-offset-discovery-1))
 - **📄 Mehrere Ausgabeformate** — Tabelle, JSON, YAML
 
 ## Befehle
@@ -282,7 +284,7 @@ cargo build -r
 cp target/release/spectre ~/.local/bin/
 ```
 
-Erfordert Rust (≥ Edition 2024). ADB-Backend benötigt `adb` im PATH.
+Erfordert Rust (≥ Edition 2024). ADB-Backend benötigt `adb` im PATH; Builds aus `main` finden auch das adb aus dem Android-SDK oder von BlueStacks NXT ([Details](docs/cli-reference.md#adb)).
 
 ## Live-Offset-Discovery
 

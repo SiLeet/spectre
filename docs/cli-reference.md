@@ -42,9 +42,9 @@ spectre [FLAGS] [SUBCOMMAND]
 **Backends.** Commands that read memory use the native backend
 (Windows `ReadProcessMemory`, Linux `/proc/<pid>/mem`) unless `--adb` is
 given, which reads through `adb` from an Android emulator or device.
-`adb` must be on `PATH` for that; builds from `main` also find it at
+v0.3.0 needs `adb` on `PATH` for that; builds from `main` also use
 `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` or BlueStacks NXT's
-`HD-Adb.exe` (see [`adb`](#adb)).
+`HD-Adb.exe`, on Windows even ahead of `PATH` (see [adb binary](#adb)).
 
 **Numbers.** Addresses and other numeric arguments accept hex with a `0x`
 prefix (`0x7ff0000`) or decimal (`134152192`).
@@ -297,8 +297,8 @@ spectre search [FLAGS] [OPTIONS] <pid> <type> --min <min> --max <max>
 | `--continue` | Refine the previous search results instead of scanning all memory |
 | `--json` | Output as JSON |
 | `--limit <limit>` | Stop after N results (0 = unlimited) [default: 0] |
-| `--min <min>` | Range search: inclusive lower bound (needs `--max`, replaces `<value>`) |
-| `--max <max>` | Range search: inclusive upper bound (needs `--min`, replaces `<value>`) |
+| `--min <min>` | Range search: lower bound, inclusive (use with --max instead of <value>) |
+| `--max <max>` | Range search: upper bound, inclusive (use with --min instead of <value>) |
 | `--state <state>` | State file for previous/next search (default: .spectre-search.json) |
 
 Matches are checked at the value's natural alignment, little-endian. Every
@@ -370,9 +370,12 @@ How it works:
   and compared as unsigned integers. For `f32`/`f64` that means `<min>` and
   `<max>` are compared against the raw IEEE bit pattern, not the float value.
 - **Score.** Higher is better: a value that occurs once in the dump, has no
-  other in-range value within 64 bytes, a pointer-like value in
-  `0x7200_0000_0000..0x7300_0000_0000` within 64 bytes, or is
-  below 10,000,000 scores up; repeated values in table-like neighbourhoods
+  other in-range value nearby, a pointer-like 8-byte value in
+  `0x7200_0000_0000..0x7300_0000_0000` nearby, or is
+  below 10,000,000 scores up. "Nearby" means every 8th byte within 64 bytes
+  of the slot (same 8-byte phase as the slot): for `u32` the neighbours 4
+  bytes away are not checked, and a slot at an offset ≡ 4 mod 8 only sees
+  misaligned pointer reads. Repeated values in table-like neighbourhoods
   score down. `--context` shows 32 bytes starting 8 bytes before the slot.
 
 A read error on any heap aborts the run. If nothing matches, `hunt` prints a

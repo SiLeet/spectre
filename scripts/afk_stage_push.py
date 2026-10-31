@@ -42,7 +42,12 @@ def classify_battle(img) -> str:
         return 'LAUNCHER'
     if dark < 45 and header < 45:
         return 'LOADING'
-    if arena[2] > arena[0] + 50 and arena[2] > 150:
+    # Theme-independent battle marker: the pause button is dark during a fight
+    # (L~44 day and night) while prep ground is bright (L~147) and result cards
+    # are very bright (L~238). The arena colour alone is unreliable — stages use
+    # different day/night themes.
+    pause = v.lum(v.avg(img, (549, 846)))
+    if pause < 55:
         return 'BATTLE'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
         title = v.avg(img, (960, 60))

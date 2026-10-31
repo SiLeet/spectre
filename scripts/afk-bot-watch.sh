@@ -13,6 +13,13 @@ SRC="examples/bot-config-afk-live.yaml"
 OUT_DIR=".spectre"
 OUT="$OUT_DIR/afk-live.generated.yaml"
 
+# --scheduled: only act when the PC has been untouched for a while, so a
+# scheduled run never hijacks the screen while Sergej is playing or working.
+MIN_IDLE=0
+if [ "${1:-}" = "--scheduled" ]; then
+  MIN_IDLE="${AFK_MIN_IDLE:-180}"
+fi
+
 mkdir -p "$OUT_DIR"
 
 pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
@@ -70,7 +77,7 @@ LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 if python -c 'import PIL' >/dev/null 2>&1; then
   {
     echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (vision driver)"
-    python scripts/afk-claim-vision.py --pid "$pid" --base "$base" 2>&1
+    python scripts/afk-claim-vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
   } | tee -a "$LOG"
   exit "${PIPESTATUS[0]}"
 fi

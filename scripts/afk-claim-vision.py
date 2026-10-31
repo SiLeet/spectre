@@ -72,6 +72,29 @@ def lum(c: tuple[int, int, int]) -> float:
     return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
 
 
+def idle_seconds() -> float | None:
+    """Seconds since the last keyboard/mouse input (Windows). None if unknown.
+
+    Scheduled runs use this so the bot never hijacks the screen while Sergej is
+    actually using the PC (playing manually, working)."""
+    if sys.platform != 'win32':
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [('cbSize', wintypes.UINT), ('dwTime', wintypes.DWORD)]
+
+        lii = LASTINPUTINFO()
+        lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
+            return None
+        return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
+    except Exception:
+        return None
+
+
 def classify(img: Image.Image) -> str:
     """Classify the screen. Thresholds use luminance/contrast, not absolute RGB,
     because AFK Journey tints the world with a day/night cycle (a night homestead
@@ -102,8 +125,20 @@ def main() -> int:
     ap.add_argument('--pause', type=float, default=0)
     ap.add_argument('--pid', default=None, help='game pid (memory preflight)')
     ap.add_argument('--base', default=None, help='hot-heap base hex (memory preflight)')
+    ap.add_argument('--min-idle', type=float, default=0,
+                    help='skip unless the PC has been idle this many seconds (scheduled runs)')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
+
+    if args.min_idle > 0 and not args.dry_run:
+        idle = idle_seconds()
+        if idle is None:
+            print('    WARN: idle time unavailable, continuing', flush=True)
+        elif idle < args.min_idle:
+            print(f'    SKIP: PC is in use (idle {idle:.0f}s < {args.min_idle:.0f}s)', flush=True)
+            return 5
+        else:
+            print(f'    idle check ok ({idle:.0f}s)', flush=True)
 
     if args.pid and args.base and not args.dry_run:
         import struct

@@ -1422,6 +1422,43 @@ impl CliInputSimulator {
         Self { backend }
     }
 
+    /// Resolve the adb serial to target for input commands.
+    ///
+    /// adb refuses `shell` with more than one device attached. The ADB reader
+    /// connects a TCP endpoint (`127.0.0.1:<port>`) while BlueStacks/the
+    /// emulator also shows up as `emulator-<n>` — two entries for one VM. So
+    /// when several devices are listed, prefer a `host:port` entry (the one
+    /// the reader manages); with a single device, use it as-is.
+    fn resolve_serial() -> Option<String> {
+        let output = Command::new(spectre_adb::multi::adb_path())
+            .arg("devices")
+            .output()
+            .ok()?;
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut devices: Vec<String> = Vec::new();
+        for line in text.lines().skip(1) {
+            let mut parts = line.split_whitespace();
+            let (Some(serial), Some(state)) = (parts.next(), parts.next()) else {
+                continue;
+            };
+            if state == "device" {
+                devices.push(serial.to_owned());
+            }
+        }
+        match devices.len() {
+            0 => None,
+            1 => devices.pop(),
+            _ => devices
+                .iter()
+                .find(|s| {
+                    s.rsplit_once(':')
+                        .is_some_and(|(_, port)| port.parse::<u16>().is_ok())
+                })
+                .cloned()
+                .or_else(|| devices.into_iter().next()),
+        }
+    }
+
     fn run_input(&self, args: &[&str]) -> Result<()> {
         if self.backend != "adb" {
             bail!(
@@ -1429,7 +1466,11 @@ impl CliInputSimulator {
                 self.backend
             );
         }
-        let status = Command::new(spectre_adb::multi::adb_path())
+        let mut cmd = Command::new(spectre_adb::multi::adb_path());
+        if let Some(serial) = Self::resolve_serial() {
+            cmd.arg("-s").arg(serial);
+        }
+        let status = cmd
             .arg("shell")
             .arg("input")
             .args(args)

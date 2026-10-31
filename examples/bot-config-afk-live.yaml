@@ -4,11 +4,14 @@
 #   spectre -v bot examples/bot-config-afk-live.yaml --adb --once
 #   spectre -v bot examples/bot-config-afk-live.yaml --adb
 #
-# This config uses the VERIFIED offsets from games/afk-journey/offsets.yaml:
-#   - team_power  (base+0xA578)  verified live via `spectre hot` (97b32ee)
-#   - afk_pool_gold/afk_pool_exp (base+0x453B58/+0x453B90) confirmed growers
-#   - gold at offset 0 is NOT yet pinned -> the gold read below will warn
-#     (that is expected until the short action-diff confirms the slot).
+# Verified live 2026-10-31:
+#   - team_power  (base+0xA578) = 259850, matches the "259K" HUD number.
+#   - AFK idle-reward claim tap sequence (proven live: AFK timer reset
+#     05:38:40 -> 00:00:02 after the claim):
+#       tap AFK progress (70,1032) -> tap chest (975,760) -> tap Claim (960,602)
+#       -> tap back (474,1010) to return to the homestead view.
+#   - afk_pool_gold/afk_pool_exp offsets are STALE (heap layout moved after
+#     a restart) and are therefore NOT used here. gold is still unpinned.
 # Heap base 0x724DF0000000 is ASLR: it changes per app start. Set the
 # current base in metadata.heap_base (find it with `spectre regions <pid>`
 # = the big rw- anonymous region, or re-verify with `spectre hot`).
@@ -29,30 +32,48 @@ default_interval_ms: 300000     # tasks without interval_ms/schedule: every 5 mi
 memory_poll_ms: 250
 
 tasks:
-  # a) Claim Login/Daily rewards (Journey's Gift) — guarded on team power
-  #    being plausible (power is our verified anchor). The real claim check
-  #    should guard on gold AFTER the gold offset is confirmed; until then
-  #    the power guard only avoids clicking with a stale/implausible pid.
-  - name: claim_rewards
+  # a) Claim the AFK idle chest (gold + exp + essence) with real adb taps.
+  #    Guarded on team_power being plausible so a dead/stale pid never
+  #    produces blind taps.
+  - name: claim_afk
     enabled: true
+    interval_ms: 900000         # every 15 min (chest accrues continuously)
     conditions:
       - field: team_power
         op: Gt
         value: !I64 100000
     actions:
-      - !Condition
-        cond:
-          field: team_power
-          op: Lt
-          value: !I64 10000000000
-        then_: !Log
-          message: "claim_rewards: guard OK (team_power plausible) — production config would tap Login Rewards here"
-          level: Info
-        else_: !Log
-          message: "claim_rewards: team_power implausible — skipped"
-          level: Warn
+      - !Log
+        message: "claim_afk: start (team_power plausible) — opening AFK panel"
+        level: Info
+      - !InputClick
+        x: 300
+        y: 250
+      - !Wait
+        millis: 800
+      - !InputClick
+        x: 70
+        y: 1032
+      - !Wait
+        millis: 3000
+      - !InputClick
+        x: 975
+        y: 760
+      - !Wait
+        millis: 2200
+      - !InputClick
+        x: 960
+        y: 602
+      - !Wait
+        millis: 1800
+      - !InputClick
+        x: 474
+        y: 1010
+      - !Log
+        message: "claim_afk: tap sequence done (AFK chest claimed, panel closed)"
+        level: Info
 
-  # b) Idle check — read team power + AFK pools every 5 minutes on the clock.
+  # b) Idle check — read team power every 5 min on the clock and log it.
   - name: idle_check
     enabled: true
     schedule: "*/5 * * * *"
@@ -62,10 +83,6 @@ tasks:
         field: team_power
         op: GtEq
         value: !I64 100000
-      - !MemoryCheck
-        field: afk_pool_gold
-        op: Gt
-        value: !I64 0
       - !Log
-        message: "idle_check: team_power + afk_gold read OK (offset verified)"
+        message: "idle_check: team_power read OK (verified anchor, live heap)"
         level: Info

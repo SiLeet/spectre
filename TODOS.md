@@ -207,3 +207,23 @@
 4. **Konfliktvermeidung:** Tasks berühren unterschiedliche Crates — siehe „Berührt".
 
 > Canonical-Datei: `TODOS.md` — beim Abschluss eines Tasks Status + Datum aktualisieren.
+## P5 — Dailies-Roadmap (Queue, 2026-10-31)
+> Queue-Discipline: neue Wünsche/Corrections werden hier ANGEHÄNGT, nicht vorgezogen.
+> Bearbeitet wird sequenziell von oben; Stop erst bei 100 % cleared.
+
+- ✅ T25: Dailies-Runner (`scripts/afk_dailies.py`) — Chest-Claim + Quests (3 Tabs
+  Quick Claim) + Mail (Read All), alle state-gated. Live: 10 Diamonds + 2K Gold
+  + 60 XP aus Quests, 100 Diamonds + 20K Gold aus Mail.
+- ✅ T26: Scheduler integriert Daily-Gift + Dailies-Runner (Marker-Files).
+- ⬜ T27: Arena-Flow (4/4 tägliche Versuche) — Battle Modes → Arena-Karte →
+  Fight/Skip-Flow verifizieren (gleiche Screen-Gate-Methode).
+- ⬜ T28: Dream Realm (7/7) — Flow explorieren.
+- ⬜ T29: Legend Trial / Arcane Labyrinth / Honor Duel — Flows explorieren.
+- ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).
+- ⬜ T31: Mail/Quest-Log-Reminder (nur claimen, wenn Marker-Tag alt) prüfen.
+- ⬜ T32: Skill-Hygiene: SKILL.md >24k chars → Pitfalls in references/ auslagern.
+- ⏸️ T33: Helden-Upgrades (Level-Automatik) — BLOCKIERT auf Sergejs Ressourcen-
+  Regel (Vorschlag: nur Team-Helden, Gold < 20 % Bestand, max 10 Level/Lauf).
+- ⬜ T34: Stage-Push --auto + x2-Speed in Scheduler-Idle-Fenster integrieren.
+- ⬜ T35: ×4-Speed: nur falls Sergej Premium kauft (Button gesperrt — Shop-
+  Risiko); vorher nicht anfassen.

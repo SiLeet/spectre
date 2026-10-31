@@ -236,7 +236,7 @@ pub fn run_hunt(args: HuntArgs) -> Result<()> {
 }
 
 /// Read a width-byte little-endian slot.
-fn read_slot(buf: &[u8], off: usize, width: usize) -> u64 {
+pub(crate) fn read_slot(buf: &[u8], off: usize, width: usize) -> u64 {
     let mut v = 0u64;
     for i in 0..width {
         v |= (buf[off + i] as u64) << (8 * i);

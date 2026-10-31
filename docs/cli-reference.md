@@ -272,13 +272,14 @@ candidates down with `--continue` (Cheat-Engine style).
 
 ```
 spectre search [FLAGS] [OPTIONS] <pid> <type> <value>
+spectre search [FLAGS] [OPTIONS] <pid> <type> --min <min> --max <max>
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `<pid>` | Process ID |
 | `<type>` | Value type: u8/u16/u32/u64/i8/i16/i32/i64/f32/f64 |
-| `<value>` | Value to find (decimal, hex with 0x, or float) |
+| `<value>` | Value to find (decimal, hex with 0x, or float); omit when using `--min/--max` |
 
 | Flag / option | Description |
 |---------------|-------------|
@@ -286,11 +287,21 @@ spectre search [FLAGS] [OPTIONS] <pid> <type> <value>
 | `--continue` | Refine the previous search results instead of scanning all memory |
 | `--json` | Output as JSON |
 | `--limit <limit>` | Stop after N results (0 = unlimited) [default: 0] |
+| `--min <min>` | Range search: inclusive lower bound (needs `--max`, replaces `<value>`) |
+| `--max <max>` | Range search: inclusive upper bound (needs `--min`, replaces `<value>`) |
 | `--state <state>` | State file for previous/next search (default: .spectre-search.json) |
 
 Matches are checked at the value's natural alignment, little-endian. Every
 run writes the resulting addresses to the state file; `--continue` re-reads
 only those addresses and keeps the ones that now hold the new value.
+
+**Range search.** When the game only shows a rounded value ("259K"), pass
+`--min`/`--max` instead of `<value>`: every slot is decoded as `<type>` and
+kept when `min <= value <= max`. Bounds are decimal (negative allowed for
+signed types, e.g. `--min -5`), 0x-hex, or floats for `f32/f64`; they must fit
+the type and `min` must not exceed `max`. NaN never matches. `string` is not
+supported. `--continue` with `--min/--max` keeps the previous addresses whose
+current value is in the range. Unreadable regions are skipped.
 
 > **Current limitations.** The help text says `<pid>` can be omitted with
 > `--continue`, but the refine step needs the PID to re-read memory, so
@@ -301,6 +312,8 @@ only those addresses and keeps the ones that now hold the new value.
 spectre search 12345 u32 42 --limit 100
 spectre search 12345 u32 55 --continue
 spectre search 12345 f32 98.5 --state hp-search.json
+spectre search 12345 u32 --min 259000 --max 259999
+spectre search 12345 u32 --min 259000 --max 259999 --continue
 ```
 
 ## hot

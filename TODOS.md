@@ -229,6 +229,37 @@
   Banner, „Tap to close“ unten mitte), keine dim Popup-Sequence; danach ggf.
   Rewards-Popup/Hero-Card. State-Probes statt OCR, keine Blind-Taps bei
   unbekannten Frames. Chances verbrauchen sich wie Arena-Versuche (Daily).
+- ⬜ T38: Review-Fix-Batch für `afk_dream_realm.py` (Subagent-Review zu 09f3e41,
+  12 Befunde). Priority vor der Scheduler-Integration von Dream Realm:
+  1. [HIGH] is_boss_page() braucht zweiseitige Exclusion (auch `not green(prebe-
+     probe)`), sonst kann Prep-Screen als Boss-Page gelten und (960,1020) landet
+     10 px neben dem verbotenen SKIP-Button.
+  2. [HIGH] is_dim_popup() (corner lum < 25) matcht auch schwarze Lade-Frames —
+     in wait_for_fight_end würde das einen laufenden Kampf als „beendet“ melden
+     und mitten im Kampf tippen. Fix: engere Lum-Band (15<lum<80) + zweite
+     Probe + Debounce über 2 aufeinanderfolgende Shots.
+  3. [MED] reach_world(): BACK-Tap auch bei classify==UNKNOWN → bei UNKNOWN
+     abbrechen statt blind tippen.
+  4. [MED] RuntimeError aus v.tap/v.shot fliegt ungefangen → Exit 1 statt 2;
+     main mit try/except RuntimeError → 2 wrapen.
+  5. [MED] is_hero_card Schwellwert zu knapp (PANEL-Back-Pfeil lum ≈ 178 vs
+     >180) → zusätzliche Hero-Card-Probe oder classify!='PANEL'-Guard.
+  6. [MED] Nach Battle-Tap nicht erneut tippen, solange derselbe Ready-Screen
+     steht (Gefahr Tap im Kampf-Start-Übergang); Zustandswechsel abwarten.
+  7. [MED] BATTLE_MODES → DREAM_CARD ohne Verifikation des Menüs; Shot +
+     Probe zwischen den Taps.
+  8. [MED] afk_claim_vision.py: nach CLAIM-Tap exit 0 trotz persistierendem
+     Popup → Retry + Exit 1.
+  9. [LOW] wait_for_fight_end: letzten Shot nach Deadline noch prüfen.
+  10. [LOW] --dry-run soll Probes tatsächlich ausführen (dr_start + Predicates).
+  11. [LOW] DIM_DISMISS (480,300) live verifizieren oder dim Popups via BACK
+      schließen.
+  12. [LOW] globaler Dismiss-Tap-Zähler über Retry-Loops (sonst ~80 Taps
+      Worst-Case).
+- 🟦 T34-Hinweis (Queue-Driver, 01:0x): Paralleler Writer arbeitet unver-
+  committet an `afk_stage_push.py` (Skip-Button-Auto-Battle-Loop, T34-Thema).
+  Queue-Driver fasst T34/die Datei in diesem Lauf NICHT an (Kollisionsgefahr);
+  T34 bleibt offen und wird bearbeitet, sobald die Änderungen committed sind.
 - ⬜ T29: Legend Trial / Arcane Labyrinth / Honor Duel — Flows explorieren.
 - ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).
 - ⬜ T31: Mail/Quest-Log-Reminder (nur claimen, wenn Marker-Tag alt) prüfen.

@@ -12,11 +12,13 @@
 
 ### Improvements
 
+- bot: `spectre bot` honours per-task `schedule` > `interval_ms` > default and head `conditions`; Ctrl+C stops promptly, tick-loop panics exit non-zero (43999b2, 08f8c78, T19)
 - adb: live Android support (root fallback, Android `ps` format, serial pinning) (7f8c258)
 - adb: page-aware 4K reads, 7x faster dumps (6a36d58)
 - native: Linux reader via `/proc/<pid>/mem` pread (30b197a, T17)
 - examples: AFK Journey safe-action bot templates (9065aa7, T16)
-- game(afk-journey): measured offsets, team power vs. gold corrected (db5452f, d97e1cf)
+- game(afk-journey): measured offsets, team power vs. gold corrected, team_power verified live via `spectre hot` (db5452f, d97e1cf, e0e9d03)
+- docs: CLI reference and README cover hunt, hot, offsets, range search and adb discovery (8a7deee, cca8021, 6c0e59f, T20)
 
 ### Feature reference
 
@@ -29,7 +31,7 @@ Runs the scan on the device itself, so only matching offsets come back over adb.
 #### spectre offsets
 Shows a game's YAML offsets and checks them for errors.
 
-#### spectre search --min / --max
+#### spectre search --min/--max
 Matches values in a range instead of one exact value. Also works for f32.
 
 #### spectre adb list/ping

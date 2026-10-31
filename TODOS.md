@@ -301,3 +301,8 @@ Minuten) = anrechenbare Ernte. Offen: Abholung über Interact-Menü am Feld oder
 zentralen Collect-Button? Nächster Schritt: Held von Hand an ein Feld schicken,
 Interact-Menü analysieren (Harvest-Button?), dann Skript mit walk-waits.
 Kamera-Abhängigkeit der Feld-Positionen: Icon-Probe statt fixer Koordinaten.
+### ✅ T32 (YAGNI-Grad dokumentiert): SKILL.md-Hygiene
+AFK-spezifische Sektionen in references/afk-journey-live.md ausgelagert
+(25.5k -> 21.9k chars). Rest = Skill-Kern (ADB-Workflow + universelle Pitfalls),
+bewusst behalten: das ist die maschinenverifizierte Kernkompetenz. Weitere
+Kuerzung wuerde das Herz fragmentieren - Advisory-Warning akzeptiert.

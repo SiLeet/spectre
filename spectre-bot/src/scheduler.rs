@@ -21,6 +21,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, TimeZone};
+use tokio::sync::Notify;
 use tokio::time::{Duration, Instant};
 
 use crate::actions::{BotCondition, BotTask};
@@ -66,6 +67,8 @@ impl TaskState {
 struct SchedulerState {
     paused: bool,
     shutdown: bool,
+    /// Wakes the tick loop out of a tick or its sleep on shutdown.
+    wake: Arc<Notify>,
 }
 
 // ── Scheduler ───────────────────────────────────────────────────────────────
@@ -110,6 +113,7 @@ impl TaskScheduler {
             state: Arc::new(Mutex::new(SchedulerState {
                 paused: false,
                 shutdown: false,
+                wake: Arc::new(Notify::new()),
             })),
             default_interval_ms,
         }
@@ -201,8 +205,13 @@ impl TaskScheduler {
             return;
         }
 
-        // Reset shutdown flag for a fresh run.
-        self.state.lock().unwrap().shutdown = false;
+        // Reset shutdown flag and wake-up for a fresh run.
+        let wake = {
+            let mut st = self.state.lock().unwrap();
+            st.shutdown = false;
+            st.wake = Arc::new(Notify::new());
+            Arc::clone(&st.wake)
+        };
 
         let state = Arc::clone(&self.state);
         let tasks = self.tasks.clone();
@@ -217,6 +226,7 @@ impl TaskScheduler {
             tasks.len()
         );
 
+        let loop_wake = Arc::clone(&wake);
         let handle = tokio::task::spawn(async move {
             run_tick_loop(
                 state,
@@ -225,6 +235,7 @@ impl TaskScheduler {
                 default_interval_ms,
                 tick_ms,
                 engine,
+                loop_wake,
             )
             .await;
         });
@@ -237,6 +248,7 @@ impl TaskScheduler {
                 Ok(()) => {
                     tracing::info!("scheduler: Ctrl+C received, shutting down");
                     ctrl_state.lock().unwrap().shutdown = true;
+                    wake.notify_one();
                 }
                 Err(e) => tracing::warn!("scheduler: ctrl_c handler unavailable: {}", e),
             }
@@ -244,22 +256,36 @@ impl TaskScheduler {
     }
 
     /// Signal the tick loop to shut down and wait for it to finish.
-    pub async fn stop(&self) {
+    ///
+    /// An in-flight tick is cancelled at its next `.await` point.
+    pub async fn stop(&self) -> Result<(), tokio::task::JoinError> {
         if !self.running.load(Ordering::SeqCst) {
-            return;
+            return Ok(());
         }
-        self.state.lock().unwrap().shutdown = true;
-        self.wait().await;
+        {
+            let mut st = self.state.lock().unwrap();
+            st.shutdown = true;
+            st.wake.notify_one();
+        }
+        let result = self.wait().await;
         tracing::info!("scheduler: stopped");
+        result
     }
 
     /// Wait until the tick loop exits (after `stop()` or Ctrl+C).
-    pub async fn wait(&self) {
+    ///
+    /// Returns the join error if the tick loop panicked.
+    pub async fn wait(&self) -> Result<(), tokio::task::JoinError> {
         let handle = self.tick_task.lock().unwrap().take();
-        if let Some(handle) = handle {
-            let _ = handle.await;
+        let result = match handle {
+            Some(handle) => handle.await,
+            None => Ok(()),
+        };
+        if let Err(e) = &result {
+            tracing::error!("scheduler: tick loop failed: {}", e);
         }
         self.running.store(false, Ordering::SeqCst);
+        result
     }
 
     /// Run every enabled task once, now, ignoring `schedule` / interval
@@ -316,6 +342,7 @@ async fn run_tick_loop(
     default_interval_ms: u32,
     tick_ms: u32,
     engine: Arc<BotEngine>,
+    wake: Arc<Notify>,
 ) {
     let mut tasks = tasks;
     let duration = Duration::from_millis(tick_ms as u64);
@@ -331,20 +358,26 @@ async fn run_tick_loop(
 
         // Check pause
         let paused = state.lock().unwrap().paused;
-        if !paused {
-            tick(
-                &mut tasks,
-                global_enabled,
-                default_interval_ms,
-                &engine,
-                Instant::now(),
-                &chrono::Local::now(),
-            )
-            .await;
-        }
+        let tick_and_sleep = async {
+            if !paused {
+                tick(
+                    &mut tasks,
+                    global_enabled,
+                    default_interval_ms,
+                    &engine,
+                    Instant::now(),
+                    &chrono::Local::now(),
+                )
+                .await;
+            }
+            tokio::time::sleep(duration).await;
+        };
 
-        // Wait for the next tick interval (allows cancellation)
-        tokio::time::sleep(duration).await;
+        // Shutdown cancels both the running tick and the wait for the next.
+        tokio::select! {
+            _ = tick_and_sleep => {}
+            _ = wake.notified() => break,
+        }
     }
 
     tracing::info!("scheduler: tick loop exited after {} ticks", tick_count);
@@ -541,10 +574,7 @@ mod tests {
         fn backend_kind(&self) -> spectre_core::types::BackendKind {
             spectre_core::types::BackendKind::DumpFile
         }
-        fn find_process(
-            &self,
-            _n: &str,
-        ) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
+        fn find_process(&self, _n: &str) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
             Ok(Vec::new())
         }
         fn list_processes(&self) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
@@ -606,7 +636,7 @@ mod tests {
         sched.start(engine);
         tokio::time::sleep(Duration::from_millis(150)).await;
         assert!(sched.is_running());
-        sched.stop().await;
+        sched.stop().await.unwrap();
         assert!(!sched.is_running());
     }
 
@@ -677,16 +707,26 @@ mod tests {
     }
 
     /// Context that counts reads of `run:<task>` fields (one per task run),
-    /// serves `hp` = 50 and fails on `broken`.
+    /// serves `hp` (50 unless set in the map), fails on `broken` and
+    /// panics on `boom`.
     type Counts = Arc<Mutex<HashMap<String, u32>>>;
     struct CountCtx(Counts);
     impl ActionContext for CountCtx {
         fn resolve_field(&self, field_name: &str) -> anyhow::Result<Vec<u8>> {
             match field_name {
-                "hp" => Ok(50u32.to_le_bytes().to_vec()),
+                "hp" => {
+                    let hp = self.0.lock().unwrap().get("hp").copied().unwrap_or(50);
+                    Ok(hp.to_le_bytes().to_vec())
+                }
                 "broken" => anyhow::bail!("read failed"),
+                "boom" => panic!("context read panicked"),
                 _ => {
-                    *self.0.lock().unwrap().entry(field_name.to_owned()).or_default() += 1;
+                    *self
+                        .0
+                        .lock()
+                        .unwrap()
+                        .entry(field_name.to_owned())
+                        .or_default() += 1;
                     Ok(0u32.to_le_bytes().to_vec())
                 }
             }
@@ -725,11 +765,18 @@ mod tests {
     }
 
     fn runs(counts: &Counts, name: &str) -> u32 {
-        counts.lock().unwrap().get(&format!("run:{name}")).copied().unwrap_or(0)
+        counts
+            .lock()
+            .unwrap()
+            .get(&format!("run:{name}"))
+            .copied()
+            .unwrap_or(0)
     }
 
     fn wall(h: u32, mi: u32, sec: u32) -> chrono::DateTime<chrono::Utc> {
-        chrono::Utc.with_ymd_and_hms(2026, 10, 26, h, mi, sec).unwrap()
+        chrono::Utc
+            .with_ymd_and_hms(2026, 10, 26, h, mi, sec)
+            .unwrap()
     }
 
     #[tokio::test]
@@ -739,13 +786,37 @@ mod tests {
         let t0 = Instant::now();
         let w = wall(10, 0, 0);
         tick(&mut ts, true, 5000, &engine, t0, &w).await;
-        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(999), &w).await;
+        tick(
+            &mut ts,
+            true,
+            5000,
+            &engine,
+            t0 + Duration::from_millis(999),
+            &w,
+        )
+        .await;
         assert_eq!(runs(&counts, "a"), 1);
-        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(1000), &w).await;
+        tick(
+            &mut ts,
+            true,
+            5000,
+            &engine,
+            t0 + Duration::from_millis(1000),
+            &w,
+        )
+        .await;
         assert_eq!(runs(&counts, "a"), 2);
         // interval_ms = 0 uses the default (5000 ms).
         assert_eq!(runs(&counts, "d"), 1);
-        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(5000), &w).await;
+        tick(
+            &mut ts,
+            true,
+            5000,
+            &engine,
+            t0 + Duration::from_millis(5000),
+            &w,
+        )
+        .await;
         assert_eq!(runs(&counts, "d"), 2);
     }
 
@@ -784,6 +855,85 @@ mod tests {
         assert_eq!(runs(&counts, "broken"), 0);
         assert_eq!(ts[1].fail_count, 1);
         assert_eq!(runs(&counts, "free"), 1);
+    }
+
+    #[tokio::test]
+    async fn skipped_task_runs_once_condition_turns_true() {
+        let (engine, counts) = count_engine();
+        let mut guarded = counted("guarded", 0, None);
+        guarded.conditions = vec![guard("hp")];
+        let mut ts = states(&[guarded]);
+        let t0 = Instant::now();
+        let w = wall(10, 0, 0);
+
+        tick(&mut ts, true, 500, &engine, t0, &w).await;
+        assert_eq!(runs(&counts, "guarded"), 0);
+        counts.lock().unwrap().insert("hp".into(), 10);
+        // The skipped start consumed its slot: next start is one interval later.
+        tick(
+            &mut ts,
+            true,
+            500,
+            &engine,
+            t0 + Duration::from_millis(499),
+            &w,
+        )
+        .await;
+        assert_eq!(runs(&counts, "guarded"), 0);
+        tick(
+            &mut ts,
+            true,
+            500,
+            &engine,
+            t0 + Duration::from_millis(500),
+            &w,
+        )
+        .await;
+        assert_eq!(runs(&counts, "guarded"), 1);
+        assert!(ts[0].enabled);
+    }
+
+    #[tokio::test]
+    async fn stop_interrupts_long_sleep_and_running_tick() {
+        // tick_ms = 300 s: stop() must not wait for the sleep to finish.
+        let idle = BotConfig {
+            tasks: vec![task("idle", 300_000, None)],
+            ..BotConfig::default()
+        };
+        // A task stuck in a 10 min `!Wait` must not block stop() either.
+        let mut stuck = task("stuck", 300_000, None);
+        stuck.actions = vec![BotAction::Wait { millis: 600_000 }];
+        let busy = BotConfig {
+            tasks: vec![stuck],
+            ..BotConfig::default()
+        };
+        for cfg in [idle, busy] {
+            let (engine, _) = count_engine();
+            let sched = TaskScheduler::from_config(&cfg).unwrap();
+            sched.start(Arc::new(engine));
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            tokio::time::timeout(Duration::from_secs(2), sched.stop())
+                .await
+                .expect("stop() should return promptly")
+                .unwrap();
+            assert!(!sched.is_running());
+        }
+    }
+
+    #[tokio::test]
+    async fn wait_reports_a_panicked_tick_loop() {
+        let (engine, _) = count_engine();
+        let mut boom = counted("boom", 0, None);
+        boom.conditions = vec![guard("boom")];
+        let sched = TaskScheduler::from_config(&BotConfig {
+            tasks: vec![boom],
+            ..BotConfig::default()
+        })
+        .unwrap();
+        sched.start(Arc::new(engine));
+        let err = sched.wait().await.unwrap_err();
+        assert!(err.is_panic());
+        assert!(!sched.is_running());
     }
 
     #[tokio::test]

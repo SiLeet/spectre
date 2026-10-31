@@ -1499,8 +1499,9 @@ fn run_bot(args: BotArgs) -> Result<()> {
         println!("running bot '{instance}' — press Ctrl-C to stop");
         rt.block_on(async {
             scheduler.start(std::sync::Arc::new(engine));
-            scheduler.wait().await;
-        });
+            scheduler.wait().await
+        })
+        .context("bot loop crashed")?;
         println!("bot stopped");
     }
     Ok(())
@@ -1515,20 +1516,24 @@ fn print_bot_summary(config: &spectre_bot::BotConfig, instance: &str) {
     println!("  enabled:          {}", config.enabled);
     println!("  tasks:            {}", config.tasks.len());
     for t in &config.tasks {
-        let timing = match &t.schedule {
-            Some(cron) => format!("schedule=\"{cron}\""),
-            None if t.interval_ms == 0 => {
-                format!("interval={} ms (default)", config.default_interval_ms)
-            }
-            None => format!("interval={} ms", t.interval_ms),
-        };
         println!(
-            "    - {} ({timing}, enabled={}, conditions={}, actions={})",
+            "    - {} ({}, enabled={}, conditions={}, actions={})",
             t.name,
+            task_timing(t, config.default_interval_ms),
             t.enabled,
             t.conditions.len(),
             t.actions.len()
         );
+    }
+}
+
+/// The timing the scheduler applies to `t`: cron `schedule` wins over
+/// `interval_ms`, and `interval_ms = 0` means the config default.
+fn task_timing(t: &spectre_bot::BotTask, default_interval_ms: u32) -> String {
+    match &t.schedule {
+        Some(cron) => format!("schedule=\"{cron}\""),
+        None if t.interval_ms == 0 => format!("interval={default_interval_ms} ms (default)"),
+        None => format!("interval={} ms", t.interval_ms),
     }
 }
 
@@ -2122,6 +2127,28 @@ mod chain_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bot_dry_run_timing_matches_scheduler() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/bot-config-afk.yaml");
+        let config = spectre_bot::BotConfig::from_yaml_file(path).unwrap();
+        let timings: Vec<String> = config
+            .tasks
+            .iter()
+            .map(|t| task_timing(t, config.default_interval_ms))
+            .collect();
+        assert!(timings.iter().any(|s| s.starts_with("schedule=\"")), "{timings:?}");
+        assert!(timings.iter().all(|s| s != "interval=0 ms"), "{timings:?}");
+
+        let mut t = config.tasks[0].clone();
+        t.schedule = None;
+        t.interval_ms = 0;
+        assert_eq!(task_timing(&t, 300_000), "interval=300000 ms (default)");
+        t.interval_ms = 1500;
+        assert_eq!(task_timing(&t, 300_000), "interval=1500 ms");
+        t.schedule = Some("*/15 * * * *".into());
+        assert_eq!(task_timing(&t, 300_000), "schedule=\"*/15 * * * *\"");
+    }
 
     fn offsets() -> GameOffsets {
         GameOffsets {

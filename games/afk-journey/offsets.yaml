@@ -4,8 +4,9 @@
 # STATUS: structures below marked PLACEHOLDER have FAKE base offsets
 # (0x...000 patterns) and are NOT valid. Real measurements 2026-10-31:
 #   - hot heap base (process start): 0x724DF0000000 (ASLR, changes per start)
-#   - team_power candidate 259850 @ base+0xA578 (stable; HUD "259K" = POWER,
-#     NOT gold — Wappen-Icon. Verified via pixel analysis.)
+#   - team_power VERIFIED LIVE via spectre hot (2026-11-01, commit 97b32ee):
+#     on-device scan for pattern 0a f7 03 00 (259850) resolves to exactly
+#     base+0xA578. HUD "259K" = POWER (Wappen-Icon), NOT gold.
 #   - gold raw value is SMALL (~9.963 -> 12.300 after a reward claim);
 #     the exact u32 slot NOT yet pinned (display copy not found in first
 #     8MB of hot heap) — next step: claim reward with SHORT action-diff.
@@ -48,7 +49,7 @@ structures:
     fields:
       - name: "team_power"
         field_type: I64
-        offset: 0x000000000A578   # VERIFIED as power display (259K = Wappen-Icon)
+        offset: 0x000000000A578   # VERIFIED LIVE via `spectre hot` (97b32ee: 0a f7 03 00 -> exact)
         desc: "Team combat power (HUD shows rounded '259K'; raw 259850 stable across restarts)."
       - name: "gold"
         field_type: I64

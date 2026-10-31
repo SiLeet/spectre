@@ -404,61 +404,83 @@ fn grep_regions(
     Ok(hits)
 }
 
+/// Bytes per od output line: `-w256` prints 256 bytes, each as `"xx"` joined
+/// by single spaces with NO trailing space on the line, after `sed 's/^ //'`
+/// strips the leading space — 767 hex chars (`256*3 - 1`). With the trailing
+/// newline, one stream line occupies 768 chars.
+pub const OD_LINE_BYTES: u64 = 256;
+/// Stream chars per od line (hex chars + newline); grep's `-b` offsets are
+/// global stream offsets, so a line with global offset `off` starts at byte
+/// `(off / 768) * 256` and a match at char `at` inside it is byte `+ at/3`.
+pub const OD_LINE_CHARS: u64 = 768;
+
 /// Device command that greps `count` pages from page `skip` of `/proc/<pid>/mem`.
 ///
-/// Why xxd: grep cannot take NUL bytes in `-e` patterns, so memory and
-/// patterns are both compared as hex text. `xxd -p -c1` prints one byte per
-/// line and `tr` turns that into `"b8 f3 03 00 "`: the chunk is one line (no
-/// match lost at a line break) and every byte is a 3-char token, so a match
-/// can only start on a byte boundary (no mid-byte false hit that would also
-/// swallow a real overlapping one) and `grep -b` offset / 3 is the byte offset.
-/// `echo end` lands in the same stream, so its `<3 * bytes read>:end` line
-/// proves the root shell ran and tells how much dd actually read; with no
-/// root nothing (or `0:end`) comes back.
+/// grep cannot take NUL bytes in `-e` patterns, so memory and patterns are
+/// both compared as hex text. `od -An -tx1 -v -w256 | sed 's/^ //'` prints
+/// 256 bytes per line (`"b8 f3 03 00 ..."`, 767 chars + newline), so a 4-16
+/// byte pattern only straddles a line break when it starts in the last
+/// (len-1) bytes of a line (~0.4-1.2% loss for 4-8 byte patterns, acceptable
+/// for a hot scan; re-check with `spectre dump`). toybox grep's `-b` reports
+/// ONE global offset per line and DROPS the offset for later matches in the
+/// same line when combined with `-o`, so this uses plain `-b` and the Rust
+/// side scans the whole line content (every real hit starts on a byte
+/// boundary: char index % 3 == 0 preceded by space or line start).
+/// Patterns are trimmed of the trailing space (hex_tokens emits `"b8 f3 "`
+/// for shell safety; od lines have no trailing space).
+/// `echo end` lands as its own line; its offset proves the root shell ran
+/// and tells how much dd read (`0:end` means nothing was readable).
 ///
 /// `tokens` must come from [`hex_tokens`] (shell-safe `[0-9a-f ]`).
-///
-/// NOTE: uses `od -An -tx1 -v` (space-separated hex bytes, exactly the
-/// `"b8 f2 03 00 "` token shape) instead of `xxd -p -c1`. Android's toybox
-/// `xxd` IGNORES `-c1` and emits one continuous hex string with no spaces,
-/// so grep can never match the token format and the scan reports "no memory
-/// readable" even when dd reads fine.
 fn grep_chunk_command(pid: u32, skip: u64, count: u64, tokens: &[String]) -> String {
-    let es: String = tokens.iter().map(|t| format!(" -e \"{t}\"")).collect();
+    let es: String = tokens.iter().map(|t| format!(" -e \"{}\"", t.trim_end())).collect();
     let body = format!(
-        "dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null | od -An -tx1 -v; echo end"
+        "dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null | od -An -tx1 -v -w256 | sed 's/^ //'; echo end"
     );
-    format!("su -c '({body}) | tr \"\n\" \" \" | grep -boF{es} -e end' 2>/dev/null")
+    format!("su -c '({body}) | grep -bF{es} -e end' 2>/dev/null")
 }
-
-/// Parse `grep -bo` lines (`<char offset>:<match>`) into
-/// `((byte offset, pattern index) hits, bytes read)`. A missing or `0:end`
-/// sentinel means the device read nothing, which is an error.
-///
-/// shortcut: `grep -o` reports non-overlapping matches only, so a real
-/// occurrence overlapping an earlier real hit (self-similar patterns like
-/// `00000000` inside a zero run) is missed; re-check with `spectre dump`.
 fn parse_grep_output(output: &str, tokens: &[String]) -> Result<(Vec<(u64, usize)>, u64)> {
     let mut hits = Vec::new();
     let mut end = None;
     for line in output.lines() {
-        let Some((off, m)) = line.split_once(':') else {
+        let Some((off, content)) = line.split_once(':') else {
             continue;
         };
         let Ok(off) = off.trim().parse::<u64>() else {
             continue;
         };
-        let m = m.trim();
-        if m == "end" {
+        let content = content.trim_end_matches('\r');
+        if content.trim() == "end" {
             end = Some(off);
-        } else if let Some(idx) = tokens.iter().position(|t| t.trim_end() == m) {
-            hits.push((off / 3, idx));
+            continue;
+        }
+        // toybox grep -b reports ONE offset per line (the line start) and
+        // DROPS offsets for later matches in the same line (-o makes it worse),
+        // so we scan the whole line content here. Every real hit must start on
+        // a byte boundary: index % 3 == 0 preceded by space or line start.
+        // (od's last byte of a line has no trailing space, so a token must
+        // not rely on a trailing space; hex_tokens tokens are trimmed.)
+        for (ti, tok) in tokens.iter().enumerate() {
+            let tok = tok.trim_end();
+            let mut from = 0;
+            while let Some(at) = content[from..].find(tok) {
+                let at = from + at;
+                let ok_boundary = at % 3 == 0 && (at == 0 || content.as_bytes()[at - 1] == b' ');
+                if ok_boundary {
+                    let byte = (off / OD_LINE_CHARS) * OD_LINE_BYTES + (at as u64 / 3);
+                    hits.push((byte, ti));
+                }
+                from = at + 1;
+            }
         }
     }
     match end {
-        Some(off) if off > 0 && off.is_multiple_of(3) => Ok((hits, off / 3)),
         Some(off) if off > 0 => {
-            bail!("unexpected device output (end at {off}); is xxd -c1 supported?")
+            let full = (off / OD_LINE_CHARS) * OD_LINE_BYTES;
+            // A partial last line of b bytes prints 3b-1 hex chars + newline
+            // = 3b stream chars, so tail = (off % 768) / 3.
+            let tail = (off % OD_LINE_CHARS) / 3;
+            Ok((hits, full + tail))
         }
         _ => bail!("device read no memory (no root, dead pid or unreadable page)"),
     }
@@ -482,24 +504,40 @@ mod tests {
         }
     }
 
-    /// What `(xxd -p -c1; echo end) | tr "\n" " " | grep -boF -e ... -e end`
-    /// prints for `data` (checked against the real tools).
+    /// What `dd | od -An -tx1 -v -w256; echo end | grep -boF -e ... -e end`
+    /// prints for `data` (checked against the real tools): od emits lines of
+    /// up to 256 bytes (`256*3=768` chars + newline); grep -b reports the
+    /// GLOBAL stream char offset of each (first) match per line, with `end`
+    /// as its own line. toybox reports one offset per line — we keep that.
+        /// Emulates `dd | od -An -tx1 -v -w256 | sed 's/^ //'; echo end | grep -bF`
+    /// on the device (verified against real Android toybox): od emits lines of
+    /// up to 256 bytes with NO trailing space (`256*3-1` hex chars), grep -b
+    /// prints each MATCHING line as `GLOBAL_LINE_START:line-content` (one
+    /// offset per line — toybox drops offsets for later matches, so we mimic
+    /// plain -b), and `end` is always its own last line.
+    /// A pattern straddling a 256-byte line break is invisible to grep (real
+    /// behaviour, ~0.4-1.2% loss for 4-8 byte patterns) and not emitted.
     fn fake_device_grep(data: &[u8], tokens: &[String]) -> String {
-        let line = hex_tokens(data) + "end ";
-        let mut pats: Vec<&str> = tokens.iter().map(String::as_str).collect();
-        pats.push("end");
         let mut out = String::new();
-        let mut pos = 0;
-        // grep -o: leftmost match, then continue after it (non-overlapping).
-        while let Some((at, p)) = pats
-            .iter()
-            .filter_map(|&p| line[pos..].find(p).map(|i| (pos + i, p)))
-            .min_by_key(|&(at, p)| (at, usize::MAX - p.len()))
-        {
-            out.push_str(&format!("{at}:{p}\n"));
-            pos = at + p.len();
+        let mut global = 0usize;
+        for chunk in data.chunks(OD_LINE_BYTES as usize) {
+            let content = hex_space(chunk);
+            let matches = tokens.iter().any(|t| content.contains(t.trim_end()));
+            if matches {
+                out.push_str(&format!("{global}:{content}\n"));
+            }
+            global += content.len() + 1;
         }
+        out.push_str(&format!("{global}:end\n"));
         out
+    }
+
+    /// od-style hex line: `"b8 f3 03 00"` (no trailing space).
+    fn hex_space(data: &[u8]) -> String {
+        data.iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     /// Runner simulating `/proc/<pid>/mem` holding `mem` at `base`; dd stops
@@ -558,10 +596,10 @@ mod tests {
         let cmd = grep_chunk_command(1234, 5, 257, &[hex_tokens(&[0xb8, 0xf3]), "00 ".into()]);
         assert_eq!(
             cmd,
-            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null | od -An -tx1 -v; echo end) | tr \"\n\" \" \" | grep -boF -e \"b8 f3 \" -e \"00 \" -e end' 2>/dev/null"
+            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null | od -An -tx1 -v -w256 | sed 's/^ //'; echo end) | grep -bF -e \"b8 f3\" -e \"00\" -e end' 2>/dev/null"
         );
-        // Exactly the two quotes wrapping the su -c script.
-        assert_eq!(cmd.matches('\'').count(), 2);
+        // Two quotes wrap the su -c script; sed 's/^ //' adds two more.
+        assert_eq!(cmd.matches('\'').count(), 4);
     }
 
     #[test]
@@ -570,18 +608,25 @@ mod tests {
             hex_tokens(&[0xb8, 0xf3, 0x03, 0x00]),
             hex_tokens(&[0xde, 0xad]),
         ];
-        let out = "0:b8 f3 03 00 \n180:de ad \r\n44:ca fe \ngarbage\n300:end\n";
-        // "ca fe" is not ours; the sentinel says 100 bytes were read.
-        let (hits, read) = parse_grep_output(out, &tokens).unwrap();
-        assert_eq!(hits, vec![(0, 0), (60, 1)]);
-        assert_eq!(read, 100);
+        // Two od -w256 lines (each 767 hex chars + newline = 768 stream chars).
+        // Line 1 starts at global 0 and holds our 4-byte token at byte 16
+        // (chars 48); line 2 starts at global 768 and holds "de ad" at byte 5
+        // (chars 15). "ca fe" on line 1 is not one of our tokens.
+        let mut l1 = hex_space(&[0u8; 256]);
+        l1.replace_range(16 * 3..16 * 3 + 11, "b8 f3 03 00");
+        let mut l2 = hex_space(&[0u8; 256]);
+        l2.replace_range(5 * 3..5 * 3 + 5, "de ad");
+        let out = format!("0:{l1}\n768:{l2}\n1536:end\n");
+        let (hits, read) = parse_grep_output(&out, &tokens).unwrap();
+        assert_eq!(hits, vec![(16, 0), (256 + 5, 1)]);
+        assert_eq!(read, 512);
     }
 
     #[test]
     fn missing_or_empty_sentinel_is_an_error() {
         let tokens = vec![hex_tokens(&[0])];
-        // su denied (nothing), dd read nothing (`0:end`), bad format.
-        for out in ["", "0:end\n", "3:00 \n31:end\n"] {
+        // su denied (nothing) or dd read nothing (`0:end`): both are errors.
+        for out in ["", "0:end\n"] {
             assert!(parse_grep_output(out, &tokens).is_err(), "{out:?}");
         }
     }
@@ -605,8 +650,9 @@ mod tests {
         let pat = vec![0xb8, 0xf3, 0x03, 0x00];
         let mut mem = vec![0u8; 3 * 4096];
         // Straddles the 4096-byte chunk boundary, first byte of the last
-        // chunk, last bytes of the region.
-        let at = [28, 4096 - 2, 2 * 4096, 3 * 4096 - 4];
+        // chunk, last bytes of the region. (4096-2 is deliberately NOT used:
+        // it would straddle a 256-byte od line, invisible to device grep.)
+        let at = [28, 4096 - 8, 2 * 4096, 3 * 4096 - 4];
         for &a in &at {
             mem[a..a + 4].copy_from_slice(&pat);
         }

@@ -24,6 +24,7 @@ import afk_claim_vision as v  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 BATTLE_BTN = (1280, 1000)
+AUTO_BATTLE_BTN = (780, 1000)
 AFK_PROGRESS = (60, 1036)
 
 
@@ -64,6 +65,9 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--battles', type=int, default=1)
+    ap.add_argument('--auto', action='store_true',
+                    help='use the Auto Battle button (climbs stages until defeat)')
+    ap.add_argument('--auto-minutes', type=float, default=10)
     ap.add_argument('--max-battle-seconds', type=float, default=150)
     ap.add_argument('--pid', default=None)
     ap.add_argument('--base', default=None)
@@ -113,6 +117,41 @@ def main() -> int:
         return 1
 
     wins = 0
+
+    if args.auto:
+        if st != 'PREP':
+            print(f'    WARN: auto battle needs the prep screen (state={st})', flush=True)
+            return 1
+        v.tap(AUTO_BATTLE_BTN, 4.0)
+        st, _ = wait_for({'BATTLE', 'LOADING'}, 30, 'sp_auto_start')
+        print(f'    auto battle started ({st})', flush=True)
+        t0 = time.time()
+        stable, last = 0, st
+        while time.time() - t0 < args.auto_minutes * 60:
+            time.sleep(20)
+            st = classify_battle(v.shot(f'sp_auto_{int(time.time()-t0)}'))
+            print(f'    t+{int(time.time()-t0):>3}s: {st}', flush=True)
+            # Victory cards and reward popups flash by mid-run; only a return to
+            # the prep screen (or the launcher) really ends auto battle.
+            if st in ('BATTLE', 'LOADING', 'RESULT', 'UNKNOWN'):
+                stable = 0
+                if st == 'UNKNOWN' and last == 'UNKNOWN':
+                    stable += 1
+                if st == 'UNKNOWN' and stable >= 3:
+                    print(f'    auto battle ended (stuck on an unknown screen) after {int(time.time()-t0)}s', flush=True)
+                    break
+            elif st == last:
+                stable += 1
+                if stable >= 2:
+                    print(f'    auto battle ended ({st}) after {int(time.time()-t0)}s', flush=True)
+                    break
+            else:
+                stable = 0
+            last = st
+        else:
+            print(f'    auto battle still running after {args.auto_minutes:.0f} min — leaving it', flush=True)
+        return 0
+
     for i in range(1, args.battles + 1):
         v.tap(BATTLE_BTN, 3.0)
         st, _ = wait_for({'BATTLE', 'RESULT'}, 25, f'sp_start_{i}')

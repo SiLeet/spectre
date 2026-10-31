@@ -83,6 +83,8 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
             v.tap((1014, 710), 1.5)   # cancel, never confirm
         if last in states:
             return last, img
+        if last == 'LAUNCHER':          # game crashed/closed: no point waiting
+            return last, img
         time.sleep(2.0)
     return last, None
 
@@ -119,6 +121,9 @@ def main() -> int:
     st = classify_battle(img)
     print(f'    initial battle screen state: {st}', flush=True)
 
+    if st == 'UNKNOWN':
+        print('    ERROR: unknown screen — refusing to tap blind', flush=True)
+        return 1
     if st not in ('PREP', 'RESULT', 'DEFEAT'):
         # enter the stage screen through the AFK panel
         for _ in range(3):
@@ -147,6 +152,9 @@ def main() -> int:
     if st == 'LAUNCHER':
         print('    ERROR: game crashed / not running (BlueStacks launcher) — restart the game', flush=True)
         return 3
+    if st == 'DEFEAT':
+        print('    DEFEAT — stage wall reached, nothing to push', flush=True)
+        return 0
     if st not in ('PREP', 'RESULT', 'DEFEAT'):
         print(f'    ERROR: not on a battle screen ({st})', flush=True)
         return 1

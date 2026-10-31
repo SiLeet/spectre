@@ -14,7 +14,9 @@ Screen signatures (1920x1080 BlueStacks, measured 2026-10-31):
   (960,602)  popup claim bar   : POPUP  ~(233,179,117) bright
 
 Usage: python scripts/afk_claim_vision.py [--rounds N] [--pause S] [--dry-run]
-Exit codes: 0 claim verified, 1 could not reach a claimable state, 2 adb error.
+Exit codes: 0 claim verified, 1 could not reach a claimable state (or the screen
+was unrecognised — blind taps are refused), 2 adb/preflight error,
+4 nothing claimable yet (chest accrual too small), 5 skipped (PC in use).
 """
 from __future__ import annotations
 
@@ -27,7 +29,8 @@ from pathlib import Path
 from PIL import Image
 
 REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
+import os
+TMP = REPO / '.spectre' / f'shots-{os.getpid()}'   # per-run dir: concurrent runs must not collide
 TMP.mkdir(parents=True, exist_ok=True)
 ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
 SERIAL = '127.0.0.1:5555'
@@ -44,7 +47,9 @@ def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
-    adb('shell', 'input', 'tap', str(xy[0]), str(xy[1]))
+    p = adb('shell', 'input', 'tap', str(xy[0]), str(xy[1]))
+    if p.returncode != 0:
+        raise RuntimeError(f'adb tap failed at {xy}: {p.stderr[:120]!r}')
     time.sleep(wait)
 
 
@@ -60,7 +65,11 @@ def shot(name: str) -> Image.Image:
                            stdout=fh, timeout=60)
     if p.returncode != 0:
         raise RuntimeError('screencap failed')
-    return Image.open(path).convert('RGB')
+    im = Image.open(path)
+    im.load()
+    out = im.convert('RGB')
+    im.close()
+    return out
 
 
 def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, int]:
@@ -103,7 +112,10 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     out = REPO / '.spectre' / 'power.bin'
     if adb_exec_dump(pid, base_hex, out) is None:
         return 'fail', None
-    power = struct.unpack('<q', out.read_bytes()[:8])[0]
+    raw = out.read_bytes()
+    if len(raw) < 8:
+        return 'fail', None
+    power = struct.unpack('<q', raw[:8])[0]
     if 100_000 < power < 10_000_000_000:
         return 'ok', power
     return 'stale', power
@@ -144,14 +156,16 @@ def classify(img: Image.Image) -> str:
 
     if close_to(back, (184, 176, 174), 22) and lg > 190:
         return 'PANEL'
-    if lb < 100 and lbar > 172:
+    # POPUP before WORLD: a dimmed popup used to satisfy the WORLD predicate
+    # (|lb-lg| < 15 also matched lb-lg in (-15,-8]), which then tapped the world
+    # sequence into a live popup.
+    if lb < 100 and (lbar > 172 or lb - lg < -8):
         return 'POPUP'
-    if lb < 100 and abs(lb - lg) < 15:
+    if lb < 100 and abs(lb - lg) < 8:
         return 'WORLD'
-    if lb < 100 and lb - lg < -8:
-        return 'POPUP'
     chip = avg(img, (1390, 704))
-    if chip[0] > 200 and chip[1] > 150 and chip[2] < 120:
+    # only trust the chip fallback when the back arrow is clearly NOT dimmed
+    if lb > 140 and chip[0] > 200 and chip[1] > 150 and chip[2] < 120:
         return 'PANEL'
     return 'UNKNOWN'
 
@@ -206,6 +220,11 @@ def main() -> int:
             tap(BACK, 1.5)
             state = classify(shot(f'r{rnd}_1b_recover'))
             print(f'    after close: {state}', flush=True)
+        if state == 'UNKNOWN':
+            # never fire the recovery taps on an unidentified screen: that is
+            # how a blind tap ends up on a store/purchase dialog
+            print('    ERROR: unknown screen — refusing to tap blind', flush=True)
+            return 1
         if state != 'PANEL':
             tap(BACK, 1.0)
             tap(BACK, 1.0)

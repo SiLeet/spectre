@@ -23,12 +23,14 @@ fi
 mkdir -p "$OUT_DIR"
 
 # Serialize runs: the scheduled task and manual invocations must never tap at
-# the same time. A lock older than 3 minutes is considered stale (a crashed
-# run), anything younger means "another run is in progress".
+# the same time. The stale threshold must exceed the worst-case runtime (a
+# dailies round runs claim + quests + mail, several minutes), otherwise an
+# overlapping run deletes the lock and taps concurrently.
 LOCK="$OUT_DIR/afk-bot.lock"
+LOCK_STALE="${AFK_LOCK_STALE:-1200}"
 if [ -e "$LOCK" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || echo 0) ))
-  if [ "$age" -lt 180 ]; then
+  if [ "$age" -lt "$LOCK_STALE" ]; then
     echo "afk-bot-watch: another run in progress (lock age ${age}s)" >&2
     exit 6
   fi
@@ -85,33 +87,42 @@ fi
 mkdir -p "$OUT_DIR/logs"
 LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 
-# Preferred path: the vision driver only taps after verifying the screen state
-# (and after a team_power memory preflight). Falls back to the CLI tap sequence
-# only when python/PIL is unavailable — never on a state mismatch, that is
-# exactly what produced silent no-ops before.
-if python -c 'import PIL' >/dev/null 2>&1; then
+# Resolve the interpreter explicitly: under Task Scheduler the PATH can differ,
+# and silently falling back to the un-gated CLI tap sequence is exactly the
+# dangerous mode these scripts exist to avoid. Fail loudly instead.
+if [ -n "${AFK_PYTHON:-}" ]; then
+  PY="$AFK_PYTHON"
+elif command -v python >/dev/null 2>&1 && python -c 'import PIL' >/dev/null 2>&1; then
+  PY=python
+elif [ -x "$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe" ]; then
+  PY="$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe"
+else
+  echo "afk-bot-watch: no python with PIL available (set AFK_PYTHON) — refusing to fall back to blind taps" >&2
+  exit 7
+fi
+if "$PY" -c 'import PIL' >/dev/null 2>&1; then
   {
-    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (vision driver)"
-    python scripts/afk_claim_vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (vision driver, $PY)"
+    "$PY" scripts/afk_claim_vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
   } | tee -a "$LOG"
   rc="${PIPESTATUS[0]}"
   # --scheduled: once per day, also claim the daily login reward (same gates)
   if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
     today=$(date -u +%Y-%m-%d)
     last=$(cat "$OUT_DIR/daily-gift-last.txt" 2>/dev/null || echo never)
-    if [ "$last" != "$today" ] && python -c 'import PIL' >/dev/null 2>&1; then
+    if [ "$last" != "$today" ]; then
       {
         echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) daily Journey's Gift"
-        python scripts/afk-daily-gift.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+        "$PY" scripts/afk-daily-gift.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
       } | tee -a "$LOG"
       [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/daily-gift-last.txt"
     fi
     # once per day: the full quest/mail routine
     dl_last=$(cat "$OUT_DIR/dailies-last.txt" 2>/dev/null || echo never)
-    if [ "$dl_last" != "$today" ] && python -c 'import PIL' >/dev/null 2>&1; then
+    if [ "$dl_last" != "$today" ]; then
       {
         echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) daily routine (quests + mail)"
-        python scripts/afk_dailies.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+        "$PY" scripts/afk_dailies.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
       } | tee -a "$LOG"
       [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/dailies-last.txt"
     fi
@@ -119,7 +130,5 @@ if python -c 'import PIL' >/dev/null 2>&1; then
   exit "$rc"
 fi
 
-{
-  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (CLI tap fallback, no PIL)"
-  "$SPECTRE" -v bot "$OUT" --adb --once 2>&1
-} | tee -a "$LOG"
+echo "afk-bot-watch: vision driver unavailable — refusing the blind CLI fallback" >&2
+exit 7

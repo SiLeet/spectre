@@ -31,6 +31,7 @@ MAIL_ICON = (840, 750)
 QUICK_CLAIM = (1360, 850)
 READ_ALL = (1080, 1010)
 DAILY_TAB = (800, 934)
+GUILD_TAB = (1020, 934)
 DISMISS = (480, 300)
 
 
@@ -90,8 +91,12 @@ def run_dailies(min_idle: float) -> int:
     if status == 'fail':
         print('    ERROR: memory preflight failed', flush=True)
         return 2
-    print(f'    preflight team_power = {power}' if status == 'ok'
-          else f'    WARN: team_power offset stale (read {power})', flush=True)
+    if status == 'ok':
+        print(f'    preflight team_power = {power}', flush=True)
+    elif status == 'skip':
+        print('    no pid/base given — memory preflight skipped', flush=True)
+    else:
+        print(f'    WARN: team_power offset stale (read {power})', flush=True)
 
     # 1. AFK chest claim (existing verified sequence)
     print('--- AFK chest claim', flush=True)
@@ -115,6 +120,7 @@ def run_dailies(min_idle: float) -> int:
     quick_claim_tab('homestead')
     v.tap(DAILY_TAB, 2.5)
     quick_claim_tab('daily')
+    v.tap(GUILD_TAB, 2.5)          # the guild tab has to be selected explicitly
     quick_claim_tab('guild')
     v.tap(v.BACK, 1.5)
 
@@ -153,6 +159,9 @@ def afk_chest_claim() -> bool:
     if st == 'POPUP':
         v.tap(v.BACK, 1.2)
         st = v.classify(v.shot('dl_afk_1b'))
+    if st == 'UNKNOWN':
+        print('    ERROR: unknown screen — refusing to tap blind', flush=True)
+        return False
     if st != 'PANEL':
         v.tap(v.BACK, 1.2)
         v.tap(v.BACK, 1.2)
@@ -169,12 +178,14 @@ def afk_chest_claim() -> bool:
         st = v.classify(v.shot('dl_afk_3b'))
     if st != 'POPUP':
         print('    SKIP: chest empty (accrual too small)', flush=True)
+        v.tap(v.BACK, 1.2)      # normalize: leave the AFK panel
         return True
     v.tap((960, 602), 2.5)
     st = v.classify(v.shot('dl_afk_4'))
     ok = st == 'PANEL'
     print(f'    chest claim {"verified" if ok else "state " + st}', flush=True)
-    v.tap(v.BACK, 1.2)          # normalize: leave the panel either way
+    if st == 'PANEL':
+        v.tap(v.BACK, 1.2)      # normalize: leave the panel
     return True
 
 

@@ -10,6 +10,7 @@
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
+//!   spectre hot <pid> <hex> --adb [--base ADDR] [--limit N] [--json]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
 //!   spectre serve [--port P] [--rate-limit N] [--allow-origin O]...
@@ -34,6 +35,8 @@ use spectre_core::{
 
 mod hunt;
 use hunt::{HuntArgs, run_hunt};
+mod hot;
+use hot::{HotArgs, run_hot};
 
 // ── Top-Level CLI ────────────────────────────────────────────────────────────
 
@@ -114,6 +117,10 @@ pub enum SubCommand {
         about = "Find candidate addresses for a value range (offset discovery)"
     )]
     Hunt(HuntArgs),
+
+    /// Grep process memory for a byte pattern on the device (ADB only).
+    #[structopt(about = "Search a byte pattern on the device; only matches cross adb")]
+    Hot(HotArgs),
 }
 
 // ── Scan Command ─────────────────────────────────────────────────────────────
@@ -427,6 +434,7 @@ fn main() -> ExitCode {
         Some(SubCommand::DumpDiff(cmd)) => run_dumpdiff(cmd),
                 Some(SubCommand::Chain(cmd)) => run_chain(cmd),
         Some(SubCommand::Hunt(cmd)) => run_hunt(cmd),
+        Some(SubCommand::Hot(cmd)) => run_hot(cmd),
         None => {
             eprintln!("error: a subcommand is required; run `spectre --help` for usage");
             return ExitCode::from(2);

@@ -445,7 +445,7 @@ spectre offsets [FLAGS] [game]
 
 | Argument | Description |
 |----------|-------------|
-| `game` | Game name (`games/<game>/offsets.yaml` or `games/<game>.yaml`) or a path to an offsets YAML file. Omit to list the games found under `games/` |
+| `game` | Game name (`games/<game>/offsets.yaml`, `games/<game>.yaml` or `.yml`), a name as printed by the listing (e.g. `afk-journey.yaml`, resolved as `games/<game>`), or a path to an offsets YAML file. Omit to list the games found under `games/` |
 
 | Flag | Description |
 |------|-------------|
@@ -457,14 +457,19 @@ list of issues with the structure/field they belong to.
 
 | Check | Severity |
 |-------|----------|
-| `version` missing or empty | error |
+| Empty `version` | error |
 | Duplicate structure name | error |
 | Duplicate field name within a structure | error |
 | Unknown field type | error |
+| String length 0 (`string:0`, `String(0)`, `length: 0`) | error |
 | Overlapping field byte ranges within a structure (`offset` .. `offset + size(type)`) | warning |
 
 Exits with status 1 if any error is found; warnings alone exit 0, since
 placeholder offsets may overlap until they are confirmed.
+
+The file is read in the spectre-game format, where `game`, `version` and
+each field's `offset` are required: a file missing one of them fails to
+parse (exit 1, no report) even though `--offsets` would accept it.
 
 ```bash
 spectre offsets

@@ -12,8 +12,9 @@ use spectre_game::{Severity, YamlGameFile, validate};
 /// `spectre offsets [game] [--json]`
 #[derive(StructOpt)]
 pub struct OffsetsArgs {
-    /// Game name (games/<game>/offsets.yaml or games/<game>.yaml) or a path
-    /// to an offsets YAML file. Omit to list the available games.
+    /// Game name (games/<game>/offsets.yaml, games/<game>.yaml or .yml), a
+    /// name as listed by `spectre offsets`, or a path to an offsets YAML
+    /// file. Omit to list the available games.
     #[structopt(name = "game")]
     pub game: Option<String>,
 
@@ -37,20 +38,23 @@ pub fn run_offsets(args: OffsetsArgs) -> Result<()> {
         return Ok(());
     };
 
-    let path = [
+    let candidates = [
         format!("games/{game}/offsets.yaml"),
         format!("games/{game}.yaml"),
+        format!("games/{game}.yml"),
         format!("games/{game}"),
         game.clone(),
-    ]
-    .into_iter()
-    .find(|p| Path::new(p).is_file())
-    .ok_or_else(|| {
-        anyhow!(
-            "no offsets file for '{game}' (looked for games/{game}/offsets.yaml, \
-             games/{game}.yaml and the path '{game}')"
-        )
-    })?;
+    ];
+    let path = candidates
+        .iter()
+        .find(|p| Path::new(p).is_file())
+        .cloned()
+        .ok_or_else(|| {
+            anyhow!(
+                "no offsets file for '{game}' (looked for {})",
+                candidates.join(", ")
+            )
+        })?;
 
     let file = read_yaml_file(&path)?;
     let issues = validate(&file);

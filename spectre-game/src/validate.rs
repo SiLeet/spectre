@@ -1,8 +1,8 @@
 // ── Spectre Game: Offset File Validator ──────────────────────────────────
 //
 // Sanity checks for a game-offset YAML file: non-empty version, unique
-// structure names, unique field names per structure, known field types
-// (errors) and overlapping field byte ranges within a structure (warning —
+// structure names, unique field names per structure, known field types and
+// non-zero string lengths (errors) and overlapping field byte ranges within a structure (warning —
 // placeholder offsets may legitimately overlap until confirmed).
 
 use std::collections::HashSet;
@@ -59,7 +59,7 @@ pub fn validate(file: &YamlGameFile) -> Vec<Issue> {
             severity: Severity::Error,
             structure: None,
             field: None,
-            message: "game version is missing or empty".to_owned(),
+            message: "game version is empty".to_owned(),
         });
     }
 
@@ -87,6 +87,12 @@ pub fn validate(file: &YamlGameFile) -> Vec<Issue> {
                 ));
             }
             match resolve_field_type(f) {
+                Some(FieldType::String(0)) => issues.push(Issue::new(
+                    Severity::Error,
+                    &sd.name,
+                    Some(&f.name),
+                    "string length must be > 0".to_owned(),
+                )),
                 Some(ft) => {
                     ranges.push((f.offset, f.offset.saturating_add(field_size(ft)), &f.name))
                 }

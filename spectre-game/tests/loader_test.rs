@@ -237,7 +237,6 @@ fn exact_entries_beat_ranges_in_find_best() {
     let _ = &mut reg;
 }
 
-
 // ── Validator ────────────────────────────────────────────────────────────
 
 fn issues_of(yaml: &str) -> Vec<spectre_game::Issue> {
@@ -259,6 +258,7 @@ fn validator_finds_duplicate_field() {
     );
     assert_eq!(issues.len(), 1, "{issues:?}");
     assert_eq!(issues[0].field.as_deref(), Some("a"));
+    assert_eq!(issues[0].severity, spectre_game::Severity::Error);
 }
 
 #[test]
@@ -280,21 +280,47 @@ fn validator_finds_empty_version_and_unknown_type() {
     assert_eq!(issues.len(), 2, "{issues:?}");
     assert!(issues[0].message.contains("version"));
     assert!(issues[1].message.contains("u128"));
+    assert!(issues.iter().all(|i| i.severity == spectre_game::Severity::Error));
+}
+
+#[test]
+fn validator_rejects_zero_length_strings() {
+    // A 0-byte range never overlaps, so `a` sharing offset 0 with `d` must
+    // still be reported, as an error.
+    let issues = issues_of(
+        "{game: g, version: '1', structures: [{name: S, fields: [         {name: a, type: 'string:0', offset: 0}, {name: b, type: 'String(0)', offset: 0},          {name: c, type: string, length: 0, offset: 0}, {name: d, type: u32, offset: 0}]}]}",
+    );
+    let flagged: Vec<_> = issues.iter().map(|i| i.field.as_deref().unwrap()).collect();
+    assert_eq!(flagged, ["a", "b", "c"], "{issues:?}");
+    assert!(issues.iter().all(|i| i.severity == spectre_game::Severity::Error));
 }
 
 #[test]
 fn repo_offset_files_have_no_validation_errors() {
     let root = crate_dir().join("..");
-    for rel in [
-        "games/afk-journey/offsets.yaml",
-        "examples/practice-offsets.yaml",
-        "spectre-game/games/afk-journey.yaml",
-    ] {
-        let file = spectre_game::offsets::read_yaml_file(root.join(rel)).expect(rel);
+    let files_in = |dir: &str, keep: fn(&std::path::Path) -> bool| {
+        std::fs::read_dir(root.join(dir))
+            .expect(dir)
+            .map(|e| e.expect(dir).path())
+            .filter(|p| keep(p))
+            .collect::<Vec<_>>()
+    };
+    let is_yaml = |p: &std::path::Path| p.extension().is_some_and(|e| e == "yaml");
+    let mut files = files_in("games", |p| p.join("offsets.yaml").is_file());
+    files.iter_mut().for_each(|p| p.push("offsets.yaml"));
+    files.extend(files_in("examples", |p| {
+        p.extension().is_some_and(|e| e == "yaml")
+            && p.file_name().unwrap().to_string_lossy().contains("offsets")
+    }));
+    files.extend(files_in("spectre-game/games", is_yaml));
+    assert!(files.len() >= 3, "{files:?}");
+
+    for path in &files {
+        let file = spectre_game::offsets::read_yaml_file(path).expect("offsets file parses");
         let errors: Vec<_> = spectre_game::validate(&file)
             .into_iter()
             .filter(|i| i.severity == spectre_game::Severity::Error)
             .collect();
-        assert!(errors.is_empty(), "{rel}: {errors:?}");
+        assert!(errors.is_empty(), "{}: {errors:?}", path.display());
     }
 }

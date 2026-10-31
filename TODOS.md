@@ -258,3 +258,9 @@ Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9
 6. [LOW-Batch]: struct.unpack-Guard (leere power.bin), img.close(), Idle-Re-Check
    zwischen Phasen, exit-code-Doku (4/5), dedizierte Probes statt Doppelbelegung
    (200,270)/(960,300), adb-Rückgabecodes prüfen, LAUNCHER-Früh-Ausstieg.
+- 🟦 T27-Update (19:2x): `afk_arena.py` Fight 1 verifiziert (changed=True), aber
+  Fight 2 hängt: nach dem Fight resultiert eine **Victory-Karte**, die einen Tap
+  zum Schließen braucht, bevor „Challenge!“ → Select → Prep → Battle greift.
+  Sig-Vergleich bestätigt: Screen nach Fight 2-Tap = unverändert grau (Select).
+  Fix offen: zwischen „Challenge!“ und Opponent-Tap ein Card-Dismiss (Tap 480,300
+  oder Back) einbauen + Sig-Verifikation. Danach Daily-Integration (x6-Zähler).

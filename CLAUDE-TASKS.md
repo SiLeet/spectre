@@ -276,8 +276,14 @@ BRANCH: feature/T10-multi-adb
   T4 (Chain-CLI), T8 (Challenge-Repo) + Release v0.2.0/v0.3.0.
 - ✅ Live-ADB-Fixes (2026-10-31): Root-Fallback, Android-ps-Parser, Serial-Pinning,
   page-aware 4K-Reads (`6a36d58`), `spectre hunt` (`3e742dd`), Game-Guides (`b330dd8`).
-- ⬜ **Neu:** T13 (On-device hot-scan) — von Hermes vorbereitet, kann Claude
-  parallel nehmen. Hermes arbeitet an der Live-Offset-Bestätigung (T11).
+- ⬜ **Neu (Claude-ready, alle OHNE Live-Emulator):**
+  - T13 (On-device hot-scan) — Code + Unit-Tests; Live-Verifikation macht Hermes
+  - T14 (search --min/--max Range-Suche) — direkt nützlich für gerundete Anzeigen
+  - T15 (offsets introspect + Validator) — Selbst-Hilfe für die Offsets-YAML
+  - T16 (AFK-Beispiel-Bots safe actions) — nur examples/docs
+  - T17 (Native Linux-Reader paritätisch) — eigenständig, nur linux.rs
+- Hermes arbeitet parallel an der Live-Offset-Bestätigung (T11) — braucht den
+  laufenden Emulator, das kann Claude NICHT abnehmen.
 
 ## Empfehlung: Start-Reihenfolge (Phase 2)
 
@@ -507,4 +513,171 @@ AUFGABE:
   4. cargo fmt + clippy. KEINE spectre-core-Änderungen.
 
 BRANCH: feature/T13-hot-scan
+```
+
+
+---
+
+## T14 — `spectre search` Range-Suche (`--min/--max`)
+
+**Berührt:** `spectre-cli/src/main.rs` (SearchArgs + run_search), Tests. **KEINE** anderen Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND: Aktuell sucht `spectre search <pid> <type> <value>` nur EXAKTE
+Werte. In der Praxis kennt man den Zielwert oft nur gerundet (Spiel zeigt
+"259K", echter Wert 259850). Eine Range-Suche wäre der Unterschied zwischen
+"funktioniert" und "frustrierend".
+
+AUFGABE:
+  1. SearchArgs erweitern: #[structopt(long="min")] min: Option<String> und
+     #[structopt(long="max")] max: Option<String>. value bleibt optional,
+     wenn min+max gesetzt sind (required_unless für value anpassen: value
+     ODER (min UND max)).
+  2. parse_search_value erweitern: wenn min/max gesetzt, statt exaktem Bytes
+     einen Mini-Range-Vergleich erlauben. Pragmatisch: In run_search bei
+     range-Modus für JEDE Kandidatenadresse read_value machen und prüfen,
+     ob der numeric value in [min..max] liegt (nicht byte-vergleich).
+     - Für u8/u16/u32/u64/i8/.../f32/f64: numerischer Vergleich über die
+       passende read_* -Methode des Readers.
+     - Für string: nicht unterstützt (Fehler, wenn type=string mit min/max).
+  3. Im Range-Modus: scan über alle Regions (wie bisher), aber statt
+     Byte-Vergleich der Bufs den numerischen Check pro Fund nutzen. Du darfst
+     scan_memory mit exakten Werten NICHT pro Range-Wert aufrufen (zu langsam);
+     nutze stattdessen einen einfachen Byte-Scan nach fixen Bytes VOR dem
+     numerischen Check? NEIN — einfacher und korrekt: Im Range-Modus liest du
+     Region für Region via reader.read_bytes (gleiche Logik wie Scanner),
+     packst pro width-aligned Slot den Wert und filterst numerisch. Das
+     Ergebnis ist eine Adressliste wie bisher.
+  4. --continue-Modus: gleiche Filterung auf den vorherigen Address-Set.
+  5. Tests (spectre-cli #[cfg(test)] oder spectre-core/tests):
+     - parse_search_value mit min/max
+     - Range-Ergebnis-Filter (kleiner FakeReader der 259000-259999 liefert)
+  6. Doku: Doc-Header oben in main.rs + docs/cli-reference.md Abschnitt search
+     um --min/--max ergänzen.
+
+BRANCH: feature/T14-search-range
+```
+
+
+---
+
+## T15 — `spectre offsets` introspect + Validator
+
+**Berührt:** `spectre-cli/src/main.rs` (Subcommand `offsets`), `spectre-game/src/*.rs` (falls Validator dort sinnvoller). **KEINE** anderen Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND: Die Offsets-YAML (games/<game>/offsets.yaml) sind die zentrale
+Spielwissen-Datei. Es gibt kein CLI-Kommando, um sie einfach ANZUSEHEN oder
+zu validieren (falsche Feld-Typen, fehlende Strukturen, doppelte Offsets).
+
+AUFGABE:
+  1. Neues Subcommand `spectre offsets [game]`:
+     - Ohne Argument: listet verfügbare Games (games/*/offsets.yaml)
+     - Mit game: lädt die YAML über spectre_game::load (bestehende API),
+       zeigt Strukturen + Felder als Tabelle: Struktur | Feld | Typ | Offset
+       | Beschreibung. --json für Maschinenausgabe.
+  2. Validierung beim Laden ODER als --validate-Flag:
+     - Alle Strukturnamen einzigartig
+     - Keine doppelten Feldnamen pro Struktur
+     - Keine überlappenden Feld-Bereiche innerhalb einer Struktur
+       (start = offset, end = offset + size(type); Warnung bei Überlapp,
+       Error erst ab Konfig-Detail -> Warnung ausgeben)
+     - Game-Version vorhanden und nicht leer
+     - Report: "ok" oder Liste der Probleme (mit Struktur/Feld-Namen)
+  3. Tea hinzufügen in der CLI: Dispatch + Doc-Header.
+  4. Tests (spectre-game/tests/loader_test.rs erweitern ODER neue Tests in
+     spectre-cli): Validator findet
+     - doppelte Struktur
+     - überlappende Felder
+     - leere Version
+  5. Alle games/offsets.yaml müssen danach die Validierung bestehen (falls
+     afk-journey Platzhalter-Offsets überlappen, hier NICHT faken — Offsets
+     selbst bleiben, nur Debug-Output).
+
+BRANCH: feature/T15-offsets-validate
+```
+
+
+---
+
+## T16 — Bot-Beispiel mit echten Safe-Aktionen (AFK Journey)
+
+**Berührt:** `examples/` (neue Dateien), `docs/` (kurze Ergänzung). **KEINE** Crate-Dateien.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND (aus docs/afk-journey-guide.md): Es gibt sichere Trigger-Aktionen
+im Spiel (Claim Daily/Login-Rewards, Homestead-Requests, AFK-Idle-Truhe), die
+Währungen ändern ohne Risiko. Die Beispiel-Bots (examples/bot-config.yaml,
+examples/afk-bot.lua) sollen diese Muster zeigen — OHNE echte Offsets zu
+brauchen (Platzhalter sind ok, aber bitte als solche markiert).
+
+AUFGABE:
+  1. examples/bot-config-afk.yaml (neu): Ein YAML-Bot-Config mit 3 Tasks:
+     a) "claim_rewards": MemoryCheck auf einen Platzhalter-Gold-Offset
+        (0xDEADBEEF) mit Kommentar "REPLACE with verified gold address",
+        wenn > 0 -> Click auf Login-Rewards-Button (Koordinaten aus dem
+        Guide als Kommentar)
+     b) "idle_check": alle 5 Minuten Gold/EXP-Offsets lesen (Platzhalter),
+        Log-Ausgabe
+     c) "homestead_request": Beispiel mit Tap-Action (Koordinate kommentiert)
+     - Nutze die echte YAML-Syntax (siehe examples/bot-config.yaml: !MemoryCheck,
+       !U64,conditions, actions) — NICHT erfinden, erst die bestehende Datei
+       lesen und das Schema übernehmen!
+  2. examples/afk-bot.lua: erweitern um einen zweiten Bot-Modus "safe_claim"
+     mit Kommentaren, wo echte Offsets eingesetzt werden. Leserichtig:
+     bestehende APIs nutzen (spectre.find_process, read_u32 etc.).
+  3. Neuer Abschnitt in examples/README.md: "AFK Journey Telegramm"-Muster —
+     Schritt-für-Schritt, wie man aus einem Platzhalter-Offset einen echten
+     macht (hunt -> dumpdiff -> offsets.yaml). Verweise auf
+     docs/afk-journey-guide.md.
+  4. NUR Doku/Beispiele — kein Crate-Code. Alle YAML/Lua mit --dry-run
+     bzw. Syntax prüfen, wo möglich.
+
+BRANCH: feature/T16-afk-examples
+```
+
+
+---
+
+## T17 — Native Linux-Reader: `/proc/<pid>/mem` Support + Tests
+
+**Berührt:** `spectre-native/src/linux.rs`, Tests (`spectre-native/tests/`). **KEINE** anderen Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND: spectre-native hat einen Windows-Reader (windows.rs, live
+verifiziert) und eine linux.rs-Datei. Der Linux-Reader soll paritätisch sein:
+Prozessliste via /proc, Regions via /proc/<pid>/maps, Bytes via
+open("/proc/<pid>/mem") + pread (nicht dd!). Auf Linux braucht man CAP_SYS_PTRACE
+oder root für fremde Prozesse — eigener Prozess geht immer.
+
+AUFGABE:
+  1. linux.rs prüfen: Was existiert bereits (implementiert? TODO? nur Stubs)?
+     Ergänze fehlende MemoryReader-Implementierungen:
+     - list_processes: /proc scan für numerische Dirs + /proc/<pid>/comm
+     - find_process: Substring über Namen (case-insensitive wie Windows)
+     - memory_regions: /proc/<pid>/maps parsen (gleiche Struktur wie ADB-Parser,
+       exists schon in spectre-adb — dort NACHBAUEN hier, nicht importieren)
+     - read_bytes: open + libc::pread auf /proc/<pid>/mem; bei EPERM/EACCES
+       sauberer Fehler "permission denied (need root or ptrace)"
+     - process_name: comm lesen
+     - backend_kind: NativeLinux
+  2. Integrationstest (nur auf Linux, #[cfg(target_os="linux")]):
+     - Spawn einen Probe-Binary (wie spectre-native/src/bin/probe.rs, das
+       existiert bereits) ODER den eigenen Testprozess:
+       * regions enthält mindestens eine rw-Region
+       * read_bytes auf eine eigene Stack-Variable funktioniert
+       * find_process("spectre") findet den Testprozess
+     - Achtung: CI läuft auf windows+linux; Tests müssen auf beiden grün sein
+       (cfg-Gates!).
+  3. Kein Windows-Code anfassen. cargo fmt + clippy.
+
+BRANCH: feature/T17-linux-reader
 ```

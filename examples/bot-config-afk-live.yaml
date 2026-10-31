@@ -44,16 +44,26 @@ tasks:
         value: !I64 100000
     actions:
       - !Log
-        message: "claim_afk: start (team_power plausible) — opening AFK panel"
+        message: "claim_afk: start (team_power plausible) — resetting UI to world view"
         level: Info
+      - !InputClick
+        x: 474
+        y: 1010
+      - !Wait
+        millis: 1200
+      - !InputClick
+        x: 474
+        y: 1010
+      - !Wait
+        millis: 1200
       - !InputClick
         x: 300
         y: 250
       - !Wait
         millis: 800
       - !InputClick
-        x: 70
-        y: 1032
+        x: 60
+        y: 1036
       - !Wait
         millis: 3000
       - !InputClick

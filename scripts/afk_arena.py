@@ -101,6 +101,16 @@ def reach_world(max_steps: int = 6) -> Image.Image:
     return shot('arena_0_final')
 
 
+
+def confirm_dialog(img: Image.Image) -> bool:
+    """The 'Spend <diamonds> to purchase ...?' confirmation (e.g. extra arena
+    attempts) — bright X at (1014,784), green check at (1140,784). It appears
+    when the daily attempts are exhausted; it must always be CANCELLED, and the
+    run must stop: continuing would spend real currency."""
+    x_btn = avg(img, (1014, 784))
+    ok_btn = avg(img, (1140, 784))
+    return sum(x_btn) / 3 > 180 and ok_btn[1] > ok_btn[0] + 30 and ok_btn[1] > 90
+
 def screen_signature(img: Image.Image) -> tuple[int, int, int]:
     """Cheap fingerprint of the centre of the screen to detect state changes."""
     return avg(img, (960, 540)), avg(img, (960, 300)), avg(img, (500, 540))
@@ -163,6 +173,10 @@ def main() -> int:
     wins = 0
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
+        if confirm_dialog(shot(f'arena_p{fight}_pre')):
+            tap((1014, 784), 1.5)   # CANCEL — never confirm a purchase
+            print('    STOP: daily arena attempts exhausted (purchase dialog cancelled)', flush=True)
+            return 0
         st = advance_to_fight(f'arena_f{fight}')
         if st != 'PREP':
             print(f'    ERROR: could not reach a fight ({st}) — aborting', flush=True)

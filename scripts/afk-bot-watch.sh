@@ -106,6 +106,15 @@ if python -c 'import PIL' >/dev/null 2>&1; then
       } | tee -a "$LOG"
       [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/daily-gift-last.txt"
     fi
+    # once per day: the full quest/mail routine
+    dl_last=$(cat "$OUT_DIR/dailies-last.txt" 2>/dev/null || echo never)
+    if [ "$dl_last" != "$today" ] && python -c 'import PIL' >/dev/null 2>&1; then
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) daily routine (quests + mail)"
+        python scripts/afk_dailies.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/dailies-last.txt"
+    fi
   fi
   exit "$rc"
 fi

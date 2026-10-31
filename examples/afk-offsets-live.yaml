@@ -1,0 +1,28 @@
+# AFK Journey — LIVE offsets used by examples/bot-config-afk-live.yaml.
+# Same values as games/afk-journey/offsets.yaml but resolved relative to the
+# configurable metadata.heap_base, so the bot config stays ASLR-independent.
+# (The bot crate resolves base_offset + field.offset as an absolute address;
+# for a live heap base that moves on restart put the CURRENT base in the bot
+# config metadata.heap_base and this file's base_offset stays 0x0.)
+game: "afk-journey"
+version: "1.0.45"
+structures:
+  - name: "Resources"
+    base_offset: 0x0
+    fields:
+      - name: "team_power"
+        field_type: I64
+        offset: 0x000000000A578
+        desc: "Team combat power (verified live via spectre hot, 97b32ee)"
+      - name: "gold"
+        field_type: I64
+        offset: 0x0
+        desc: "NOT PINNED yet — needs short action-diff; reads will warn"
+      - name: "afk_pool_gold"
+        field_type: I64
+        offset: 0x0000000453B58
+        desc: "AFK income gold pool (grows ~300-700/2min)"
+      - name: "afk_pool_exp"
+        field_type: I64
+        offset: 0x0000000453B90
+        desc: "AFK income exp pool"

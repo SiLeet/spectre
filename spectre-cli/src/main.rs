@@ -328,6 +328,23 @@ pub struct BotArgs {
     /// Dry run — validate config without executing.
     #[structopt(long = "dry-run")]
     pub dry_run: bool,
+
+    /// Read memory through ADB from an Android emulator/device instead of
+    /// the native reader (required when the game runs inside BlueStacks).
+    #[structopt(long = "adb")]
+    pub adb: bool,
+
+    /// ADB host (default: 127.0.0.1).
+    #[structopt(long = "adb-host")]
+    pub adb_host: Option<String>,
+
+    /// ADB port (default: 5555).
+    #[structopt(long = "adb-port")]
+    pub adb_port: Option<u16>,
+
+    /// Override the target PID (default: resolve metadata.process via the reader).
+    #[structopt(long = "pid")]
+    pub pid: Option<u32>,
 }
 
 // ── Script Command ───────────────────────────────────────────────────────────
@@ -1481,8 +1498,10 @@ fn run_bot(args: BotArgs) -> Result<()> {
         return Ok(());
     }
 
-    let (ctx, input, hooks) = build_bot_runtime(&config)?;
-    let engine_reader: Box<dyn MemoryReader> = create_reader(false, None, None)?;
+    let (ctx, input, hooks) =
+        build_bot_runtime(&config, args.adb, args.adb_host.clone(), args.adb_port, args.pid)?;
+    let engine_reader: Box<dyn MemoryReader> =
+        create_reader(args.adb, args.adb_host.clone(), args.adb_port)?;
     let engine = spectre_bot::BotEngine::new(engine_reader, Box::new(input), Box::new(ctx), hooks);
     // The bot crate's scheduler applies per-task schedule/interval/conditions.
     let mut scheduler = spectre_bot::TaskScheduler::from_config(&config)?;
@@ -1544,23 +1563,28 @@ fn task_timing(t: &spectre_bot::BotTask, default_interval_ms: u32) -> String {
 /// offsets YAML) resolved as `base_offset + field.offset` absolute addresses.
 fn build_bot_runtime(
     config: &spectre_bot::BotConfig,
+    adb: bool,
+    adb_host: Option<String>,
+    adb_port: Option<u16>,
+    pid_hint: Option<u32>,
 ) -> Result<(
     CliActionContext,
     CliInputSimulator,
     spectre_bot::HookRegistry,
 )> {
     let meta = config.metadata.as_ref();
-    let pid = match meta
-        .and_then(|m| m.get("pid"))
-        .and_then(|s| s.parse::<u32>().ok())
-    {
+    let pid_hint = pid_hint.or_else(|| {
+        meta.and_then(|m| m.get("pid"))
+            .and_then(|s| s.parse::<u32>().ok())
+    });
+    let pid = match pid_hint {
         Some(pid) => pid,
         None => {
+            let reader = create_reader(adb, adb_host.clone(), adb_port)?;
             let proc_name = meta
                 .and_then(|m| m.get("process"))
                 .map(|s| s.as_str())
                 .unwrap_or("game");
-            let reader = create_reader(false, None, None)?;
             let processes = reader.find_process(proc_name)?;
             match processes.first() {
                 Some(p) => p.pid,
@@ -1571,7 +1595,9 @@ fn build_bot_runtime(
         }
     };
 
-    let reader = create_reader(false, None, None)?;
+    // With --adb the memory reader (pid resolution AND value reads) is the
+    // ADB reader, so the bot can work on the game inside the emulator.
+    let reader = create_reader(adb, adb_host, adb_port)?;
     let fields = load_bot_fields(meta)?;
     let input = CliInputSimulator::new(config.input_backend.clone());
     Ok((
@@ -1590,6 +1616,11 @@ fn load_bot_fields(meta: Option<&HashMap<String, String>>) -> Result<HashMap<Str
     // selection) once the bot engine API stabilizes. For now every field is
     // resolved as an absolute `base_offset + field.offset` address, which is
     // correct for offset files that use absolute bases.
+    //
+    // Metadata "heap_base" adds a process-relative offset to EVERY structure
+    // base (0 for structure-local files like afk-offsets-live.yaml). This
+    // keeps live bot configs ASLR-independent: set heap_base to the current
+    // hot-heap base after each game restart.
     let mut fields = HashMap::new();
     let Some(offsets_path) = meta.and_then(|m| m.get("offsets")).cloned() else {
         return Ok(fields);
@@ -1598,10 +1629,16 @@ fn load_bot_fields(meta: Option<&HashMap<String, String>>) -> Result<HashMap<Str
         .and_then(|m| m.get("game"))
         .map(|s| s.as_str())
         .unwrap_or("bot");
+    let heap_base = meta
+        .and_then(|m| m.get("heap_base"))
+        .map(|s| parse_u64(s).map(Ok).unwrap_or_else(|| Err(anyhow!("invalid address: {s}"))))
+        .transpose()
+        .context("metadata.heap_base is not a valid address")?
+        .unwrap_or(0);
     let offsets = parse_offsets_file(&offsets_path, game)?;
     for sd in &offsets.structures {
         for fd in &sd.fields {
-            let addr = sd.base_offset + fd.offset;
+            let addr = sd.base_offset + heap_base + fd.offset;
             let size = field_type_to_value_type(fd.field_type).size();
             fields.entry(fd.name.clone()).or_insert((addr, size));
         }

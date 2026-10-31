@@ -1,0 +1,71 @@
+# AFK Journey — LIVE bot config for Spectre (verified offsets, BlueStacks)
+# Usage:
+#   spectre bot examples/bot-config-afk-live.yaml --dry-run
+#   spectre -v bot examples/bot-config-afk-live.yaml --adb --once
+#   spectre -v bot examples/bot-config-afk-live.yaml --adb
+#
+# This config uses the VERIFIED offsets from games/afk-journey/offsets.yaml:
+#   - team_power  (base+0xA578)  verified live via `spectre hot` (97b32ee)
+#   - afk_pool_gold/afk_pool_exp (base+0x453B58/+0x453B90) confirmed growers
+#   - gold at offset 0 is NOT yet pinned -> the gold read below will warn
+#     (that is expected until the short action-diff confirms the slot).
+# Heap base 0x724DF0000000 is ASLR: it changes per app start. Set the
+# current base in metadata.heap_base (find it with `spectre regions <pid>`
+# = the big rw- anonymous region, or re-verify with `spectre hot`).
+#
+# --adb is REQUIRED: the game runs inside BlueStacks, so memory reads go
+# through the ADB reader and clicks through `adb shell input`.
+
+metadata:
+  game: afk-journey
+  process: farlightgames        # inside the emulator: package name match
+  pid: 7529                     # current game PID (update after restart: spectre find igame --adb)
+  heap_base: 0x724DF0000000     # current hot-heap base (update after restart; ASLR!)
+  offsets: examples/afk-offsets-live.yaml
+
+input_backend: adb
+enabled: true
+default_interval_ms: 300000     # tasks without interval_ms/schedule: every 5 min
+memory_poll_ms: 250
+
+tasks:
+  # a) Claim Login/Daily rewards (Journey's Gift) — guarded on team power
+  #    being plausible (power is our verified anchor). The real claim check
+  #    should guard on gold AFTER the gold offset is confirmed; until then
+  #    the power guard only avoids clicking with a stale/implausible pid.
+  - name: claim_rewards
+    enabled: true
+    conditions:
+      - field: team_power
+        op: Gt
+        value: !I64 100000
+    actions:
+      - !Condition
+        cond:
+          field: team_power
+          op: Lt
+          value: !I64 10000000000
+        then_: !Log
+          message: "claim_rewards: guard OK (team_power plausible) — production config would tap Login Rewards here"
+          level: Info
+        else_: !Log
+          message: "claim_rewards: team_power implausible — skipped"
+          level: Warn
+
+  # b) Idle check — read team power + AFK pools every 5 minutes on the clock.
+  - name: idle_check
+    enabled: true
+    schedule: "*/5 * * * *"
+    conditions: []
+    actions:
+      - !MemoryCheck
+        field: team_power
+        op: GtEq
+        value: !I64 100000
+      - !MemoryCheck
+        field: afk_pool_gold
+        op: Gt
+        value: !I64 0
+      - !Log
+        message: "idle_check: team_power + afk_gold read OK (offset verified)"
+        level: Info

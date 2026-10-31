@@ -456,7 +456,38 @@ Things to know:
 
 ---
 
-## Known limitations (0.2.0)
+## Live bot: AFK Journey (verified 2026-10-31)
+
+`bot-config-afk-live.yaml` claims the AFK idle chest (gold + EXP + essence) on a
+real BlueStacks instance, guarded by a live memory read of `team_power`.
+
+```bash
+# 1. find the game pid (changes on every app restart)
+spectre find igame --adb
+# 2. find the hot-heap base (ASLR — see the big 0x72... rw- anon region)
+spectre regions <pid> --adb
+# 3. put pid + heap_base into metadata, then validate and probe
+spectre bot examples/bot-config-afk-live.yaml --dry-run
+spectre -v bot examples/bot-config-afk-live.yaml --adb --once
+# 4. run the loop (claims every 15 min)
+spectre -v bot examples/bot-config-afk-live.yaml --adb
+```
+
+Verification: the AFK timer resets (`05:38:40` -> `00:00:02`; a `--once` run
+started from the hero-detail panel read `00:02:06` exactly two minutes later).
+
+Requirements / pitfalls:
+
+- Only one adb device entry, or the taps fail with `more than one
+  device/emulator`. The CLI resolves the serial itself since `f828677`; if taps
+  fail, check `adb devices` for a duplicate TCP entry.
+- The tap sequence prepends two back-taps + an empty-ground tap so it starts
+  from the world view regardless of which panel was open. Without that reset,
+  runs silently no-op (three runs left the timer untouched).
+- `gold` is NOT wired: the offset is still unpinned (see TODOS.md). The AFK
+  pool offsets from 0.3.0 are stale — the heap layout moves between restarts.
+
+## Known limitations (0.4.0)
 
 - `search --json` is accepted but does nothing: output is always one address
   per line plus a summary line.

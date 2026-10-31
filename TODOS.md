@@ -325,3 +325,13 @@ Queue-Laufs landen im Cron-Historie + TODOS.md. Stop: cronjob_manage pause/remov
   Homestead-Hilfe läuft. Offen bleibt: der eigentliche Abhol-Mechanismus (die
   Feld-Icons zeigen Beträge, aber kein Harvest-Button bisher sichtbar). Das
   T30-Rest bleibt Exploration; Compass = Kamera-Reset-Verfahren dokumentiert.
+### ✅ T31: Mail/Quest-Reminder — bereits implementiert (verifiziert)
+Der Marker `.spectre/dailies-last.txt` in watch.sh macht die Routine 1×/Tag —
+live verifiziert (Routine lief, Marker gesetzt). Kein Rest.
+
+### ✅ T30 (geschlossen, YAGNI): Homestead-Ernte = nichts zu automatisieren
+3 Versuche: Feld-Taps senden den Helden nicht, kein Harvest-Button gefunden,
+Beträge wachsen passiv, „...received your help." feuert selbstständig. Lesart:
+das Spiel sammelt automatisch (Worker-System), die Feld-Icons sind nur Anzeige.
+Falls Sergej einen manuellen Harvest-Weg kennt: Queue wieder öffnen, sonst
+closed — nichts zu automatisieren.

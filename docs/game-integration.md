@@ -139,6 +139,17 @@ Tweak offsets and re-scan until values match expectations.
 | `Pointer32`   | 4     | 32-bit memory pointer          |
 | `Pointer64`   | 8     | 64-bit memory pointer          |
 
+Spelling rules:
+
+- The type key may be `field_type` (as in the examples here) or `type`.
+- Type names are case-insensitive: `U32` and `u32`, `Pointer64` and
+  `pointer64` are the same. `ptr32`, `ptr64` and `pointer` are aliases.
+- Strings: `String(N)`, `string(N)` or `string:N`; a plain `string` is 128
+  bytes. `spectre scan` also accepts a separate `length: N` key on a string
+  field (see `examples/practice-offsets.yaml`).
+- `spectre scan` rejects an unknown type or a malformed string length
+  (`String(abc)`, `String(0)`) with an error naming the structure and field.
+
 ## Tips
 
 - **Start simple:** Find one scalar field (level, gold) before complex structures.

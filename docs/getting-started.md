@@ -97,12 +97,14 @@ This loads `games/afk-journey/offsets.yaml` and scans all rw- memory regions
 for the defined structures. Without `--pid`, spectre tries to auto-detect the
 process from the game name and asks for `--pid` if that fails.
 
-> **0.2.0:** the bundled `games/afk-journey/offsets.yaml` holds placeholder
-> offsets and does not load in `scan` yet (`missing field 'type'`). Pass your
-> own offsets file with `--offsets`; `examples/practice-offsets.yaml` shows
-> the format `scan` reads. To find offsets in the first place, use
-> `spectre search` and `spectre dumpdiff` — see the
-> [quickstart](../examples/README.md).
+> The bundled `games/afk-journey/offsets.yaml` holds **placeholder**
+> offsets: it loads, but its matches are layout hits, not real game data.
+> Pass your own offsets file with `--offsets` (format:
+> [game-integration.md](game-integration.md#field-types)). To find offsets in
+> the first place, use `spectre search` and `spectre dumpdiff` — see the
+> [quickstart](../examples/README.md). The 0.2.0 release binary cannot load
+> the bundled file (`missing field 'type'`); builds from the current source
+> can.
 
 ### 4. View scan results
 

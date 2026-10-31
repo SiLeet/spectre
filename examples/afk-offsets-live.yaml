@@ -16,8 +16,8 @@ structures:
         desc: "Team combat power (verified live via spectre hot, 97b32ee)"
       - name: "gold"
         field_type: I64
-        offset: 0x0
-        desc: "NOT PINNED yet — needs short action-diff; reads will warn"
+        offset: 0x0   # INVALID — DO NOT USE (would read heap base). NOT PINNED yet.
+        desc: "NOT PINNED yet — needs short action-diff; remove field from bot config until then"
       - name: "afk_pool_gold"
         field_type: I64
         offset: 0x0000000453B58

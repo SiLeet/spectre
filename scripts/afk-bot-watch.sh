@@ -126,6 +126,28 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
       } | tee -a "$LOG"
       [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/dailies-last.txt"
     fi
+
+    # once per day: gameplay loops. Each costs screen time (arena ~80 s, dream
+    # realm 7 x ~75 s, stage push ~6 min); the once-per-day markers keep the
+    # total hijack window bounded to one run per day.
+    run_daily_task() {  # $1 = label, $2 = marker file, rest = command
+      local name="$1" marker="$2"; shift 2
+      local last
+      last=$(cat "$OUT_DIR/$marker" 2>/dev/null || echo never)
+      if [ "$last" != "$today" ]; then
+        {
+          echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) $name"
+          "$@" 2>&1
+        } | tee -a "$LOG"
+        [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/$marker"
+      fi
+    }
+    run_daily_task "arena (1 fight)" "arena-last.txt" \
+      "$PY" scripts/afk_arena.py --fights 1
+    run_daily_task "dream realm (all chances)" "dream-last.txt" \
+      "$PY" scripts/afk_dream_realm.py --fights 7
+    run_daily_task "stage push (auto battle)" "stage-last.txt" \
+      "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6
   fi
   exit "$rc"
 fi

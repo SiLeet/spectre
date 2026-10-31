@@ -83,8 +83,16 @@ impl MemoryReader for MultiReader {
         anyhow::bail!("read of {size} bytes at {address:#x} is outside every region")
     }
 
-    fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> anyhow::Result<Vec<ScanReport>> {
-        let config = ScanConfig { little_endian: little, ..Default::default() };
+    fn scan(
+        &self,
+        pid: u32,
+        patterns: Vec<ScanPattern>,
+        little: bool,
+    ) -> anyhow::Result<Vec<ScanReport>> {
+        let config = ScanConfig {
+            little_endian: little,
+            ..Default::default()
+        };
         scan_memory(self, pid, patterns, &config)
     }
 }
@@ -98,8 +106,12 @@ struct Spec {
 impl Spec {
     /// One `Bytes(span)` field with a distinctive signature.
     fn bytes(span: u32) -> Self {
-        let sig = (0..span).map(|i| 0xC3u8 ^ (i as u8).wrapping_mul(37)).collect();
-        Spec { fields: vec![(ValueType::Bytes(span), 1, sig)] }
+        let sig = (0..span)
+            .map(|i| 0xC3u8 ^ (i as u8).wrapping_mul(37))
+            .collect();
+        Spec {
+            fields: vec![(ValueType::Bytes(span), 1, sig)],
+        }
     }
 
     /// `u8` at 0, `u32` aligned to 4 (offset 4), `u16` aligned to 2 (offset
@@ -206,14 +218,28 @@ fn scan_addrs(reader: &MultiReader, spec: &Spec, alignment: u32, batch_size: u32
 }
 
 fn batch_sizes(span: u32) -> Vec<u32> {
-    let mut v = vec![0, 1, span.saturating_sub(1), span, span + 1, 2 * span - 1, 2 * span + 1, 7, 16, 1 << 20];
+    let mut v = vec![
+        0,
+        1,
+        span.saturating_sub(1),
+        span,
+        span + 1,
+        2 * span - 1,
+        2 * span + 1,
+        7,
+        16,
+        1 << 20,
+    ];
     v.sort_unstable();
     v.dedup();
     v
 }
 
 fn specs() -> Vec<Spec> {
-    let mut v: Vec<Spec> = [1, 2, 3, 4, 5, 8, 13].into_iter().map(Spec::bytes).collect();
+    let mut v: Vec<Spec> = [1, 2, 3, 4, 5, 8, 13]
+        .into_iter()
+        .map(Spec::bytes)
+        .collect();
     v.push(Spec::mixed());
     v
 }
@@ -261,7 +287,10 @@ fn many_plants_across_regions_match_oracle() {
         let span = spec.span();
         let mut regions = Vec::new();
         let mut base = 0x10_000u64;
-        for (i, len) in [span, span + 1, 2 * span + 3, 97, 256].into_iter().enumerate() {
+        for (i, len) in [span, span + 1, 2 * span + 3, 97, 256]
+            .into_iter()
+            .enumerate()
+        {
             let mut bytes = filler(len, 1000 + i as u32);
             let mut at = 0;
             while at + span <= len {
@@ -345,7 +374,11 @@ fn field_offsets_are_relative_to_the_structure() {
     spec.plant(&mut bytes, 36);
     let reader = MultiReader::new(vec![(0x3000, bytes)]);
     for batch in [1, 9, 10, 11, 37, 1 << 20] {
-        let config = ScanConfig { batch_size: batch, region_filter: None, ..Default::default() };
+        let config = ScanConfig {
+            batch_size: batch,
+            region_filter: None,
+            ..Default::default()
+        };
         let reports = scan_memory(&reader, 1, vec![spec.pattern()], &config).unwrap();
         let m = &reports[0].matches;
         assert_eq!(m.len(), 1, "batch={batch}");
@@ -380,7 +413,10 @@ fn max_matches_keeps_the_lowest_addresses_across_batches() {
 #[test]
 fn zero_span_pattern_matches_nothing() {
     let reader = MultiReader::new(vec![(0x5000, vec![0u8; 32])]);
-    let empty = ScanPattern { name: "empty".to_owned(), fields: vec![] };
+    let empty = ScanPattern {
+        name: "empty".to_owned(),
+        fields: vec![],
+    };
     let zero_sized = ScanPattern {
         name: "zero".to_owned(),
         fields: vec![PatternField {
@@ -390,7 +426,11 @@ fn zero_span_pattern_matches_nothing() {
             alignment: 1,
         }],
     };
-    let config = ScanConfig { batch_size: 1, region_filter: None, ..Default::default() };
+    let config = ScanConfig {
+        batch_size: 1,
+        region_filter: None,
+        ..Default::default()
+    };
     let reports = scan_memory(&reader, 1, vec![empty, zero_sized], &config).unwrap();
     assert!(reports.iter().all(|r| r.matches.is_empty()));
     assert_eq!(reader.reads.load(Ordering::Relaxed), 0);

@@ -486,6 +486,27 @@ Requirements / pitfalls:
   runs silently no-op (three runs left the timer untouched).
 - `gold` is NOT wired: the offset is still unpinned (see TODOS.md). The AFK
   pool offsets from 0.3.0 are stale — the heap layout moves between restarts.
+  An exhaustive memory hunt over ~1 GB of rw regions (T23) found no wallet at
+  all: the value is server-authoritative, so gold can only be read from the UI.
+
+### Scheduled / restart-proof operation
+
+The pid and the heap base change on every game restart, so a scheduler should
+call the wrapper instead of the raw config:
+
+```bash
+bash scripts/afk-bot-watch.sh      # rediscover pid + heap base, then claim once
+bash scripts/afk-bot-soak.sh 3 200 # 3 rounds, 200 s apart (repeatability test)
+```
+
+The wrapper writes `.spectre/afk-live.generated.yaml` (gitignored), appends to
+`.spectre/logs/afk-bot-<date>.log`, exits 2 when the game process is missing and
+3 when the heap base can't be resolved — safe to call from cron/Task Scheduler
+every 15 minutes.
+
+**Caveat:** the taps are blind. If a purchase/bundle dialog happens to be open
+when a round fires, a tap can land on it. Only schedule the wrapper while the
+game is idling on the homestead screen, or supervise the first hours.
 
 ## Known limitations (0.4.0)
 

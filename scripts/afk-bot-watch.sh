@@ -60,4 +60,9 @@ if [ "${1:-}" = "--dry-run" ]; then
   exit $?
 fi
 
-"$SPECTRE" -v bot "$OUT" --adb --once
+mkdir -p "$OUT_DIR/logs"
+LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
+{
+  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base"
+  "$SPECTRE" -v bot "$OUT" --adb --once 2>&1
+} | tee -a "$LOG"

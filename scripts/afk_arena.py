@@ -33,6 +33,7 @@ from pathlib import Path
 
 from PIL import Image
 
+import afk_claim_vision as v
 from afk_claim_vision import classify  # verified WORLD check (back-arrow probes)
 
 REPO = Path(__file__).resolve().parent.parent

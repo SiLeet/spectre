@@ -1,6 +1,6 @@
 //! `spectre hot` — on-device byte-pattern scan over ADB.
 //!
-//! The device greps its own memory (`dd | xxd -p | grep`), so only match
+//! The device greps its own memory (`dd | xxd | tr | grep`), so only match
 //! offsets cross the adb pipe instead of whole hex dumps. That makes
 //! before/after diff cycles take seconds instead of minutes.
 
@@ -69,7 +69,8 @@ fn parse_hex_pattern(s: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
-/// Anonymous rw regions (unnamed or `[anon:...]`) that reach `base`.
+/// Anonymous rw regions (unnamed or `[anon:...]`) that reach `base`,
+/// clipped to start at `base`.
 fn hot_regions(regions: Vec<MemoryRegion>, base: u64) -> Vec<MemoryRegion> {
     regions
         .into_iter()
@@ -77,6 +78,10 @@ fn hot_regions(regions: Vec<MemoryRegion>, base: u64) -> Vec<MemoryRegion> {
             r.perms.starts_with("rw")
                 && r.end > base
                 && r.path.as_deref().is_none_or(|p| p.starts_with("[anon:"))
+        })
+        .map(|mut r| {
+            r.start = r.start.max(base);
+            r
         })
         .collect()
 }
@@ -116,17 +121,11 @@ pub fn run_hot(args: HotArgs) -> Result<()> {
         args.hex
     );
 
-    // Region by region so --limit can stop early instead of scanning everything.
-    let patterns = [pattern];
-    let mut addrs: Vec<u64> = Vec::new();
-    for r in &regions {
-        let hits = reader.grep_memory(args.pid, std::slice::from_ref(r), &patterns, HOT_CHUNK)?;
-        addrs.extend(hits.into_iter().map(|(a, _)| a).filter(|&a| a >= base));
-        if args.limit > 0 && addrs.len() >= args.limit {
-            addrs.truncate(args.limit);
-            break;
-        }
-    }
+    let addrs: Vec<u64> = reader
+        .grep_memory(args.pid, &regions, &[pattern], HOT_CHUNK, args.limit)?
+        .into_iter()
+        .map(|(a, _)| a)
+        .collect();
 
     if args.json {
         let hex: Vec<String> = addrs.iter().map(|a| format!("{a:#x}")).collect();
@@ -184,6 +183,13 @@ mod tests {
             .collect();
         assert_eq!(starts, vec![0x1000, 0x3000, 0x9000]);
         let starts: Vec<u64> = hot_regions(all, 0x3800).iter().map(|r| r.start).collect();
-        assert_eq!(starts, vec![0x3000, 0x9000]);
+        assert_eq!(starts, vec![0x3800, 0x9000]);
+    }
+
+    #[test]
+    fn hot_requires_adb_before_touching_a_device() {
+        let args = HotArgs::from_iter(["hot", "1", "00"]);
+        let err = run_hot(args).unwrap_err().to_string();
+        assert!(err.contains("--adb"), "{err}");
     }
 }

@@ -41,6 +41,7 @@ the game binary**.
 | `spectre find` | Find processes by name substring             |
 | `spectre regions` | List memory regions of a process         |
 | `spectre search` | Search memory for a value; refine with `--continue` |
+| `spectre hot` | On-device byte-pattern grep over ADB; only matches cross the pipe (`--base`, `--limit`, `--json`) |
 | `spectre bot`  | Run a bot automation from a config file      |
 | `spectre script` | Execute a Lua bot script                  |
 | `spectre info` | Show version, backends, and diagnostics      |

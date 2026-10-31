@@ -306,7 +306,7 @@ spectre search 12345 f32 98.5 --state hp-search.json
 ## hot
 
 Search a process's anonymous rw regions for a byte pattern *on the Android
-device*. The device runs `dd | xxd -p | grep` itself, so only match offsets
+device*. The device runs `dd | xxd | tr | grep` itself, so only match offsets
 cross the adb pipe instead of a full hex dump — a whole-heap scan takes
 seconds, which keeps before/after diff cycles short. ADB only.
 
@@ -330,14 +330,17 @@ spectre hot [FLAGS] [OPTIONS] <pid> <hex> --adb
 
 Scanned regions are `rw` mappings that are unnamed or `[anon:...]`. Memory is
 read in 1 MiB chunks with one page of overlap, so matches across chunk
-boundaries are found; a chunk the device cannot read is skipped with a
-warning instead of aborting the scan. The device needs `su`, `xxd`, `tr` and
-`grep` (toybox on Android 8+). Values are not encoded for you: a little-endian
-u32 `259000` is `b8f30300`.
+boundaries are found. Memory is compared as one `"xx "` token per byte, so
+matches are always byte-aligned. A chunk the device cannot read is skipped
+with a warning (a partly readable chunk warns about the short read) instead
+of aborting the scan; if nothing at all can be read (no root, dead pid) the
+command fails instead of reporting 0 matches. The device needs `su`, `xxd`
+(with `-c`), `tr` and `grep` (toybox on Android 8+). Values are not encoded
+for you: a little-endian u32 `259000` is `b8f30300`.
 
 > **Limitation.** `grep -o` reports non-overlapping matches only, so an
-> occurrence that overlaps an earlier one (self-similar patterns such as
-> `00000000`) can be missed.
+> occurrence that overlaps an earlier match (self-similar patterns such as
+> `00000000` inside a run of zeros) can be missed.
 
 ```bash
 spectre hot 4321 b8f30300 --adb

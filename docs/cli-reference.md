@@ -1,7 +1,13 @@
 # Spectre CLI Reference
 
 Complete reference for the `spectre` command-line tool. Help texts below are
-copied from `spectre <command> --help` (version 0.1.0).
+copied from `spectre <command> --help` (version 0.3.0, built from `main`).
+
+> **Not in a release yet.** The latest release, v0.3.0, does not have
+> [`hunt`](#hunt), [`hot`](#hot), [`offsets`](#offsets), the range search
+> `search --min/--max`, or the adb binary and BlueStacks discovery described
+> under [`adb`](#adb). They are only in builds from `main` (v0.4.0 is being
+> prepared); these sections are marked *main only*.
 
 ## Overview
 
@@ -24,6 +30,7 @@ spectre [FLAGS] [SUBCOMMAND]
 | [`find`](#find) | Find processes by name |
 | [`regions`](#regions) | List memory regions of a process |
 | [`search`](#search) | Search memory for a value; refine previous results |
+| [`hunt`](#hunt) | Find candidate addresses for a value range (offset discovery) |
 | [`hot`](#hot) | Search a byte pattern on the device; only matches cross adb |
 | [`bot`](#bot) | Run a bot automation script |
 | [`script`](#script) | Execute a Lua bot script |
@@ -35,7 +42,9 @@ spectre [FLAGS] [SUBCOMMAND]
 **Backends.** Commands that read memory use the native backend
 (Windows `ReadProcessMemory`, Linux `/proc/<pid>/mem`) unless `--adb` is
 given, which reads through `adb` from an Android emulator or device.
-`adb` must be on `PATH` for that.
+v0.3.0 needs `adb` on `PATH` for that; builds from `main` also use
+`%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` or BlueStacks NXT's
+`HD-Adb.exe`, on Windows even ahead of `PATH` (see [adb binary](#adb)).
 
 **Numbers.** Addresses and other numeric arguments accept hex with a `0x`
 prefix (`0x7ff0000`) or decimal (`134152192`).
@@ -288,15 +297,16 @@ spectre search [FLAGS] [OPTIONS] <pid> <type> --min <min> --max <max>
 | `--continue` | Refine the previous search results instead of scanning all memory |
 | `--json` | Output as JSON |
 | `--limit <limit>` | Stop after N results (0 = unlimited) [default: 0] |
-| `--min <min>` | Range search: inclusive lower bound (needs `--max`, replaces `<value>`) |
-| `--max <max>` | Range search: inclusive upper bound (needs `--min`, replaces `<value>`) |
+| `--min <min>` | Range search: lower bound, inclusive (use with --max instead of <value>) |
+| `--max <max>` | Range search: upper bound, inclusive (use with --min instead of <value>) |
 | `--state <state>` | State file for previous/next search (default: .spectre-search.json) |
 
 Matches are checked at the value's natural alignment, little-endian. Every
 run writes the resulting addresses to the state file; `--continue` re-reads
 only those addresses and keeps the ones that now hold the new value.
 
-**Range search.** When the game only shows a rounded value ("259K"), pass
+**Range search** (*main only*). When the game only shows a rounded value
+("259K"), pass
 `--min`/`--max` instead of `<value>`: every slot is decoded as `<type>` and
 kept when `min <= value <= max`. Bounds are decimal (negative allowed for
 signed types, e.g. `--min -5`), 0x-hex, or floats for `f32/f64`; they must fit
@@ -317,12 +327,94 @@ spectre search 12345 u32 --min 259000 --max 259999
 spectre search 12345 u32 --min 259000 --max 259999 --continue
 ```
 
+## hunt
+
+*Main only.* Find candidate addresses for a value range without knowing the
+exact value. `hunt` reads the largest heaps twice, `--interval` seconds
+apart, and keeps every aligned slot whose value lies in `<min>..=<max>` and
+is identical in both reads (stable values, not allocator churn). The
+candidates are ranked by a structure score, so object-table IDs land last.
+
+```
+spectre hunt [FLAGS] [OPTIONS] <pid> <min> <max>
+```
+
+| Argument | Description |
+|----------|-------------|
+| `<pid>` | Target process ID |
+| `<min>` | Lower bound of the numeric range to scan (decimal or 0x hex) |
+| `<max>` | Upper bound of the numeric range to scan (decimal or 0x hex) |
+
+| Flag / option | Description |
+|---------------|-------------|
+| `--adb` | Use ADB backend instead of native |
+| `--adb-host <adb-host>` | ADB host (default: 127.0.0.1) |
+| `--adb-port <adb-port>` | ADB port (default: 5555) |
+| `--bytes <bytes>` | Bytes per heap to inspect (default 8 MiB per heap, top heaps only) [default: 8388608] |
+| `--context` | Print the surrounding 32 bytes of each candidate |
+| `--heap-min <heap-min>` | Only scan the heap(s) whose start address is at least this (hex) |
+| `--interval <interval>` | Seconds between the two dumps (default 5) [default: 5] |
+| `--limit <limit>` | Maximum candidates to print (default 25) [default: 25] |
+| `--type <value-type>` | Value type to scan: u32 (default), u64, f32, f64 [default: u32] |
+
+How it works:
+
+- **Heaps.** The unnamed `rw` regions (no path) at or above `--heap-min`,
+  largest first; at most 8 of them, and at most `--bytes` from the start of
+  each. `--heap-min` takes `0x` hex or decimal, like every other number.
+  Unlike [`hot`](#hot), named `[anon:...]` mappings are not included.
+- **Timing.** Each heap is read, then `hunt` sleeps `--interval` seconds and
+  reads it again, so the whole run waits up to 8 × `--interval` seconds
+  (40 s with the default).
+- **Matching.** Slots are read little-endian at the type's natural alignment
+  and compared as unsigned integers. For `f32`/`f64` that means `<min>` and
+  `<max>` are compared against the raw IEEE bit pattern, not the float value.
+- **Score.** Higher is better: a value that occurs once in the dump, has no
+  other in-range value nearby, a pointer-like 8-byte value in
+  `0x7200_0000_0000..0x7300_0000_0000` nearby, or is
+  below 10,000,000 scores up. "Nearby" means every 8th byte within 64 bytes
+  of the slot (same 8-byte phase as the slot): for `u32` the neighbours 4
+  bytes away are not checked, and a slot at an offset ≡ 4 mod 8 only sees
+  misaligned pointer reads. Repeated values in table-like neighbourhoods
+  score down. `--context` shows 32 bytes starting 8 bytes before the slot.
+
+A read error on any heap aborts the run. If nothing matches, `hunt` prints a
+hint (`--heap-min`, `--bytes`, a wider range) and exits 0; `<min>` greater
+than `<max>` is an error (exit 1). `hunt` only narrows the field: confirm a
+candidate by changing the value in the game and diffing (`dump` +
+[`dumpdiff`](#dumpdiff)) or with `search --continue`.
+
+```bash
+spectre hunt 4321 259000 259999 --adb
+spectre hunt 4321 9000 13000 --adb --heap-min 0x720000000000 --interval 10 --limit 50
+spectre hunt 41820 31300 31400 --interval 1 --limit 5 --context
+```
+
+Example output (the [practice target](../examples/README.md) on Windows,
+native backend; context bytes shortened with `...`):
+
+```
+5 candidate(s) of 42 stable values (top by structure score):
+ADDRESS                     VALUE  REGION
+0x251ad51e5a8               31320  0x251ad4a0000  ctx: 64 41 00 00 00 00 00 00 58 7a 00 00 ...
+0x251ad538ab8               31400  0x251ad4a0000  ctx: 4c 66 00 00 00 00 00 00 a8 7a 00 00 ...
+0x251ad54a5e8               31368  0x251ad4a0000  ctx: 40 61 00 00 00 00 00 00 88 7a 00 00 ...
+0x251ad54aed0               31344  0x251ad4a0000  ctx: b0 16 00 00 00 00 00 00 70 7a 00 00 ...
+0x251ad54b868               31384  0x251ad4a0000  ctx: 70 79 00 00 00 00 00 00 98 7a 00 00 ...
+
+next: change the value in-game, re-run `spectre dump` + `dumpdiff`, and check which address moved
+```
+
+`REGION` is the start of the heap the candidate was found in. A range this
+wide matches many unrelated values (42 here); the next step is always a value
+change in the target plus a diff or `search --continue`.
+
 ## hot
 
-Search a process's anonymous rw regions for a byte pattern *on the Android
-device*. The device runs `dd | xxd | tr | grep` itself, so only match offsets
-cross the adb pipe instead of a full hex dump — a whole-heap scan takes
-seconds, which keeps before/after diff cycles short. ADB only.
+*Main only.* Search a process's anonymous rw regions for a byte pattern *on
+the Android device*. The device runs `dd | od | sed | grep` itself, so only
+matching lines cross the adb pipe instead of a full hex dump — a whole-heap
+scan takes seconds, which keeps before/after diff cycles short. ADB only.
 
 ```
 spectre hot [FLAGS] [OPTIONS] <pid> <hex> --adb
@@ -338,27 +430,39 @@ spectre hot [FLAGS] [OPTIONS] <pid> <hex> --adb
 | `--adb` | Use ADB backend (required: the scan runs on the device) |
 | `--adb-host <adb-host>` | ADB host (default: 127.0.0.1) |
 | `--adb-port <adb-port>` | ADB port (default: 5555) |
-| `--base <base>` | Only report matches at or above this address [default: 0] |
+| `--base <base>` | Only report matches at or above this address (hex with 0x, or decimal) [default: 0] |
 | `--json` | Output as JSON (array of 0x-hex addresses) |
 | `--limit <limit>` | Stop after N matches (0 = unlimited) [default: 0] |
 
 Scanned regions are `rw` mappings that are unnamed or `[anon:...]`. Memory is
 read in 1 MiB chunks with one page of overlap, so matches across chunk
-boundaries are found. Memory is compared as one `"xx "` token per byte, so
-matches are always byte-aligned. A chunk the device cannot read is skipped
-with a warning (a partly readable chunk warns about the short read) instead
-of aborting the scan; if nothing at all can be read (no root, dead pid) the
-command fails instead of reporting 0 matches. The device needs `su`, `xxd`
-(with `-c`), `tr` and `grep` (toybox on Android 8+). Values are not encoded
-for you: a little-endian u32 `259000` is `b8f30300`.
+boundaries are found. On the device, `od -An -tx1 -v -w256` prints 256 bytes
+per line as hex text and `grep -bF` returns only the lines that contain the
+pattern; spectre then finds every byte-aligned occurrence in those lines
+(overlapping ones included). A chunk the device cannot read is skipped with a
+warning (a partly readable chunk warns about the short read) instead of
+aborting the scan; if nothing at all can be read (no root, dead pid) the
+command fails instead of reporting 0 matches. The device needs `su`, `dd`,
+`od`, `sed` and `grep` (toybox on Android 8+). Values are not encoded for
+you: a little-endian u32 `259000` is `b8f30300`.
 
-> **Limitation.** `grep -o` reports non-overlapping matches only, so an
-> occurrence that overlaps an earlier match (self-similar patterns such as
-> `00000000` inside a run of zeros) can be missed.
+Text output is one address per line and a `-- N match(es)` summary line.
+
+> **Limitation.** A match must fit inside one 256-byte `od` line, so an
+> occurrence that starts in the last (pattern length − 1) bytes of a line is
+> missed (about 1% for a 4-byte pattern), and a pattern longer than 256 bytes
+> never matches although up to 4096 bytes are accepted. Re-check a missing
+> address with `spectre dump`.
 
 ```bash
 spectre hot 4321 b8f30300 --adb
 spectre hot 4321 "b8 f3 03 00" --adb --base 0x70000000 --limit 50 --json
+```
+
+Without `--adb` the command stops before touching any device:
+
+```
+error: `spectre hot` greps on the device and needs --adb (use `spectre search` for native)
 ```
 
 ## bot
@@ -436,7 +540,9 @@ spectre info --json
 
 ## offsets
 
-Show and validate a game's offsets YAML, or list the available games.
+*Main only.* Show and validate a game's offsets YAML, or list the available
+games. There is no `--check` flag: validation always runs when a game is
+given.
 
 ```
 spectre offsets [FLAGS] [game]
@@ -444,7 +550,7 @@ spectre offsets [FLAGS] [game]
 
 | Argument | Description |
 |----------|-------------|
-| `game` | Game name (`games/<game>/offsets.yaml`, `games/<game>.yaml` or `.yml`), a name as printed by the listing (e.g. `afk-journey.yaml`, resolved as `games/<game>`), or a path to an offsets YAML file. Omit to list the games found under `games/` |
+| `<game>` | Game name (`games/<game>/offsets.yaml`, `games/<game>.yaml` or `.yml`), a name as listed by `spectre offsets`, or a path to an offsets YAML file. Omit to list the available games |
 
 | Flag | Description |
 |------|-------------|
@@ -474,6 +580,25 @@ parse (exit 1, no report) even though `--offsets` would accept it.
 spectre offsets
 spectre offsets afk-journey
 spectre offsets examples/practice-offsets.yaml --json
+```
+
+Example output (repository checkout, rows shortened with `...`):
+
+```
+> spectre offsets
+afk-journey
+
+> spectre offsets afk-journey
+afk-journey v1.0.45  (games/afk-journey/offsets.yaml)
+
+STRUCTURE                   FIELD          TYPE        OFFSET    DESCRIPTION
+PlayerState @ 0x1a2b3c00    player_id      U32         0x0       Account ID (observed 60068087 in profile panel)
+PlayerState @ 0x1a2b3c00    level          U32         0x4       Player level
+...
+Resources @ 0x724df0000000  team_power     I64         0xa578    Team combat power (HUD shows rounded '259K'; raw 259850 stable across restarts).
+...
+
+validation: ok
 ```
 
 ## serve
@@ -551,9 +676,43 @@ spectre adb <SUBCOMMAND>
 | `list` | List connected ADB devices |
 | `ping [serial]` | Ping an ADB device (serial optional — pings the default device if omitted) |
 
+```
+spectre adb list
+spectre adb ping [serial]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `<serial>` | ADB device serial number (`ping` only) |
+
+**`list`** runs `adb devices -l` and prints a `DEVICE` / `STATE` / `MODEL`
+table followed by `found N device(s)`. If no device is listed, it prints
+`no ADB devices found` and (*main only*) falls back to BlueStacks NXT
+discovery: it reads every `bst.instance.<name>.adb_port` entry from
+`%PROGRAMDATA%\BlueStacks_nxt\bluestacks.conf`, runs
+`adb connect 127.0.0.1:<port>` for each, and lists the instances that report
+`device` with `BlueStacks` as the model. Instances that are not running are
+skipped with a warning. The printed serial `127.0.0.1:<port>` is the host
+and port to pass as `--adb-host` / `--adb-port` (`scan`, `hunt`, `hot`,
+`serve`); commands with only `--adb` (`dump`, `search`, `find`, ...) always
+use `127.0.0.1:5555`.
+
+**`ping`** runs `adb [-s <serial>] get-state` and prints the state, the
+round-trip latency in milliseconds and `OK` (state `device`) or
+`UNKNOWN/OFFLINE`. If `adb get-state` fails (no device, unknown serial), it
+prints adb's error and exits with 1.
+
+**adb binary** (*main only*). Both subcommands, and the `--adb` backend of
+every other command, use `adb` from `PATH` if it is there, otherwise the
+first existing one of `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`,
+`C:\Program Files\BlueStacks_nxt\HD-Adb.exe`,
+`%PROGRAMDATA%\BlueStacks_nxt\HD-Adb.exe` and `adb.exe` in the current
+folder. v0.3.0 only uses `adb` from `PATH`.
+
 ```bash
 spectre adb list
-spectre adb ping emulator-5554
+spectre adb ping
+spectre adb ping 127.0.0.1:5555
 ```
 
 ---
@@ -596,6 +755,19 @@ spectre dump 12345 0x7ff0000 65536 --format raw --output before.dump
 # ...spend gold in the game...
 spectre dump 12345 0x7ff0000 65536 --format raw --output after.dump
 spectre dumpdiff before.dump after.dump --base 0x7ff0000
+```
+
+**Rounded or unknown value (main only).** When the game only shows "259K",
+start with a range instead of an exact value: [`search --min/--max`](#search)
+over all memory, or [`hunt`](#hunt) for values that stay stable over a few
+seconds. Once you know an exact value, [`hot`](#hot) finds its bytes on an
+Android device in seconds, which keeps each before/after round short.
+
+```bash
+spectre search 4321 u32 --min 259000 --max 259999 --adb
+spectre hunt 4321 259000 259999 --adb
+# ...change the value in the game, read the exact new value...
+spectre hot 4321 b8f30300 --adb        # exact value as LE bytes (u32 259000)
 ```
 
 Once you have an address, express it relative to a stable base and add it to

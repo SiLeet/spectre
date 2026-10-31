@@ -306,3 +306,10 @@ AFK-spezifische Sektionen in references/afk-journey-live.md ausgelagert
 (25.5k -> 21.9k chars). Rest = Skill-Kern (ADB-Workflow + universelle Pitfalls),
 bewusst behalten: das ist die maschinenverifizierte Kernkompetenz. Weitere
 Kuerzung wuerde das Herz fragmentieren - Advisory-Warning akzeptiert.
+### ✅ T37: Selbstfahrer — Cron-Job treibt die Queue endlos (2026-11-01 00:24)
+Hermes-Cron **"Spectre Queue Driver"** (job 0a43fdced857, alle 30 min, forever,
+continuity=on, workdir=Repo): jeder Lauf nimmt den nächsten offenen P5-Punkt,
+verifiziert live, committet, markiert. Safety im Prompt: keine Käufe/Keys/
+Leveling (T29/T33/T35 bleiben Policy-Blocker), Lock-Check gegen den 15-Min-Task
+(.spectre/afk-bot.lock < 20 min = warten), Patch-Dateien statt heredoc-Quoting.
+Queue-Laufs landen im Cron-Historie + TODOS.md. Stop: cronjob_manage pause/remove.

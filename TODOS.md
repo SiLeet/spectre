@@ -242,3 +242,19 @@ Achtung: Zahlen oben links/rechts (50,090 / 10,971) wechseln pro Screen —
 vermutlich berechnete Team-Power, NICHT Gold (Gold nur im Menü-Kopf "4856K").
 Rest: Skript `afk_arena.py` (Schwächsten wählen → x Kämpfe → Defeat-Stop)
 + Daily-Integration ("Challenge in Arena x6" 4/6).
+
+### 🟨 T36: Review-Fixes (Subagent-Batch, 17 Befunde) — nach T27 einziehen
+Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9aeeddd):
+1. [HIGH] watch.sh: Lock stale nach 180 s < Worst-Case-Runtime → Schwellwert ~20 min +
+   PID-Präfix für Screenshot-Namen (Kollisionen bei parallelen Läufen).
+2. [MED] afk_claim_vision classify(): POPUP-Prüfung vor WORLD reihen (Overlaps),
+   Chip-Fallback an lb>140 gate (Popup-klassifiziert als PANEL = Kauftap-Risiko).
+3. [MED] UNKNOWN-States: blindes Recovery-Tapping in afk_claim_vision/afk_dailies/
+   afk_stage_push (DEFEAT-By-Through, (960,910)-Tap) → abort(exit 1) statt Tap.
+4. [MED] afk_dailies: Guild-Tab wird nie geöffnet (Rewards nie geclaimt) — Tab-Tap +
+   Verifikations-Probe einbauen.
+5. [MED] afk-bot-watch.sh: bare `python -c 'import PIL'`-Fallback droht im Scheduler
+   → Interpreter-Pfad fixieren oder laut failen (kein blind-gated CLI-Fallback).
+6. [LOW-Batch]: struct.unpack-Guard (leere power.bin), img.close(), Idle-Re-Check
+   zwischen Phasen, exit-code-Doku (4/5), dedizierte Probes statt Doppelbelegung
+   (200,270)/(960,300), adb-Rückgabecodes prüfen, LAUNCHER-Früh-Ausstieg.

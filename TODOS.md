@@ -319,3 +319,9 @@ Queue-Laufs landen im Cron-Historie + TODOS.md. Stop: cronjob_manage pause/remov
   statt Feld). Kandidat für Kamera-Reset: der Kompass-Button (960,800) (unklar).
   Nächster Versuch: Compass-Tap → verifizieren, dass die Feld-Icons an den
   bekannten Positionen wieder auftauchen → dann Walk+Harvest-Flow.
+- 🟦 T30-Fund 3 (00:2x): Der Compass-Tap (960,800) rezentriert die Kamera Richtung
+  Homestead-Mitte (verifiziert: Turm + Held + Feld-Icons sichtbar, Beträge
+  1711/3422 wachsend). Meldung „Treiven and others received your help." = passive
+  Homestead-Hilfe läuft. Offen bleibt: der eigentliche Abhol-Mechanismus (die
+  Feld-Icons zeigen Beträge, aber kein Harvest-Button bisher sichtbar). Das
+  T30-Rest bleibt Exploration; Compass = Kamera-Reset-Verfahren dokumentiert.

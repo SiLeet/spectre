@@ -75,13 +75,20 @@
   Nachher-Dump suchen → Adresse in `games/afk-journey/offsets.yaml` eintragen.
 - 📌 User-Hinweis: **Memory-first statt Pixel** (docs/memory-first.md) — UI-State-Offset
   finden (Town ↔ Open World Wechsel + dumpdiff), dann Navigation per Memory.
+- ✅ **hot-Scan Root-Cause gefunden + gefixt** (Commit `b56f897`): toybox `grep -bo` liefert
+  pro Zeile nur EINEN Offset → `tr` machte alles einzeilig → `end`-Sentinel verloren →
+  „no memory readable" trotz lesbarem Speicher. Fix: `od -w256 | sed 's/^ //'` + `grep -bF`
+  (ein Offset pro Zeile), Parser scannt Zeileninhalt byte-aligned. 25 adb-Tests grün.
+  ⚠️ Rest-Trade-off: Muster über 256er-Zeilengrenze unsichtbar (~0.4-1.2%, Recheck per dump).
 
 ### ✅ T12: Game-Orientierung + Übergabe
 - docs/afk-journey-guide.md (Screens, Währungen, sichere Trigger-Aktionen), docs/memory-first.md.
 - TODOS.md + CLAUDE-TASKS.md als Übergabe für parallele Claude-Arbeit.
 
-### ✅ T13: On-device Hot-Scan (`spectre hot`) — erledigt 2026-10-31 (#14)
-- xxd+grep auf dem Gerät, nur Treffer über adb; byte-aligned, Chunk-Overlap. ⚠️ Noch nicht live am Gerät getestet.
+### ✅ T13: On-device Hot-Scan (`spectre hot`) — live gefixt 2026-10-31 (Commit `b56f897`)
+- xxd+grep auf dem Gerät, nur Treffer über adb; byte-aligned, Chunk-Overlap.
+- ⚠️ War ursprünglich „Done" markiert, lief aber live nie: toybox-`xxd` ignoriert `-c1`
+  (`f3adde9`), dann toybox-`grep -bo`-Einzeloffset-Bug (`b56f897`). Jetzt live-fähig.
 ### ✅ T14: Range-Suche (`search --min/--max`) — erledigt 2026-10-31 (#15)
 ### ✅ T15: `spectre offsets` + Validator — erledigt 2026-10-31 (#16)
 ### ✅ T16: AFK-Beispiel-Bots (examples/bot-config-afk.yaml, safe_claim) — erledigt 2026-10-31 (#17)

@@ -506,7 +506,7 @@ every 15 minutes.
 
 ### State-checked claims (preferred)
 
-`scripts/afk-claim-vision.py` screenshots the emulator, classifies the screen
+`scripts/afk_claim_vision.py` screenshots the emulator, classifies the screen
 (WORLD / PANEL / POPUP) from a few luminance/contrast probes and only taps when
 the expected screen is up. The classification is day/night-safe (the game tints
 the world, not the UI) and was validated offline against 13 labelled
@@ -529,6 +529,23 @@ three claims earlier.
 **Caveat:** the taps are blind in *position*; the state gate ensures the target
 screen is up, but a purchase/bundle dialog on top of it would still be tapped.
 Only schedule the wrapper while the game idles on the homestead screen.
+
+### Daily login reward (Journey's Gift)
+
+`scripts/afk-daily-gift.py` claims the daily login reward once per day with the
+same state gating: it opens the Login Rewards entry (which floats in the world
+and moves with the camera — the script pans the camera until the orange button
+probe matches), taps only rows whose badge is green (claimed rows + today's
+claimable row; future days are grey and never touched, which keeps the script
+away from the purchase-bearing event tabs), dismisses the "Rewards Obtained"
+popup and the item-info tooltips that claimed rows open.
+
+- The Login Rewards entry **disappears once the daily reward is claimed** — a
+  missing button means "already claimed today" (exit 0), not an error.
+- `afk-bot-watch.sh --scheduled` runs it automatically once per day (marker
+  file `.spectre/daily-gift-last.txt`), after the first successful AFK claim.
+- Concurrent runs are serialized via a `.spectre/afk-bot.lock` (stale after
+  3 min); a second invocation exits 6.
 
 ## Known limitations (0.4.0)
 

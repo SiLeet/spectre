@@ -13,7 +13,7 @@ Screen signatures (1920x1080 BlueStacks, measured 2026-10-31):
   (1390,704) claim chip        : PANEL/POPUP ~(240,191,52) orange
   (960,602)  popup claim bar   : POPUP  ~(233,179,117) bright
 
-Usage: python scripts/afk-claim-vision.py [--rounds N] [--pause S] [--dry-run]
+Usage: python scripts/afk_claim_vision.py [--rounds N] [--pause S] [--dry-run]
 Exit codes: 0 claim verified, 1 could not reach a claimable state, 2 adb error.
 """
 from __future__ import annotations
@@ -48,6 +48,11 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
     time.sleep(wait)
 
 
+def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:
+    adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
+    time.sleep(wait)
+
+
 def shot(name: str) -> Image.Image:
     path = TMP / f'{name}.png'
     with open(path, 'wb') as fh:
@@ -70,6 +75,17 @@ def close_to(c: tuple[int, int, int], ref: tuple[int, int, int], tol: int) -> bo
 
 def lum(c: tuple[int, int, int]) -> float:
     return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+
+
+def adb_exec_dump(pid: str, base_hex: str, out_path: Path):
+    """Read team_power (heap_base + 0xA578) via spectre dump. None on failure."""
+    addr = hex(int(base_hex, 16) + 0xA578)
+    p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, '8',
+                        '--adb', '--format', 'raw', '--output', str(out_path)],
+                       cwd=REPO, capture_output=True, timeout=120)
+    if p.returncode != 0 or not Path(out_path).exists():
+        return None
+    return p
 
 
 def idle_seconds() -> float | None:

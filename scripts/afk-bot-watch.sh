@@ -22,6 +22,21 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+# Serialize runs: the scheduled task and manual invocations must never tap at
+# the same time. A lock older than 3 minutes is considered stale (a crashed
+# run), anything younger means "another run is in progress".
+LOCK="$OUT_DIR/afk-bot.lock"
+if [ -e "$LOCK" ]; then
+  age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || echo 0) ))
+  if [ "$age" -lt 180 ]; then
+    echo "afk-bot-watch: another run in progress (lock age ${age}s)" >&2
+    exit 6
+  fi
+  rm -f "$LOCK"
+fi
+echo $$ > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT
+
 pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
 if [ -z "${pid:-}" ]; then
   echo "afk-bot-watch: game process not found (is BlueStacks running and the game open?)" >&2
@@ -77,9 +92,22 @@ LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 if python -c 'import PIL' >/dev/null 2>&1; then
   {
     echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (vision driver)"
-    python scripts/afk-claim-vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+    python scripts/afk_claim_vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
   } | tee -a "$LOG"
-  exit "${PIPESTATUS[0]}"
+  rc="${PIPESTATUS[0]}"
+  # --scheduled: once per day, also claim the daily login reward (same gates)
+  if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
+    today=$(date -u +%Y-%m-%d)
+    last=$(cat "$OUT_DIR/daily-gift-last.txt" 2>/dev/null || echo never)
+    if [ "$last" != "$today" ] && python -c 'import PIL' >/dev/null 2>&1; then
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) daily Journey's Gift"
+        python scripts/afk-daily-gift.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/daily-gift-last.txt"
+    fi
+  fi
+  exit "$rc"
 fi
 
 {

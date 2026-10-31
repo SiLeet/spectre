@@ -121,12 +121,22 @@
 - `examples/bot-config-afk-live.yaml` nutzt die echte Sequenz (Intervall 15 min);
   stale `afk_pool_*`-Checks entfernt (Heap-Layout verschoben, nur team_power stabil).
 
-### 🟦 T11 (Fortsetzung): Gold-Offset — Claim-Mechanik jetzt nutzbar
-- AFK-Truhe liefert **+20743 Gold/h** (Popup), Claim ändert die Wallet.
-- 8-MB-Diff um zwei Claims: kein Slot mit passendem Delta (±100k) → Wallet liegt außerhalb
-  der ersten 8 MB des Hot-Heaps (0x724DF0000000) bzw. in einem anderen Heap.
-- Nächster Schritt: Dumps der übrigen großen rw-Heaps (72/148/68/64/52/69 MB) vor/nach einem
-  Claim, Slot mit Delta = Claim-Gold pinnen; bis dahin bleibt `gold` in der YAML INVALID.
+### 🟦 T11 (Fortsetzung): Gold-Offset — Claim-Mechanik nutzbar, Wallet weiter offen
+- AFK-Truhe liefert **+20743 Gold/h** (Popup), Claim ändert den Timer (verifiziert).
+- **Ausgeschlossen (2026-10-31):** Wallet/AFK-Pool liegen NICHT in den ersten 8 MB des
+  Hot-Heaps (0x724DF0000000) und NICHT in den 6 großen rw-Heaps
+  (0x724dd04e7000 69 MB, 0x724ddff1d000 72 MB, 0x724e30000000 52 MB, 0x724e60000000 68 MB,
+  0x724ea0000000 148 MB, 0x724eb0000000 64 MB) — geprüft als u32/u64 **und** f32/f64 mit
+  Zwei-Runden-Delta-Schnitt (Claims nach 266 s bzw. 517 s Akkrual, Rate 5,76/s).
+  Ein reiner Erwartungswert „Rate × Zeit" trifft also nicht — der Claim grantet offenbar
+  nicht 1:1 die angezeigte Stundenrate in einen einzelnen Slot.
+- **Wichtige UI-Falle:** Der Goldwert im Helden-Detail-Screen (z. B. „11 613", „8181") ist ein
+  **Level-Up-Preis**, keine Balance — er ändert sich nach einem 117k-Claim nicht.
+  Shops zeigen eigene Währungen (Recruit-Tickets 1 260, Diamanten 31 920), nie Gold.
+- **Nächster Schritt:** Gold-Balance aus dem Town-Hub-HUD lesen (oberste Leiste unter Team-Power;
+  im Homestead/Open-World-HUD steht dort nur Event-Währung) → exakten Wert hot-suchen →
+  Claim → Slot bestätigen. Tooling dafür liegt in `scripts/gold-hunt.sh` + `scripts/gold-analyze.py`
+  (3-Zeitpunkt-Dump A/B/C über die großen Heaps, Wallet-Kriterium A≠B, B==C, stabil im Idle).
 
 ## Bonus (Claude)
 

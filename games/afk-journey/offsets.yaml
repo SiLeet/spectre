@@ -1,16 +1,23 @@
 # AFK Journey — Memory Offset Definitions
 # Game version: 1.0.45
+#
+# STATUS: structures below marked PLACEHOLDER have FAKE base offsets
+# (0x...000 patterns) and are NOT valid. Real measurements 2026-10-31:
+#   - hot heap base (process start): 0x724DF0000000 (ASLR, changes per start)
+#   - gold candidate 259850 @ base+0xA578 (stable across restarts — display?)
+#   - AFK income pool slots @ base+0x453B58 / +0x453B90 (grow continuously)
+# UNVERIFIED entries need an action-diff (short interval!) before use.
 
 game: "afk-journey"
 version: "1.0.45"
 structures:
   - name: "PlayerState"
-    base_offset: 0x1A2B3C00
+    base_offset: 0x1A2B3C00   # PLACEHOLDER
     fields:
       - name: "player_id"
         field_type: U32
         offset: 0x00
-        desc: "Account ID"
+        desc: "Account ID (observed 60068087 in profile panel)"
       - name: "level"
         field_type: U32
         offset: 0x04
@@ -22,7 +29,7 @@ structures:
       - name: "nickname"
         field_type: String(32)
         offset: 0x10
-        desc: "Player display name"
+        desc: "Player display name (observed SiLeet)"
       - name: "vip_level"
         field_type: U32
         offset: 0x30
@@ -33,28 +40,28 @@ structures:
         desc: "Account creation timestamp (unix)"
 
   - name: "Resources"
-    base_offset: 0x1A2B3D00
+    base_offset: 0x724DF0000000   # observed hot heap base (ASLR per process!)
     fields:
       - name: "gold"
         field_type: I64
-        offset: 0x00
-        desc: "Gold coins"
+        offset: 0x000000000A578   # UNVERIFIED (display copy?)
+        desc: "Gold coins. UI shows rounded '259K'; raw 259850. Stable across restarts but unchanged after a reward — verify with action-diff."
+      - name: "afk_pool_gold"
+        field_type: I64
+        offset: 0x0000000453B58    # UNVERIFIED (grows ~300-700/2min)
+        desc: "AFK income pool slot. Grows monotonically; +190000 jump observed while a reward was being claimed."
+      - name: "afk_pool_exp"
+        field_type: I64
+        offset: 0x0000000453B90    # UNVERIFIED (parallel growth)
+        desc: "Likely EXP/essence pool, parallel to afk_pool_gold."
       - name: "gems"
         field_type: I64
         offset: 0x08
-        desc: "Premium gems"
+        desc: "Premium gems (UNVERIFIED)"
       - name: "energy"
         field_type: U32
         offset: 0x10
-        desc: "Stamina energy"
-      - name: "arena_tokens"
-        field_type: U32
-        offset: 0x14
-        desc: "Arena currency"
-      - name: "guild_tokens"
-        field_type: U32
-        offset: 0x18
-        desc: "Guild currency"
+        desc: "Stamina energy (UNVERIFIED)"
 
   - name: "TeamState"
     base_offset: 0x2A3B4C00

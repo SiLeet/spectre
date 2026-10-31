@@ -194,12 +194,15 @@ Press Enter to add 100 to the score, q + Enter to quit.
    a bigger range before and after an action in the game, and `dumpdiff`
    shows what moved.
 
-8. Optional — read the dump through an offsets file.
-   `practice-offsets.yaml` describes the layout (score `u32` at 0, round
-   counter `u8` at 4); `scan --dump` works offline, no process needed:
+8. Optional — read a dump through an offsets file.
+   `practice-offsets.yaml` describes the 16-byte layout (score `u32` at 0,
+   round counter `u8` at 4, 11 marker bytes); `scan --dump` works offline, no
+   process needed. Dump exactly those 16 bytes:
 
    ```
-   > spectre scan practice --offsets examples/practice-offsets.yaml --dump after.dump --dump-base 0x01e4f03d31c0
+   > spectre dump 38300 0x01e4f03d31c0 16 --format raw --output score.dump
+   wrote 16 bytes to score.dump
+   > spectre scan practice --offsets examples/practice-offsets.yaml --dump score.dump --dump-base 0x01e4f03d31c0
 
    Pattern: PracticeScore
    Matches: 1
@@ -210,12 +213,20 @@ Press Enter to add 100 to the score, q + Enter to quit.
        [0x0005] marker               = ab ab ab ab ab ab ab ab ab ab ab
    ```
 
-   `scan` matches the structure's *layout*, not its values, so on a large dump
-   or a live process it reports many positions. It shines once you have real
+   `scan` matches the structure's *layout*, not its values: it tests every
+   4-byte-aligned position where the whole structure fits, including one
+   that ends exactly at the end of the dump. On the 32-byte `after.dump` it
+   therefore reports 5 positions (the score address and the next four), and
+   on a large dump or a live process many more. It shines once you have real
    offsets for a game.
 
-Quit the target with `q` + Enter (or close window A). `before.dump` /
-`after.dump` are git-ignored; delete `.spectre-search.json` when you are done.
+   > **0.2.0 release binary:** its `scan` skips the last *structure-size*
+   > bytes of a dump, so it reports `Matches: 0` for `score.dump`; scan the
+   > 32-byte `after.dump` there instead (one match, at the score address).
+   > Builds from the current source do not have this bug.
+
+Quit the target with `q` + Enter (or close window A). The `.dump` files are
+git-ignored; delete `.spectre-search.json` when you are done.
 
 ---
 
@@ -346,9 +357,7 @@ and `bot` (`click`, `swipe`, `wait`, `log`).
 - `spectre bot` ignores per-task `interval_ms`, `conditions` and `schedule`
   (see step 3).
 - `spectre scan afk-journey` cannot load the bundled placeholder offsets
-  (see step 2); `scan` also never reports a structure that reaches into the
-  last *structure-size* bytes of a memory region or dump (a 16-byte dump of
-  a 16-byte structure gives `Matches: 0`).
+  (see step 2).
 
 ## Next steps
 

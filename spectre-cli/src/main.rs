@@ -2100,6 +2100,36 @@ mod tests {
         assert!(build_scan_patterns(&go).is_empty());
     }
 
+    /// Path of a repository file, independent of the test's working directory.
+    fn repo_file(rel: &str) -> String {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join(rel)
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    #[test]
+    fn practice_dump_of_exactly_one_struct_gives_one_match() {
+        // The `scan --dump` path: a 16-byte dump of the 16-byte practice
+        // structure must match once, at the dump base (the structure ends
+        // exactly at the end of the dump).
+        let path = repo_file("examples/practice-offsets.yaml");
+        let patterns = build_scan_patterns(&parse_offsets_file(&path, "practice").unwrap());
+        assert_eq!(patterns[0].span(), 16);
+        let mut data = vec![0xABu8; 16];
+        data[0..4].copy_from_slice(&31537u32.to_le_bytes());
+        data[4] = 2;
+        let reader = spectre_core::DumpFileReader::from_bytes(0x1e4f03d31c0, data, "practice-dump");
+        let reports = scan_memory(&reader, 0, patterns, &ScanConfig::default()).unwrap();
+        let matches = &reports[0].matches;
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].address, 0x1e4f03d31c0);
+        let text = render_scan_table(&reports);
+        assert!(text.contains("[0x0000] score"), "{text}");
+        assert!(text.contains("[0x0004] round"), "{text}");
+    }
+
     #[test]
     fn search_value_parses_numeric_types() {
         let v = parse_search_value("u32", "42").unwrap();

@@ -417,12 +417,18 @@ fn grep_regions(
 /// root nothing (or `0:end`) comes back.
 ///
 /// `tokens` must come from [`hex_tokens`] (shell-safe `[0-9a-f ]`).
+///
+/// NOTE: uses `od -An -tx1 -v` (space-separated hex bytes, exactly the
+/// `"b8 f2 03 00 "` token shape) instead of `xxd -p -c1`. Android's toybox
+/// `xxd` IGNORES `-c1` and emits one continuous hex string with no spaces,
+/// so grep can never match the token format and the scan reports "no memory
+/// readable" even when dd reads fine.
 fn grep_chunk_command(pid: u32, skip: u64, count: u64, tokens: &[String]) -> String {
     let es: String = tokens.iter().map(|t| format!(" -e \"{t}\"")).collect();
-    format!(
-        "su -c '(dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null \
-         | xxd -p -c1; echo end) | tr \"\\n\" \" \" | grep -boF{es} -e end' 2>/dev/null"
-    )
+    let body = format!(
+        "dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null | od -An -tx1 -v; echo end"
+    );
+    format!("su -c '({body}) | tr \"\n\" \" \" | grep -boF{es} -e end' 2>/dev/null")
 }
 
 /// Parse `grep -bo` lines (`<char offset>:<match>`) into
@@ -552,9 +558,7 @@ mod tests {
         let cmd = grep_chunk_command(1234, 5, 257, &[hex_tokens(&[0xb8, 0xf3]), "00 ".into()]);
         assert_eq!(
             cmd,
-            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null \
-             | xxd -p -c1; echo end) | tr \"\\n\" \" \" \
-             | grep -boF -e \"b8 f3 \" -e \"00 \" -e end' 2>/dev/null"
+            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null | od -An -tx1 -v; echo end) | tr \"\n\" \" \" | grep -boF -e \"b8 f3 \" -e \"00 \" -e end' 2>/dev/null"
         );
         // Exactly the two quotes wrapping the su -c script.
         assert_eq!(cmd.matches('\'').count(), 2);

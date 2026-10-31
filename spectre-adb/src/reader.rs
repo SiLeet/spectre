@@ -10,6 +10,8 @@ use spectre_core::scanner::{ScanConfig, scan_memory};
 /// (through dd piped to xxd) for raw memory reads.
 use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
 
+static ADB_PROGRAM: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
 // ── AdbReader ──────────────────────────────────────────────────────────────
 
 /// Reads process memory from an Android emulator over ADB.
@@ -59,7 +61,10 @@ impl AdbReader {
 
     /// Run `adb` with the given arguments, awaiting completion.
     async fn adb_output(&self, args: &[&str]) -> Result<std::process::Output> {
-        tokio::process::Command::new("adb")
+        let adb = ADB_PROGRAM
+            .get_or_init(crate::multi::adb_path)
+            .clone();
+        tokio::process::Command::new(adb)
             .args(args)
             .output()
             .await
@@ -69,45 +74,64 @@ impl AdbReader {
     /// Run a shell command on the target Android device via ADB.
     ///
     /// The command string is passed verbatim to `adb shell` (run through
-    /// `/bin/sh -c` on the device).
+    /// `/bin/sh -c` on the device). If the plain shell fails or produces
+    /// nothing (permission denied under the `shell` UID), the command is
+    /// retried with root elevation (`su -c '...'`) so the reader works both
+    /// on rooted emulators (BlueStacks with root on) and on unrooted devices.
     fn run_adb_shell(&self, command: &str) -> Result<String> {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .context("failed to build tokio runtime")?;
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .context("failed to build tokio runtime")?;
 
-        rt.block_on(async {
-            // Step 1: try to connect to the remote ADB daemon via TCP.
-            // This is idempotent — already-connected daemons ignore the request.
-            let host_port = format!("{}:{}", self.host, self.port);
-            let _ = self.adb_output(&["connect", &host_port]).await;
+            rt.block_on(async {
+                // Step 1: try to connect to the remote ADB daemon via TCP.
+                // This is idempotent — already-connected daemons ignore the request.
+                let host_port = format!("{}:{}", self.host, self.port);
+                let _ = self.adb_output(&["connect", &host_port]).await;
 
-            // Step 2: attempt `adb shell <command>`.
-            let primary = self.adb_output(&["shell", command]).await?;
-            if primary.status.success() {
-                return Ok(String::from_utf8_lossy(&primary.stdout).into_owned());
-            }
+                let (serial_args, label): (Vec<&str>, String) = match &self.serial {
+                    Some(s) => (vec!["-s", s.as_str()], format!("adb -s {s}")),
+                    None => (vec![], "adb".to_owned()),
+                };
 
-            // Step 3: if a serial is configured, retry with `adb -s <serial> shell`.
-            if let Some(serial) = &self.serial {
-                let retry = self.adb_output(&["-s", serial, "shell", command]).await?;
-                if retry.status.success() {
-                    return Ok(String::from_utf8_lossy(&retry.stdout).into_owned());
+                // Run plain, then fall back to root if it fails or is empty.
+                let plain = self
+                    .adb_output_with(&serial_args, "shell", command)
+                    .await?;
+                if plain.status.success() && !plain.stdout.is_empty() {
+                    return Ok(String::from_utf8_lossy(&plain.stdout).into_owned());
                 }
-                let stderr = String::from_utf8_lossy(&retry.stderr);
-                bail!(SpectreError::BackendError(format!(
-                    "adb -s {serial} shell failed (exit={}): {stderr}",
-                    retry.status
-                )));
-            }
 
-            let stderr = String::from_utf8_lossy(&primary.stderr);
-            bail!(SpectreError::BackendError(format!(
-                "adb shell failed (exit={}): {stderr}",
-                primary.status
-            )));
-        })
-    }
+                // Root fallback: `su -c '<command>'`; swallow su's own errors.
+                let rooted = format!("su -c '{command}' 2>/dev/null || true");
+                let root_run = self
+                    .adb_output_with(&serial_args, "shell", &rooted)
+                    .await?;
+                if root_run.status.success() && !root_run.stdout.is_empty() {
+                    return Ok(String::from_utf8_lossy(&root_run.stdout).into_owned());
+                }
+
+                // Prefer the plain output for error reporting (more meaningful).
+                let stderr = String::from_utf8_lossy(&plain.stderr);
+                bail!(SpectreError::BackendError(format!(
+                    "{label} shell failed (exit={}): {stderr}",
+                    plain.status
+                )));
+            })
+        }
+
+    /// Wrap a `tokio::process::Command` for arbitrary adb args.
+    async fn adb_output_with(&self, extra: &[&str], sub: &str, args: &str) -> Result<std::process::Output> {
+            let adb = ADB_PROGRAM
+                .get_or_init(crate::multi::adb_path)
+                .clone();
+            let mut cmd = tokio::process::Command::new(adb);
+            cmd.args(extra).arg(sub).arg(args);
+            cmd.output()
+                .await
+                .context("failed to spawn adb")
+        }
 
     /// Decode a hex string (from `xxd -p` output) into raw bytes.
     ///

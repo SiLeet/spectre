@@ -544,9 +544,13 @@ fn create_reader(
     adb_port: Option<u16>,
 ) -> Result<Box<dyn MemoryReader>> {
     if adb {
-        let host = adb_host.unwrap_or_else(|| "localhost".to_owned());
+        let host = adb_host.unwrap_or_else(|| "127.0.0.1".to_owned());
         let port = adb_port.unwrap_or(5555);
-        let reader = spectre_adb::AdbReader::new(&host, port);
+        // Pin the serial host:port so every adb command is targeted with
+        // `-s` — without it, multiple attached/duplicate entries make adb
+        // fail with "more than one device/emulator".
+        let serial = format!("{host}:{port}");
+        let reader = spectre_adb::AdbReader::with_serial(&host, port, &serial);
         Ok(Box::new(reader))
     } else {
         let reader = spectre_native::create_default_reader();

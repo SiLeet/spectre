@@ -73,6 +73,11 @@ Use these with `spectre dump` before/after + `spectre dumpdiff --base` to find
 the exact slot that moved. Never click real-money "Purchase" buttons (bundle
 popups appear on Homestead entry).
 
+Bot templates built on these actions (placeholder offsets marked `REPLACE`):
+`examples/bot-config-afk.yaml` and the `safe_claim` mode of
+`examples/afk-bot.lua`; the placeholder-to-real-offset walkthrough is step 5
+of [examples/README.md](../examples/README.md).
+
 ## Sources
 
 - Prydwen beginner guide + tips/tricks + homestead guide

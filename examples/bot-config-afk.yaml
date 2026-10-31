@@ -1,0 +1,120 @@
+# AFK Journey — "safe actions" bot config for Spectre
+# Usage:  spectre bot examples/bot-config-afk.yaml --dry-run      (validate only)
+#         spectre -v bot examples/bot-config-afk.yaml --once      (one round, with logs)
+#
+# Uses only the zero-risk trigger actions from docs/afk-journey-guide.md:
+# claim login rewards, read gold/EXP, take Homestead visitor requests.
+#
+# PLACEHOLDERS — this config does NOT work as-is:
+#   - Field addresses come from examples/afk-offsets-placeholder.yaml
+#     (gold = 0xDEADBEEF, exp = 0xCAFEBABE). REPLACE them with verified
+#     addresses first (examples/README.md, "AFK Journey pattern").
+#     Until then every memory read fails with an error and the guarded
+#     clicks are skipped.
+#   - Coordinates are for BlueStacks at 1920x1080 (from the guide); other
+#     resolutions need other values. Lines marked REPLACE are not in the
+#     guide at all — find them on your own screen.
+#
+# How `spectre bot` runs this file today (spectre-cli):
+#   - Every round it runs ALL enabled tasks, top to bottom, then sleeps
+#     `default_interval_ms`. Per-task `interval_ms`, task-level `conditions`
+#     and `schedule` are validated but NOT applied yet.
+#     So the 300000 ms below is what really makes this run every 5 minutes.
+#   - `!MemoryCheck` does NOT stop the actions after it: a failed check only
+#     prints a warning. To make a click depend on memory, use `!Condition`.
+#   - `!Log` and passed checks log at info level: add `-v` to see them.
+#     The bot cannot print a field's value; use `spectre dump <pid> <addr> 8`
+#     or the Lua `safe_claim` mode (examples/afk-bot.lua) for numbers.
+#   - Clicks go through adb (`adb shell input tap`), so adb needs a
+#     connected device. Memory reads always use the NATIVE reader on the
+#     first process matching `metadata.process` — `spectre bot` (and
+#     `spectre script`) have no `--adb` reader. Addresses found with
+#     `hunt/search/dump --adb` inside an Android emulator cannot be read by
+#     this bot; only those CLI commands can read them today.
+
+metadata:
+  game: afk-journey
+  process: afk_journey.exe       # REPLACE with the process that holds the values
+  offsets: examples/afk-offsets-placeholder.yaml
+
+input_backend: adb
+enabled: true
+default_interval_ms: 300000    # one round every 5 minutes (see above)
+memory_poll_ms: 250
+
+tasks:
+  # a) Claim Daily/Login rewards (Journey's Gift) — only while gold reads > 0.
+  #    gold > 0 is a sanity check: with a wrong address the read fails or
+  #    yields garbage, and no click is sent.
+  - name: claim_rewards
+    enabled: true
+    conditions: []
+    actions:
+      - !Condition
+        cond:
+          field: gold              # REPLACE: 0xDEADBEEF in afk-offsets-placeholder.yaml
+          op: Gt
+          value: !I64 0
+        then_: !Loop
+          count: 1
+          array:
+            - !InputClick          # Login Rewards button, Town screen (guide: 1804,662)
+              x: 1804
+              y: 662
+            - !Wait
+              millis: 1500
+            - !InputClick          # Claim — REPLACE with the Journey's Gift Claim
+              x: 960               # button on your screen (not in the guide; the
+              y: 935               # Esperia Monthly Claim is at ~959,935)
+            - !Wait
+              millis: 1000
+            - !Log
+              message: "claim_rewards: tapped Login Rewards + Claim"
+              level: Info
+        else_: !Log
+          message: "claim_rewards: gold not > 0 — skipped (offset not set?)"
+          level: Warn
+
+  # b) Idle check — read gold and EXP every round (= every 5 minutes, see
+  #    default_interval_ms). `schedule` states the intent for the library
+  #    scheduler (TaskScheduler); spectre-cli ignores it today.
+  - name: idle_check
+    enabled: true
+    schedule: "*/5 * * * *"
+    conditions: []
+    actions:
+      - !MemoryCheck
+        field: gold                # REPLACE: 0xDEADBEEF
+        op: GtEq
+        value: !I64 0
+      - !MemoryCheck
+        field: exp                 # REPLACE: 0xCAFEBABE
+        op: Gt
+        value: !U64 0
+      - !Log
+        message: "idle_check: done (a 'memory check' error for this task = offset not set)"
+        level: Info
+
+  # c) Homestead visitor request. Disabled: bundle (real-money) popups can
+  #    appear on Homestead entry, and the request coordinates are not in
+  #    the guide. Enable only after checking every tap on your screen.
+  - name: homestead_request
+    enabled: false
+    conditions: []
+    actions:
+      - !InputClick                # Homestead icon, Town screen (guide: 1880,920)
+        x: 1880
+        y: 920
+      - !Wait
+        millis: 3000
+      - !InputClick                # Visitor request bubble — REPLACE (not in guide)
+        x: 960
+        y: 540
+      - !Wait
+        millis: 1000
+      - !InputClick                # Fulfill / Deliver button — REPLACE (not in guide)
+        x: 960
+        y: 900
+      - !Log
+        message: "homestead_request: tapped visitor request"
+        level: Info

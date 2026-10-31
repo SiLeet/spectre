@@ -3,13 +3,13 @@ use anyhow::{Context, Result, bail};
 use spectre_core::error::SpectreError;
 use spectre_core::reader::MemoryReader;
 use spectre_core::scanner::{ScanConfig, scan_memory};
+use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
+
 /// ADB-backed MemoryReader implementation for Android emulators.
 ///
 /// Connects to an Android emulator via the `adb` CLI, then reads
 /// `/proc/<pid>/maps` for memory region layout and `/proc/<pid>/mem`
 /// (through dd piped to xxd) for raw memory reads.
-use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
-
 static ADB_PROGRAM: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
 // ── AdbReader ──────────────────────────────────────────────────────────────
@@ -56,9 +56,11 @@ impl AdbReader {
             serial: Some(serial.to_owned()),
         }
     }
+}
 
-    // ── Low-level helpers ─────────────────────────────────────────────
+// ── Low-level helpers ─────────────────────────────────────────────────────
 
+impl AdbReader {
     /// Run `adb` with the given arguments, awaiting completion.
     async fn adb_output(&self, args: &[&str]) -> Result<std::process::Output> {
         let adb = ADB_PROGRAM
@@ -71,117 +73,88 @@ impl AdbReader {
             .context("failed to spawn adb")
     }
 
+    /// Wrap a `tokio::process::Command` for arbitrary adb args.
+    async fn adb_output_with(
+        &self,
+        extra: &[&str],
+        sub: &str,
+        args: &str,
+    ) -> Result<std::process::Output> {
+        let adb = ADB_PROGRAM
+            .get_or_init(crate::multi::adb_path)
+            .clone();
+        let mut cmd = tokio::process::Command::new(adb);
+        cmd.args(extra).arg(sub).arg(args);
+        cmd.output()
+            .await
+            .context("failed to spawn adb")
+    }
+
     /// Run a shell command on the target Android device via ADB.
     ///
     /// The command string is passed verbatim to `adb shell` (run through
-    /// `/bin/sh -c` on the device). If the plain shell fails or produces
-    /// nothing (permission denied under the `shell` UID), the command is
-    /// retried with root elevation (`su -c '...'`) so the reader works both
-    /// on rooted emulators (BlueStacks with root on) and on unrooted devices.
-    fn run_adb_shell(&self, command: &str) -> Result<String> {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .context("failed to build tokio runtime")?;
-
-            rt.block_on(async {
-                // Step 1: try to connect to the remote ADB daemon via TCP.
-                // This is idempotent — already-connected daemons ignore the request.
-                let host_port = format!("{}:{}", self.host, self.port);
-                let _ = self.adb_output(&["connect", &host_port]).await;
-
-                let (serial_args, label): (Vec<&str>, String) = match &self.serial {
-                    Some(s) => (vec!["-s", s.as_str()], format!("adb -s {s}")),
-                    None => (vec![], "adb".to_owned()),
-                };
-
-                // Run plain, then fall back to root if it fails or is empty.
-                let plain = self
-                    .adb_output_with(&serial_args, "shell", command)
-                    .await?;
-                if plain.status.success() && !plain.stdout.is_empty() {
-                    return Ok(String::from_utf8_lossy(&plain.stdout).into_owned());
-                }
-
-                // Root fallback: `su -c '<command>'`; swallow su's own errors.
-                let rooted = format!("su -c '{command}' 2>/dev/null || true");
-                let root_run = self
-                    .adb_output_with(&serial_args, "shell", &rooted)
-                    .await?;
-                if root_run.status.success() && !root_run.stdout.is_empty() {
-                    return Ok(String::from_utf8_lossy(&root_run.stdout).into_owned());
-                }
-
-                // Prefer the plain output for error reporting (more meaningful).
-                let stderr = String::from_utf8_lossy(&plain.stderr);
-                bail!(SpectreError::BackendError(format!(
-                    "{label} shell failed (exit={}): {stderr}",
-                    plain.status
-                )));
-            })
-        }
-
-    /// Wrap a `tokio::process::Command` for arbitrary adb args.
-    async fn adb_output_with(&self, extra: &[&str], sub: &str, args: &str) -> Result<std::process::Output> {
-            let adb = ADB_PROGRAM
-                .get_or_init(crate::multi::adb_path)
-                .clone();
-            let mut cmd = tokio::process::Command::new(adb);
-            cmd.args(extra).arg(sub).arg(args);
-            cmd.output()
-                .await
-                .context("failed to spawn adb")
-        }
-
-    /// Decode a hex string (from `xxd -p` output) into raw bytes.
+    /// `/system/bin/sh -c` on the device). Yes, `run_adb_shell` is
+    /// synchronous — it builds a short-lived current-thread Tokio runtime
+    /// because `adb_output_with` is `async` (tokio process API).
     ///
-    /// Strips all whitespace and newlines, then parses two-char hex groups.
-    /// Returns a vector of exactly `expected_count` bytes, padding with
-    /// zeroes on short output (readable region smaller than requested).
-    fn hex_decode(&self, hex: &str, expected_count: u32) -> Vec<u8> {
-        // Strip whitespace, newlines, and any non-hex separators.
-        let mut cleaned: Vec<char> = Vec::new();
-        for ch in hex.chars() {
-            if ch.is_ascii_hexdigit() {
-                cleaned.push(ch);
+    /// The plain shell is tried first; if it fails or returns nothing
+    /// (permission denied under the `shell` UID), the command is retried
+    /// with root elevation (`su -c '...'`) so the reader works both on
+    /// rooted emulators (BlueStacks with root on) and unrooted devices.
+    fn run_adb_shell(&self, command: &str) -> Result<String> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .context("failed to build tokio runtime")?;
+
+        rt.block_on(async {
+            // Step 1: try to connect to the remote ADB daemon via TCP.
+            // This is idempotent — already-connected daemons ignore the request.
+            let host_port = format!("{}:{}", self.host, self.port);
+            let _ = self.adb_output(&["connect", &host_port]).await;
+
+            let (serial_args, label): (Vec<&str>, String) = match &self.serial {
+                Some(s) => (vec!["-s", s.as_str()], format!("adb -s {s}")),
+                None => (vec![], "adb".to_owned()),
+            };
+
+            // Run plain, then fall back to root if it fails or is empty.
+            let plain = self
+                .adb_output_with(&serial_args, "shell", command)
+                .await?;
+            if plain.status.success() && !plain.stdout.is_empty() {
+                return Ok(String::from_utf8_lossy(&plain.stdout).into_owned());
             }
-        }
 
-        let mut bytes: Vec<u8> = Vec::new();
-        let mut i: usize = 0;
-        while i + 1 < cleaned.len() && (bytes.len() as u32) < expected_count {
-            let hi = char_to_nibble(cleaned[i]) << 4;
-            let lo = char_to_nibble(cleaned[i + 1]);
-            bytes.push(hi | lo);
-            i += 2;
-        }
+            // Root fallback: `su -c '<command>'`; swallow su's own errors.
+            let rooted = format!("su -c '{command}' 2>/dev/null || true");
+            let root_run = self
+                .adb_output_with(&serial_args, "shell", &rooted)
+                .await?;
+            if root_run.status.success() && !root_run.stdout.is_empty() {
+                return Ok(String::from_utf8_lossy(&root_run.stdout).into_owned());
+            }
 
-        // Pad with zero bytes if the device returned less data than requested
-        // (can happen when reading near the end of a memory region).
-        while (bytes.len() as u32) < expected_count {
-            bytes.push(0);
-        }
-
-        bytes
+            // Prefer the plain output for error reporting (more meaningful).
+            let stderr = String::from_utf8_lossy(&plain.stderr);
+            bail!(SpectreError::BackendError(format!(
+                "{label} shell failed (exit={}): {stderr}",
+                plain.status
+            )));
+        })
     }
 }
 
-// ── MemoryReader Trait Implementation ─────────────────────────────────────
+// ── MemoryReader trait implementation ──────────────────────────────────────
 
 impl MemoryReader for AdbReader {
     fn backend_kind(&self) -> BackendKind {
         BackendKind::Adb
     }
 
-    // ── Process Discovery ────────────────────────────────────────────
-
     fn find_process(&self, name: &str) -> Result<Vec<ProcessInfo>> {
-        let lower = name.to_lowercase();
-        Ok(self
-            .list_processes()?
-            .into_iter()
-            .filter(|p| p.name.to_lowercase().contains(&lower))
-            .collect())
+        let all = self.list_processes()?;
+        Ok(all.into_iter().filter(|p| p.name.contains(name)).collect())
     }
 
     fn list_processes(&self) -> Result<Vec<ProcessInfo>> {
@@ -190,8 +163,9 @@ impl MemoryReader for AdbReader {
     }
 
     fn memory_regions(&self, pid: u32) -> Result<Vec<MemoryRegion>> {
-        // On Android, /proc/<pid>/maps is world-readable for the same UID.
-        let output = self.run_adb_shell(&format!("/bin/cat /proc/{pid}/maps"))?;
+        let output = self.run_adb_shell(&format!(
+            "/bin/cat /proc/{pid}/maps 2>/dev/null || true"
+        ))?;
         parse_maps_output(&output)
     }
 
@@ -206,31 +180,110 @@ impl MemoryReader for AdbReader {
         }
     }
 
-    // ── Raw Memory Reading ───────────────────────────────────────────
-
     fn read_bytes(&self, pid: u32, address: u64, size: u32) -> Result<Vec<u8>> {
         if size == 0 {
             return Ok(Vec::new());
         }
 
-        // Shell incantation: use dd to seek to `address` in /proc/<pid>/mem
-        // (with root elevation via `su -c`), then pipe through xxd -p for hex output.
-        // stderr from dd (e.g. partial read warnings) is discarded.
-        //
-        // The `|| true` prevents a non-zero exit from killing the pipeline.
+        // On Android, dd supports byte-wise skip only with bs=1, which is
+        // ~7x slower than 4K-block page reads. Because anonymous/mmap heaps
+        // are page-aligned, split the read: leading unaligned head via bs=1,
+        // the aligned middle via 4K blocks, trailing tail via bs=1.
+        const PAGE: u64 = 4096;
+        let mut out: Vec<u8> = Vec::with_capacity(size as usize);
+        let mut addr = address;
+        let mut remaining = size as u64;
+
+        let head = (PAGE - (addr % PAGE)) % PAGE;
+        if head > 0 && head < remaining {
+            let part = self.read_bytes_bs1(pid, addr, head as u32)?;
+            out.extend_from_slice(&part);
+            addr += head;
+            remaining -= head;
+        }
+
+        let aligned = remaining - (remaining % PAGE);
+        if aligned >= PAGE {
+            let part = self.read_bytes_pages(pid, addr, aligned as u32)?;
+            out.extend_from_slice(&part);
+            addr += aligned;
+            remaining -= aligned;
+        }
+
+        if remaining > 0 {
+            let part = self.read_bytes_bs1(pid, addr, remaining as u32)?;
+            out.extend_from_slice(&part);
+        }
+
+        Ok(out)
+    }
+
+    fn scan(
+        &self,
+        pid: u32,
+        patterns: Vec<ScanPattern>,
+        little: bool,
+    ) -> Result<Vec<ScanReport>> {
+        let config = ScanConfig {
+            little_endian: little,
+            ..Default::default()
+        };
+        scan_memory(self, pid, patterns, &config)
+    }
+}
+
+// ── Raw read helpers (inherent, page-aware) ───────────────────────────────
+
+impl AdbReader {
+    /// Decode an `xxd -p` hex stream (whitespace-tolerant) into `size` bytes.
+    /// Missing hex digits decode as zero; extra digits are ignored.
+    fn hex_decode(&self, hex: &str, size: u32) -> Vec<u8> {
+        let mut out = Vec::with_capacity(size as usize);
+        let mut hi: Option<u8> = None;
+        for ch in hex.chars() {
+            if !ch.is_ascii_hexdigit() {
+                continue;
+            }
+            let nib = char_to_nibble(ch);
+            match hi.take() {
+                Some(h) => out.push((h << 4) | nib),
+                None => hi = Some(nib),
+            }
+            if out.len() == size as usize {
+                break;
+            }
+        }
+        // A dangling high nibble at the end.
+        if let Some(h) = hi {
+            if (out.len() as u32) < size {
+                out.push(h << 4);
+            }
+        }
+        while (out.len() as u32) < size {
+            out.push(0);
+        }
+        out
+    }
+
+    /// Byte-wise read (bs=1). Used for unaligned heads/tails.
+    fn read_bytes_bs1(&self, pid: u32, address: u64, size: u32) -> Result<Vec<u8>> {
         let cmd = format!(
             "su -c 'dd if=/proc/{pid}/mem bs=1 skip={address} count={size} 2>/dev/null | xxd -p' 2>/dev/null || true"
         );
         let output = self.run_adb_shell(&cmd)?;
-
         Ok(self.hex_decode(&output, size))
     }
 
-    // ── Scanning ─────────────────────────────────────────────────────
-
-    fn scan(&self, pid: u32, patterns: Vec<ScanPattern>, little: bool) -> Result<Vec<ScanReport>> {
-        let config = ScanConfig { little_endian: little, ..Default::default() };
-        scan_memory(self, pid, patterns, &config)
+    /// Page-aligned bulk read using 4K blocks (bs=4096, skip in pages).
+    fn read_bytes_pages(&self, pid: u32, address: u64, size: u32) -> Result<Vec<u8>> {
+        debug_assert_eq!(address % 4096, 0, "page reads require aligned addresses");
+        let page = address / 4096;
+        let count = size / 4096;
+        let cmd = format!(
+            "su -c 'dd if=/proc/{pid}/mem bs=4096 skip={page} count={count} 2>/dev/null | xxd -p' 2>/dev/null || true"
+        );
+        let output = self.run_adb_shell(&cmd)?;
+        Ok(self.hex_decode(&output, size))
     }
 }
 

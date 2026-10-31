@@ -103,47 +103,75 @@ impl AdbReader {
     /// with root elevation (`su -c '...'`) so the reader works both on
     /// rooted emulators (BlueStacks with root on) and unrooted devices.
     fn run_adb_shell(&self, command: &str) -> Result<String> {
+        // A current-thread Tokio runtime is built per call for `adb_output`
+        // (tokio process API). That is fine from a plain CLI thread, but
+        // `spectre bot`'s scheduler is already INSIDE a Tokio runtime —
+        // nested block_on would panic. Detect that and run the adb work on
+        // a fresh OS thread with its own mini-runtime instead.
+        if tokio::runtime::Handle::try_current().is_ok() {
+            let host = self.host.clone();
+            let port = self.port;
+            let serial = self.serial.clone();
+            let cmd = command.to_owned();
+            return std::thread::scope(|s| {
+                let handle = s.spawn(move || {
+                    let reader = AdbReader { host, port, serial };
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .context("failed to build tokio runtime")?;
+                    rt.block_on(run_adb_shell_inner(&reader, &cmd))
+                });
+                handle
+                    .join()
+                    .map_err(|_| anyhow::anyhow!("adb shell thread panicked"))?
+            });
+        }
+
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .context("failed to build tokio runtime")?;
-
-        rt.block_on(async {
-            // Step 1: try to connect to the remote ADB daemon via TCP.
-            // This is idempotent — already-connected daemons ignore the request.
-            let host_port = format!("{}:{}", self.host, self.port);
-            let _ = self.adb_output(&["connect", &host_port]).await;
-
-            let (serial_args, label): (Vec<&str>, String) = match &self.serial {
-                Some(s) => (vec!["-s", s.as_str()], format!("adb -s {s}")),
-                None => (vec![], "adb".to_owned()),
-            };
-
-            // Run plain, then fall back to root if it fails or is empty.
-            let plain = self
-                .adb_output_with(&serial_args, "shell", command)
-                .await?;
-            if plain.status.success() && !plain.stdout.is_empty() {
-                return Ok(String::from_utf8_lossy(&plain.stdout).into_owned());
-            }
-
-            // Root fallback: `su -c '<command>'`; swallow su's own errors.
-            let rooted = format!("su -c '{command}' 2>/dev/null || true");
-            let root_run = self
-                .adb_output_with(&serial_args, "shell", &rooted)
-                .await?;
-            if root_run.status.success() && !root_run.stdout.is_empty() {
-                return Ok(String::from_utf8_lossy(&root_run.stdout).into_owned());
-            }
-
-            // Prefer the plain output for error reporting (more meaningful).
-            let stderr = String::from_utf8_lossy(&plain.stderr);
-            bail!(SpectreError::BackendError(format!(
-                "{label} shell failed (exit={}): {stderr}",
-                plain.status
-            )));
-        })
+        rt.block_on(run_adb_shell_inner(self, command))
     }
+}
+
+/// Shared body of [`AdbReader::run_adb_shell`]: connect, try plain `adb
+/// shell <command>`, then root fallback `su -c '<command>'`.
+async fn run_adb_shell_inner(reader: &AdbReader, command: &str) -> Result<String> {
+    // Step 1: try to connect to the remote ADB daemon via TCP.
+    // This is idempotent — already-connected daemons ignore the request.
+    let host_port = format!("{}:{}", reader.host, reader.port);
+    let _ = reader.adb_output(&["connect", &host_port]).await;
+
+    let (serial_args, label): (Vec<&str>, String) = match &reader.serial {
+        Some(s) => (vec!["-s", s.as_str()], format!("adb -s {s}")),
+        None => (vec![], "adb".to_owned()),
+    };
+
+    // Run plain, then fall back to root if it fails or is empty.
+    let plain = reader
+        .adb_output_with(&serial_args, "shell", command)
+        .await?;
+    if plain.status.success() && !plain.stdout.is_empty() {
+        return Ok(String::from_utf8_lossy(&plain.stdout).into_owned());
+    }
+
+    // Root fallback: `su -c '<command>'`; swallow su's own errors.
+    let rooted = format!("su -c '{command}' 2>/dev/null || true");
+    let root_run = reader
+        .adb_output_with(&serial_args, "shell", &rooted)
+        .await?;
+    if root_run.status.success() && !root_run.stdout.is_empty() {
+        return Ok(String::from_utf8_lossy(&root_run.stdout).into_owned());
+    }
+
+    // Prefer the plain output for error reporting (more meaningful).
+    let stderr = String::from_utf8_lossy(&plain.stderr);
+    bail!(SpectreError::BackendError(format!(
+        "{label} shell failed (exit={}): {stderr}",
+        plain.status
+    )))
 }
 
 // ── MemoryReader trait implementation ──────────────────────────────────────

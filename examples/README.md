@@ -288,22 +288,25 @@ config validated successfully:
   memory poll:      250 ms
   enabled:          true
   tasks:            3
-    - health-watch (interval=2000 ms, enabled=true, actions=2)
-    - collect-rewards (interval=15000 ms, enabled=true, actions=4)
-    - periodic-claim (interval=0 ms, enabled=true, actions=2)
+    - health-watch (interval=2000 ms, enabled=true, conditions=1, actions=2)
+    - collect-rewards (interval=15000 ms, enabled=true, conditions=0, actions=4)
+    - periodic-claim (schedule="0 */6 * * *", enabled=true, conditions=0, actions=2)
 ```
 
-A malformed `schedule` is rejected here; a valid one is not printed (the
-cron task shows `interval=0 ms`).
+A malformed `schedule` is rejected here. Each task line shows the timing the
+bot really uses: the `schedule`, or the interval (`(default)` when the task
+has no `interval_ms` and falls back to `default_interval_ms`).
 
 Running it for real (`spectre bot examples/bot-config.yaml --once`) needs the
 game process from `metadata.process`; without it spectre stops with
 `cannot resolve bot target pid: set metadata.pid or metadata.process in the bot config`.
-Note that the CLI loop runs **every enabled task's actions each round and
-then sleeps `default_interval_ms`** — per-task `interval_ms`, task-level
-`conditions` and `schedule` are validated but not applied yet. Guard steps
-with `!Condition` actions instead: a failed `!MemoryCheck` only prints a
-warning, the actions after it still run.
+Without `--once` each task runs on its own timing: `schedule` if set (at most
+once per matching minute), else `interval_ms`, else `default_interval_ms`.
+Task-level `conditions` are checked before each start; a false condition or
+an unreadable field skips only that task (`-vv` shows the skip reasons).
+`--once` runs every enabled task one time right away, ignoring the timing but
+not the `conditions`. Inside a task, guard steps with `!Condition` actions: a
+failed `!MemoryCheck` only prints a warning, the actions after it still run.
 
 ---
 
@@ -373,15 +376,15 @@ config validated successfully:
   memory poll:      250 ms
   enabled:          true
   tasks:            3
-    - claim_rewards (interval=0 ms, enabled=true, actions=1)
-    - idle_check (interval=0 ms, enabled=true, actions=3)
-    - homestead_request (interval=0 ms, enabled=false, actions=6)
+    - claim_rewards (interval=300000 ms (default), enabled=true, conditions=0, actions=1)
+    - idle_check (schedule="*/5 * * * *", enabled=true, conditions=0, actions=3)
+    - homestead_request (interval=300000 ms (default), enabled=false, conditions=0, actions=6)
 ```
 
 `homestead_request` is disabled on purpose: bundle (real-money) popups can
-appear on Homestead entry and its tap positions are not in the guide. All
-three tasks run once per round, every `default_interval_ms` = 5 minutes
-(see step 3 for why per-task timing does not apply).
+appear on Homestead entry and its tap positions are not in the guide.
+`claim_rewards` runs at start and then every `default_interval_ms` = 5
+minutes; `idle_check` runs at :00, :05, :10, ... (its `schedule`).
 
 To replace a placeholder — here gold, shown in the Town screen top-left:
 
@@ -463,8 +466,8 @@ Things to know:
   Search for the two's-complement value instead (`u32 4294967291`).
 - `search --limit N` stops the *first* scan after N hits, so the address you
   want may not be among them; leave it off while hunting.
-- `spectre bot` ignores per-task `interval_ms`, `conditions` and `schedule`
-  (see step 3).
+- Up to 0.3.0, `spectre bot` ignores per-task `interval_ms`, `conditions`
+  and `schedule`; a build of the current `main` applies them (see step 3).
 - `spectre bot` and `spectre script` have no `--adb` memory reader (see
   step 5).
 

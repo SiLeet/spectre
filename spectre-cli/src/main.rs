@@ -1484,20 +1484,24 @@ fn run_bot(args: BotArgs) -> Result<()> {
     let (ctx, input, hooks) = build_bot_runtime(&config)?;
     let engine_reader: Box<dyn MemoryReader> = create_reader(false, None, None)?;
     let engine = spectre_bot::BotEngine::new(engine_reader, Box::new(input), Box::new(ctx), hooks);
+    // The bot crate's scheduler applies per-task schedule/interval/conditions.
+    let mut scheduler = spectre_bot::TaskScheduler::from_config(&config)?;
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .context("failed to create tokio runtime")?;
 
     if args.once {
         println!("running bot '{instance}' once...");
-        run_bot_tasks(&config, &engine)?;
+        rt.block_on(scheduler.run_once(&engine));
         println!("bot finished");
     } else {
-        println!(
-            "running bot '{instance}' every {} ms — press Ctrl-C to stop",
-            config.default_interval_ms
-        );
-        loop {
-            run_bot_tasks(&config, &engine)?;
-            std::thread::sleep(Duration::from_millis(config.default_interval_ms as u64));
-        }
+        println!("running bot '{instance}' — press Ctrl-C to stop");
+        rt.block_on(async {
+            scheduler.start(std::sync::Arc::new(engine));
+            scheduler.wait().await;
+        });
+        println!("bot stopped");
     }
     Ok(())
 }
@@ -1511,43 +1515,21 @@ fn print_bot_summary(config: &spectre_bot::BotConfig, instance: &str) {
     println!("  enabled:          {}", config.enabled);
     println!("  tasks:            {}", config.tasks.len());
     for t in &config.tasks {
+        let timing = match &t.schedule {
+            Some(cron) => format!("schedule=\"{cron}\""),
+            None if t.interval_ms == 0 => {
+                format!("interval={} ms (default)", config.default_interval_ms)
+            }
+            None => format!("interval={} ms", t.interval_ms),
+        };
         println!(
-            "    - {} (interval={} ms, enabled={}, actions={})",
+            "    - {} ({timing}, enabled={}, conditions={}, actions={})",
             t.name,
-            t.interval_ms,
             t.enabled,
+            t.conditions.len(),
             t.actions.len()
         );
     }
-}
-
-fn run_bot_tasks(config: &spectre_bot::BotConfig, engine: &spectre_bot::BotEngine) -> Result<()> {
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .context("failed to create tokio runtime")?;
-    for task in &config.tasks {
-        if !task.enabled {
-            continue;
-        }
-        let results = rt.block_on(engine.execute_actions(&task.actions));
-        for result in results {
-            match result {
-                spectre_bot::ActionResult::Ok => {}
-                spectre_bot::ActionResult::Warning(w) => {
-                    println!("task '{}': warning: {w}", task.name)
-                }
-                spectre_bot::ActionResult::Error(e) => {
-                    eprintln!("task '{}': error: {e}", task.name)
-                }
-                spectre_bot::ActionResult::Stop => {
-                    println!("task '{}': stopped", task.name);
-                    break;
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 /// Build the bot engine components (context, input simulator, hooks).

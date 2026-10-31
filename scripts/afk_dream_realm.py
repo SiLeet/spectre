@@ -34,6 +34,7 @@ import afk_claim_vision as v  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 
+BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
 DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
 BOSS_TAP = (960, 1020)           # green Battle button on the boss page
@@ -72,16 +73,27 @@ def is_dim_popup(img) -> bool:
 
 
 def _green(c: tuple[int, int, int]) -> bool:
-    # boss-page Battle button measures ~(109,154,100); the in-fight olive
-    # probes (129,143,88)/(167,178,96) must NOT match
-    return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 140
+    # boss-page Battle button ~(109,154,100), prep Battle button ~(160,192,152);
+    # the in-fight olive probes (129,143,88)/(167,178,96) must NOT match
+    return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 170
+
+
+def is_boss_page(img) -> bool:
+    """Boss page: green Battle button at the bottom centre."""
+    return _green(v.avg(img, BATTLE_BTN_BOSS))
+
+
+def is_prep(img) -> bool:
+    """Prep screen: green Battle button on the RIGHT (1280,1010); the centre
+    bottom is the SKIP button there, which must never be tapped."""
+    return not is_boss_page(img) and _green(v.avg(img, BATTLE_BTN_PREP))
 
 
 def is_ready(img) -> bool:
     """Boss page or prep screen: a green Battle button, no end-state card."""
     if is_battle_ended(img) or is_hero_card(img) or is_dim_popup(img):
         return False
-    return _green(v.avg(img, BATTLE_BTN_BOT)) or _green(v.avg(img, BATTLE_BTN_TOP))
+    return is_boss_page(img) or is_prep(img)
 
 
 def is_world(img) -> bool:
@@ -155,14 +167,14 @@ def wait_for_fight_end(tag: str, max_wait: float):
 
 
 def reach_world(tag: str) -> bool:
-    for i in range(4):
+    for i in range(6):
         img = v.shot(f'{tag}_{i}')
         if v.classify(img) == 'WORLD':
             return True
         img = resolve_end_states(img, f'{tag}_end{i}')
-        if v.classify(img) == 'WORLD' or is_ready(img):
+        if v.classify(img) == 'WORLD':
             return True
-        v.tap(v.BACK, 1.2)
+        v.tap(v.BACK, 1.5)
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 
@@ -198,16 +210,20 @@ def main() -> int:
         print('    dry-run: state probes verified, no actions taken', flush=True)
         return 0
 
-    if not reach_world('dr_world'):
-        print('    ERROR: could not reach the world view', flush=True)
-        return 1
+    img = v.shot('dr_start')
+    if is_ready(img):
+        print('--- already inside Dream Realm', flush=True)
+    else:
+        if not reach_world('dr_world'):
+            print('    ERROR: could not reach the world view', flush=True)
+            return 1
 
-    print('--- Battle Modes -> Dream Realm', flush=True)
-    v.tap(BATTLE_MODES, 3.0)
-    v.tap(DREAM_CARD, 4.0)
-    if not back_to_ready('dr_enter'):
-        print('    ERROR: Dream Realm boss page not reachable', flush=True)
-        return 1
+        print('--- Battle Modes -> Dream Realm', flush=True)
+        v.tap(BATTLE_MODES, 3.0)
+        v.tap(DREAM_CARD, 4.0)
+        if not back_to_ready('dr_enter'):
+            print('    ERROR: Dream Realm boss page not reachable', flush=True)
+            return 1
 
     fights = 0
     for fight in range(1, args.fights + 1):
@@ -216,14 +232,30 @@ def main() -> int:
             print('    ERROR: Dream Realm boss page not reachable', flush=True)
             return 1
 
-        # The Battle button may open a prep screen first; both button variants
-        # sit around (960,1010-1040), so retry on the same spot
+        # Start the fight: the boss page opens a prep screen whose Battle
+        # button sits on the RIGHT (1280,1010); tapping (960,1010) there is
+        # the SKIP button and must never happen. Unknown frames (loading
+        # transitions) are waited out, never tapped.
         started = False
         for attempt in range(3):
-            v.tap(BATTLE_TAP, 4.0)
+            img = v.shot(f'dr_f{fight}_pre{attempt}')
+            if is_prep(img):
+                print(f'    fight {fight}: prep screen -> Battle', flush=True)
+                v.tap(PREP_TAP, 4.0)
+            elif is_boss_page(img):
+                v.tap(BOSS_TAP, 4.0)
+            else:
+                time.sleep(3)
+                img = v.shot(f'dr_f{fight}_prewait{attempt}')
+                if is_prep(img):
+                    v.tap(PREP_TAP, 4.0)
+                elif is_boss_page(img):
+                    v.tap(BOSS_TAP, 4.0)
+                else:
+                    continue
             img = v.shot(f'dr_f{fight}_after_tap{attempt}')
             if is_ready(img):
-                continue                    # prep screen opened, or tap missed
+                continue        # a prep screen just opened; next iteration taps Battle
             img = resolve_end_states(img, f'dr_f{fight}_quick{attempt}')
             if not is_ready(img):
                 started = True              # fight (or an end state) is underway

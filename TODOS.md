@@ -108,8 +108,25 @@
   Task-Kopf-Bedingungen. Brief in CLAUDE-TASKS.md.
 - ✅ **T20 (#20, 8a7deee): CLI-Referenz + README auf hunt/hot/offsets/range-search** aktualisieren.
   Brief in CLAUDE-TASKS.md.
-- 📌 Hermes macht weiterhin den **Live-Teil** (hot am Gerät läuft seit b56f897;
-  nächster Schritt: Gold-Offset-Bestätigung per Action-Diff).
+### ✅ T21: Live-Bot-Claim verifiziert (2026-10-31, PR #22 / f828677)
+- **Bugfix:** `CliInputSimulator` löste die adb-Serial nicht auf → alle Taps scheiterten an
+  „more than one device/emulator" (Reader verbindet `127.0.0.1:5555` neu, BlueStacks listet
+  zusätzlich `emulator-5554`). Fix: Serial aus `adb devices` auflösen (eindeutig → nehmen;
+  mehrere → `host:port`-Eintrag bevorzugen), `-s <serial>` an `adb shell input` übergeben.
+- **Verifizierte AFK-Claim-Sequenz** (echte Taps): Leerraum (300,250) → AFK-Progress (70,1032)
+  → Truhe (975,760) → Claim (960,602) → Back (474,1010). Beweis: AFK-Timer 05:38:40 → 00:00:02.
+- **Live-Loop:** `spectre bot examples/bot-config-afk-live.yaml --adb` (Test-Intervall 60 s)
+  → 3 Claims in 3 Minuten, 0 Warnings; Timer danach 00:01:30. Memory-Guard `team_power`
+  (259850 = HUD „259K") bei jedem Tick grün.
+- `examples/bot-config-afk-live.yaml` nutzt die echte Sequenz (Intervall 15 min);
+  stale `afk_pool_*`-Checks entfernt (Heap-Layout verschoben, nur team_power stabil).
+
+### 🟦 T11 (Fortsetzung): Gold-Offset — Claim-Mechanik jetzt nutzbar
+- AFK-Truhe liefert **+20743 Gold/h** (Popup), Claim ändert die Wallet.
+- 8-MB-Diff um zwei Claims: kein Slot mit passendem Delta (±100k) → Wallet liegt außerhalb
+  der ersten 8 MB des Hot-Heaps (0x724DF0000000) bzw. in einem anderen Heap.
+- Nächster Schritt: Dumps der übrigen großen rw-Heaps (72/148/68/64/52/69 MB) vor/nach einem
+  Claim, Slot mit Delta = Claim-Gold pinnen; bis dahin bleibt `gold` in der YAML INVALID.
 
 ## Bonus (Claude)
 

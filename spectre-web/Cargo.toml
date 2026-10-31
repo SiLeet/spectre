@@ -1,7 +1,7 @@
 [package]
 name = "spectre-web"
 description = "Read-only local web dashboard for Spectre (`spectre serve`)"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 # The memory reader is injected as `Arc<dyn MemoryReader>`; this crate never

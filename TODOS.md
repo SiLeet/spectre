@@ -20,7 +20,7 @@
 
 ## P0 — Kern-Features
 
-### ✅ T1-NEXT: Web-Dashboard (`spectre serve`) — noch offen
+### ✅ T1: Web-Dashboard (`spectre serve`) — erledigt 2026-10-31 (#10)
 - **Berührt:** neues Crate `spectre-web/` (nur) + optional `spectre-cli` Subcommand `serve`
 - **Ziel:** Live-Web-UI im Browser: Prozessliste, Memory-Regionen, Werte-Lese-Helper, Scan-Ergebnisse, Bot-Log.
 - **Vorschlag:** Axum/Actix + minimales HTML/JS, `spectre serve --port 8787`.
@@ -34,7 +34,7 @@
 - `spectre-core/src/diff.rs` + CLI `dumpdiff`; 14 Tests
 - Live verifiziert (Änderung bei 0x4 erkannt). Merged + CI grün.
 
-### ✅ T4 (DONE durch Claude, Teil von PR #2/T3): Pointer-Ketten
+### ✅ T4: Pointer-Ketten (`spectre chain`) — erledigt 2026-10-31 (#8)
 - `resolve_ptr_chain` existiert in core; CLI `chain` siehe T4-Brief (bei Bedarf ergänzen).
 
 ---
@@ -50,15 +50,15 @@
 ### ✅ T7 (DONE, PR #4): Cron-Scheduling im Bot
 - `schedule: "0 */6 * * *"` via chrono; 38 bot-Tests. Merged + CI grün.
 
-### ⬜ T8: Challenge-Repo Beispiel — noch offen
+### ✅ T8: Challenge-Repo / Quickstart — erledigt 2026-10-31 (#9)
 - `examples/` erweitern, `docs/` (nur).
 
 ---
 
 ## P2 — Ausblick
 
-### ⬜ T9: Web-Härtung — offen (nach T1-NEXT)
-### ⬜ T10 (DONE, PR #5): Multi-Emulator-Orchestrierung
+### ✅ T9: Web-Härtung — erledigt 2026-10-31 (#11)
+### ✅ T10: Multi-Emulator-Orchestrierung
 - `spectre-adb/src/multi.rs` — AdbManager + parse_adb_devices; 10 adb-Tests. Merged + CI grün.
 
 ---

@@ -1,18 +1,25 @@
 """Dream Realm daily driver for AFK Journey (BlueStacks 1920x1080).
 
-Dream Realm is a boss fight (Necrodrakon, Elite Challenge) with 7 daily
-chances; each fight grants rewards and consumes one chance. Verified flow:
+Dream Realm is a TIMED boss fight (e.g. Necrodrakon, Elite Challenge) with 7
+daily chances; every fight consumes one chance. Live-verified sequence
+(2026-11-01):
 
-  1. Battle Modes (890,1060) -> Dream Realm card (960,280)
-  2. hub: "Chances: 7/7", green Battle at (960,1040)
-  3. prep screen: Battle at (960,1010) -> ~70 s fight
-  4. "Victory Rewards" popup -> tap to close -> back at the hub
+  1. World view -> Battle Modes (890,1060) -> Dream Realm card (960,280)
+  2. Boss page: green Battle button (~960,1020) with "Chances: N/7"
+  3. (optional prep screen with its own Battle button) -> fight starts
+  4. Fight runs a full ~90 s damage race (boss HP bar + countdown). DO NOT
+     tap anything while it runs -- an earlier version tapped Back here and
+     misread the running fight as a defeat.
+  5. End state: a bright "BATTLE ENDED" results card ("Tap to close" at the
+     bottom centre, orange top banner). Closing it returns to the boss page.
+     A dim Victory-Rewards popup and/or a full-screen hero card may also
+     appear and must be dismissed.
 
-Loop until --fights attempts are used (or the counter reaches 0). Every tap is
-gated on the previous screenshot; unknown screens abort instead of tapping
-blind. The script does not touch Formations — team selection stays manual.
+State detection uses colour probes only (no OCR; uiautomator fails on this
+UI). Unknown states never trigger blind taps: while a fight may be running
+the driver waits, otherwise it aborts.
 
-Usage: python scripts/afk_dream_realm.py --fights 3 [--dry-run]
+Usage: python scripts/afk_dream_realm.py --fights N [--dry-run]
 Exit codes: 0 done, 1 stuck, 2 adb error, 5 skipped (PC in use).
 """
 from __future__ import annotations
@@ -26,51 +33,144 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
 
-BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
 DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
-HUB_BATTLE = (960, 1040)         # green Battle button, Dream Realm hub
-PREP_BATTLE = (960, 1010)        # green Battle button, Elite Challenge prep
-DISMISS = (480, 300)
+BOSS_TAP = (960, 1020)           # green Battle button on the boss page
+PREP_TAP = (1280, 1010)          # green Battle button on the prep screen
+                                 # NB: (960,1010) on prep is the SKIP button — never tap it
+BATTLE_BTN_BOSS = (960, 1040)    # probe points for the two green Battle buttons
+BATTLE_BTN_PREP = (1280, 1010)
+CARD_CLOSE = (960, 1035)         # "Tap to close" strip on the BATTLE ENDED card
+CARD_BANNER = (960, 90)          # orange banner of the BATTLE ENDED card
+CORNER = (200, 270)              # dark surround probe
+HERO_PROBE = (474, 1010)         # hero card covers even the back arrow
+HERO_DISMISS = (100, 100)        # verified live: corner tap closes the hero card
+DIM_DISMISS = (480, 300)
+
+POLL = 5.0
 
 
-def chance_left(img) -> int | None:
-    """Read 'Chances: N/M' is text-based; fall back to a brightness probe of
-    the counter area — this is only used for logging, so None is fine."""
+def is_battle_ended(img) -> bool:
+    """Bright results card with orange banner on a dark backdrop."""
+    b = v.avg(img, CARD_BANNER)
+    close = v.avg(img, CARD_CLOSE)
+    corner = v.avg(img, CORNER)
+    return b[0] > 160 and b[2] < 110 and v.lum(close) > 200 and v.lum(corner) < 90
+
+
+def is_hero_card(img) -> bool:
+    """Full-screen bright hero card (covers even the back-arrow corner)."""
+    return (v.lum(v.avg(img, HERO_PROBE)) > 180
+            and v.lum(v.avg(img, CORNER)) > 140
+            and not is_battle_ended(img))
+
+
+def is_dim_popup(img) -> bool:
+    """Dimmed overlay (e.g. Victory Rewards popup)."""
+    return v.lum(v.avg(img, CORNER)) < 25
+
+
+def _green(c: tuple[int, int, int]) -> bool:
+    # boss-page Battle button measures ~(109,154,100); the in-fight olive
+    # probes (129,143,88)/(167,178,96) must NOT match
+    return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 140
+
+
+def is_ready(img) -> bool:
+    """Boss page or prep screen: a green Battle button, no end-state card."""
+    if is_battle_ended(img) or is_hero_card(img) or is_dim_popup(img):
+        return False
+    return _green(v.avg(img, BATTLE_BTN_BOT)) or _green(v.avg(img, BATTLE_BTN_TOP))
+
+
+def is_world(img) -> bool:
+    return v.classify(img) == "WORLD"
+
+
+def resolve_end_states(img, tag: str):
+    """Dismiss any sequence of battle-ended card / dim popup / hero card.
+
+    Returns the final screenshot once none of those states remain.
+    """
+    for i in range(8):
+        if is_battle_ended(img):
+            print(f'    {tag}: battle ended card -> tap to close', flush=True)
+            v.tap(CARD_CLOSE, 3.0)
+        elif is_dim_popup(img):
+            print(f'    {tag}: dim popup -> dismiss', flush=True)
+            v.tap(DIM_DISMISS, 2.5)
+        elif is_hero_card(img):
+            print(f'    {tag}: hero card -> corner dismiss', flush=True)
+            v.tap(HERO_DISMISS, 2.5)
+        else:
+            return img
+        img = v.shot(f'{tag}_{i}')
+    return img
+
+
+def back_to_ready(tag: str, attempts: int = 10) -> bool:
+    """Get back to the boss page / prep screen from wherever we are.
+
+    Never taps blindly: unknown frames are waited out (a fight may be
+    running), and only recognised panels are dismissed.
+    """
+    unknown = 0
+    for i in range(attempts):
+        img = v.shot(f'{tag}_{i}')
+        if is_ready(img):
+            return True
+        if is_battle_ended(img) or is_dim_popup(img) or is_hero_card(img):
+            img = resolve_end_states(img, f'{tag}_end{i}')
+            if is_ready(img):
+                return True
+            continue
+        if is_world(img):
+            v.tap(BATTLE_MODES, 3.0)
+            v.tap(DREAM_CARD, 4.0)
+            unknown = 0
+            continue
+        unknown += 1
+        if unknown >= 4:
+            print(f'    {tag}: giving up, {unknown} unrecognised frames', flush=True)
+            return False
+        time.sleep(3)
+    return is_ready(v.shot(f'{tag}_final'))
+
+
+def wait_for_fight_end(tag: str, max_wait: float):
+    """Poll while the timed fight runs. Returns the last screenshot if an
+    end state appears, else None on timeout."""
+    deadline = time.time() + max_wait
+    n = 0
+    img = v.shot(f'{tag}_w0')
+    while time.time() < deadline:
+        if is_battle_ended(img) or is_dim_popup(img) or is_hero_card(img):
+            return img
+        time.sleep(POLL)
+        n += 1
+        img = v.shot(f'{tag}_w{n}')
+    print(f'    {tag}: fight did not end within {max_wait:.0f}s', flush=True)
     return None
 
 
-def is_dream_hub(img) -> bool:
-    """Dream Realm hub: green Battle button + dark boss art in the centre.
-    The prep screen has a green button too but a bright hex arena centre."""
-    btn = v.avg(img, (960, 1040))
-    center = v.lum(v.avg(img, (960, 400)))
-    return btn[1] > 120 and btn[1] > btn[0] + 20 and center < 110
-
-def back_to_hub(tag: str, steps: int = 5) -> bool:
-    for i in range(steps):
-        img = v.shot(f"{tag}_{i}")
-        if is_dream_hub(img):
+def reach_world(tag: str) -> bool:
+    for i in range(4):
+        img = v.shot(f'{tag}_{i}')
+        if v.classify(img) == 'WORLD':
             return True
-        if v.classify(img) == "WORLD":
-            # fell out to the world view: re-enter via Battle Modes
-            v.tap(BATTLE_MODES, 3.0)
-            v.tap(DREAM_CARD, 4.0)
-            continue
-        v.tap(v.BACK, 1.5)
-    return is_dream_hub(v.shot(f"{tag}_final"))
-
-
-def dim(img) -> bool:
-    return v.lum(v.avg(img, (200, 270))) < 25
+        img = resolve_end_states(img, f'{tag}_end{i}')
+        if v.classify(img) == 'WORLD' or is_ready(img):
+            return True
+        v.tap(v.BACK, 1.2)
+    return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--fights', type=int, default=7)
-    ap.add_argument('--wait-fight', type=float, default=75)
+    ap.add_argument('--wait-fight', type=float, default=150,
+                    help='max seconds to wait for one timed fight to end')
     ap.add_argument('--pid', default=None)
     ap.add_argument('--base', default=None)
     ap.add_argument('--min-idle', type=float, default=0)
@@ -94,62 +194,61 @@ def main() -> int:
         else:
             print(f'    preflight team_power = {power}', flush=True)
 
-    # reach the world view
-    img = v.shot('dr_0')
-    st = v.classify(img)
-    for i in range(4):
-        if st == 'WORLD':
-            break
-        if st in ('PANEL', 'POPUP'):
-            v.tap(v.BACK, 1.2)
-        else:
-            v.tap(v.BACK, 1.2)
-        img = v.shot(f'dr_0_{i}')
-        st = v.classify(img)
-    if st != 'WORLD':
-        print(f'    ERROR: not on the world view ({st})', flush=True)
+    if args.dry_run:
+        print('    dry-run: state probes verified, no actions taken', flush=True)
+        return 0
+
+    if not reach_world('dr_world'):
+        print('    ERROR: could not reach the world view', flush=True)
         return 1
 
     print('--- Battle Modes -> Dream Realm', flush=True)
     v.tap(BATTLE_MODES, 3.0)
     v.tap(DREAM_CARD, 4.0)
-    img = v.shot('dr_hub')
-    if dim(img):
-        print('    ERROR: a dim overlay covers the Dream Realm hub', flush=True)
+    if not back_to_ready('dr_enter'):
+        print('    ERROR: Dream Realm boss page not reachable', flush=True)
         return 1
 
     fights = 0
     for fight in range(1, args.fights + 1):
         print(f'--- dream realm fight {fight}/{args.fights}', flush=True)
-        if not back_to_hub(f'dr_pre{fight}'):
-            print('    ERROR: Dream Realm hub not reachable', flush=True)
+        if not back_to_ready(f'dr_pre{fight}'):
+            print('    ERROR: Dream Realm boss page not reachable', flush=True)
             return 1
-        v.tap(HUB_BATTLE, 4.0)                      # hub -> prep
-        v.tap(PREP_BATTLE, 3.0)                     # start the fight
-        time.sleep(args.wait_fight)
-        img = v.shot(f'dr_f{fight}_result')
-        if dim(img):                                # "Victory Rewards" popup
-            fights += 1
-            print(f'    fight {fight}: rewards granted', flush=True)
-            v.tap(DISMISS, 2.5)                     # close the popup
-            img = v.shot(f'dr_f{fight}_card')
-            # a full-screen hero card ("Dazzling DPS / Untouchable") can follow;
-            # it covers even the back-arrow corner (L ~233), dismiss via a corner
-            # tap — verified live
-            if v.lum(v.avg(img, (474, 1010))) > 180:
-                print(f'    fight {fight}: hero card — dismissing via corner tap', flush=True)
-                v.tap((100, 100), 2.5)
-        else:
-            # a defeat navigates away on its own (e.g. to the Resonating Hall);
-            # recover to the hub and continue — every attempt still costs one
-            # chance, so keep going until --fights is used up
-            print(f'    fight {fight}: no reward popup (defeat?) — recovering', flush=True)
-            back_to_hub(f'dr_rec{fight}')
 
-    if fights == 0:
-        v.tap(v.BACK, 1.5)
+        # The Battle button may open a prep screen first; both button variants
+        # sit around (960,1010-1040), so retry on the same spot
+        started = False
+        for attempt in range(3):
+            v.tap(BATTLE_TAP, 4.0)
+            img = v.shot(f'dr_f{fight}_after_tap{attempt}')
+            if is_ready(img):
+                continue                    # prep screen opened, or tap missed
+            img = resolve_end_states(img, f'dr_f{fight}_quick{attempt}')
+            if not is_ready(img):
+                started = True              # fight (or an end state) is underway
+                break
+        if not started:
+            print('    ERROR: fight did not start after 3 battle taps', flush=True)
+            return 1
+
+        end_img = wait_for_fight_end(f'dr_f{fight}', args.wait_fight)
+        if end_img is None:
+            return 1
+        fights += 1
+        print(f'    fight {fight}: completed (chance consumed)', flush=True)
+        final = resolve_end_states(end_img, f'dr_f{fight}_resolve')
+        if not is_ready(final) and not back_to_ready(f'dr_post{fight}'):
+            print('    ERROR: boss page not restored after fight', flush=True)
+            return 1
+
+    # leave the Dream Realm cleanly
+    if fights > 0:
+        img = v.shot('dr_exit')
+        if is_ready(img):
+            v.tap(BACK, 2.0)
     img = v.shot('dr_final')
-    print(f'    done: {fights} fight(s) claimed; final state: {v.classify(img)}', flush=True)
+    print(f'    done: {fights} fight(s) completed; final state: {v.classify(img)}', flush=True)
     return 0
 
 

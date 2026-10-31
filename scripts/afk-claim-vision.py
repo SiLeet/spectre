@@ -157,8 +157,15 @@ def main() -> int:
         state = classify(shot(f'r{rnd}_3_chest'))
         print(f'    after chest tap: {state}', flush=True)
         if state != 'POPUP':
-            print('    ERROR: chest popup did not open', flush=True)
-            return 1
+            # The game does not open the info popup when almost nothing has
+            # accrued (< ~2 min). One retry, then report "nothing claimable"
+            # instead of a hard error — nothing was tapped wrongly.
+            tap(CHEST, 2.5)
+            state = classify(shot(f'r{rnd}_3b_chest_retry'))
+            print(f'    chest retry: {state}', flush=True)
+        if state != 'POPUP':
+            print('    SKIP: nothing claimable yet (chest accrual too small)', flush=True)
+            return 4
 
         tap(CLAIM, 2.5)
         state = classify(shot(f'r{rnd}_4_after'))

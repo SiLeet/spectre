@@ -254,10 +254,10 @@ impl AdbReader {
             }
         }
         // A dangling high nibble at the end.
-        if let Some(h) = hi {
-            if (out.len() as u32) < size {
-                out.push(h << 4);
-            }
+        if let Some(h) = hi
+            && (out.len() as u32) < size
+        {
+            out.push(h << 4);
         }
         while (out.len() as u32) < size {
             out.push(0);

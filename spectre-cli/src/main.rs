@@ -32,6 +32,9 @@ use spectre_core::{
     ScanPattern, ScanReport, ScanValue, StructDef, ValueType, scan_memory,
 };
 
+mod hunt;
+use hunt::{HuntArgs, run_hunt};
+
 // ── Top-Level CLI ────────────────────────────────────────────────────────────
 
 #[derive(StructOpt)]
@@ -104,6 +107,13 @@ pub enum SubCommand {
     /// Walk a pointer chain from an address.
     #[structopt(about = "Follow a pointer chain from an address")]
     Chain(ChainArgs),
+
+    /// Hunt for a game value by scanning stable slots in a numeric range.
+    #[structopt(
+        name = "hunt",
+        about = "Find candidate addresses for a value range (offset discovery)"
+    )]
+    Hunt(HuntArgs),
 }
 
 // ── Scan Command ─────────────────────────────────────────────────────────────
@@ -415,7 +425,8 @@ fn main() -> ExitCode {
         Some(SubCommand::Serve(cmd)) => run_serve(cmd),
         Some(SubCommand::Adb(cmd)) => run_adb(cmd),
         Some(SubCommand::DumpDiff(cmd)) => run_dumpdiff(cmd),
-        Some(SubCommand::Chain(cmd)) => run_chain(cmd),
+                Some(SubCommand::Chain(cmd)) => run_chain(cmd),
+        Some(SubCommand::Hunt(cmd)) => run_hunt(cmd),
         None => {
             eprintln!("error: a subcommand is required; run `spectre --help` for usage");
             return ExitCode::from(2);

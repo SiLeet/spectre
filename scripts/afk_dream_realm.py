@@ -42,6 +42,27 @@ def chance_left(img) -> int | None:
     return None
 
 
+def is_dream_hub(img) -> bool:
+    """Dream Realm hub: green Battle button + dark boss art in the centre.
+    The prep screen has a green button too but a bright hex arena centre."""
+    btn = v.avg(img, (960, 1040))
+    center = v.lum(v.avg(img, (960, 400)))
+    return btn[1] > 120 and btn[1] > btn[0] + 20 and center < 110
+
+def back_to_hub(tag: str, steps: int = 5) -> bool:
+    for i in range(steps):
+        img = v.shot(f"{tag}_{i}")
+        if is_dream_hub(img):
+            return True
+        if v.classify(img) == "WORLD":
+            # fell out to the world view: re-enter via Battle Modes
+            v.tap(BATTLE_MODES, 3.0)
+            v.tap(DREAM_CARD, 4.0)
+            continue
+        v.tap(v.BACK, 1.5)
+    return is_dream_hub(v.shot(f"{tag}_final"))
+
+
 def dim(img) -> bool:
     return v.lum(v.avg(img, (200, 270))) < 25
 
@@ -100,6 +121,9 @@ def main() -> int:
     fights = 0
     for fight in range(1, args.fights + 1):
         print(f'--- dream realm fight {fight}/{args.fights}', flush=True)
+        if not back_to_hub(f'dr_pre{fight}'):
+            print('    ERROR: Dream Realm hub not reachable', flush=True)
+            return 1
         v.tap(HUB_BATTLE, 4.0)                      # hub -> prep
         v.tap(PREP_BATTLE, 3.0)                     # start the fight
         time.sleep(args.wait_fight)
@@ -108,11 +132,22 @@ def main() -> int:
             fights += 1
             print(f'    fight {fight}: rewards granted', flush=True)
             v.tap(DISMISS, 2.5)                     # close the popup
+            img = v.shot(f'dr_f{fight}_card')
+            # a full-screen hero card ("Dazzling DPS / Untouchable") can follow;
+            # it covers even the back-arrow corner (L ~233), dismiss via a corner
+            # tap — verified live
+            if v.lum(v.avg(img, (474, 1010))) > 180:
+                print(f'    fight {fight}: hero card — dismissing via corner tap', flush=True)
+                v.tap((100, 100), 2.5)
         else:
-            print(f'    fight {fight}: no reward popup — stopping (out of chances?)', flush=True)
-            break
+            # a defeat navigates away on its own (e.g. to the Resonating Hall);
+            # recover to the hub and continue — every attempt still costs one
+            # chance, so keep going until --fights is used up
+            print(f'    fight {fight}: no reward popup (defeat?) — recovering', flush=True)
+            back_to_hub(f'dr_rec{fight}')
 
-    v.tap(v.BACK, 1.5)
+    if fights == 0:
+        v.tap(v.BACK, 1.5)
     img = v.shot('dr_final')
     print(f'    done: {fights} fight(s) claimed; final state: {v.classify(img)}', flush=True)
     return 0

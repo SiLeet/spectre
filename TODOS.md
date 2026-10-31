@@ -243,7 +243,7 @@ vermutlich berechnete Team-Power, NICHT Gold (Gold nur im Menü-Kopf "4856K").
 Rest: Skript `afk_arena.py` (Schwächsten wählen → x Kämpfe → Defeat-Stop)
 + Daily-Integration ("Challenge in Arena x6" 4/6).
 
-### 🟨 T36: Review-Fixes (Subagent-Batch, 17 Befunde) — nach T27 einziehen
+### ✅ T36: Review-Fixes (Subagent-Batch, 17 Befunde) — eingezogen 223ccde, Live-Verifikation grün
 Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9aeeddd):
 1. [HIGH] watch.sh: Lock stale nach 180 s < Worst-Case-Runtime → Schwellwert ~20 min +
    PID-Präfix für Screenshot-Namen (Kollisionen bei parallelen Läufen).

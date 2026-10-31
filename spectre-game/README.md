@@ -48,9 +48,13 @@ structures:
 | `f32` / `f64`  | F32 / F64             | IEEE-754 floats              |
 | `bool`         | Bool                  | Single byte boolean          |
 | `string`       | String(128)           | Null-terminated, default cap |
-| `string:64`    | String(64)            | Inline max-length             |
+| `string:64` / `String(64)` | String(64) | Inline max-length             |
 | `pointer32` / `ptr32` | Pointer32        | 32-bit pointer               |
 | `pointer64` / `ptr64` / `pointer` | Pointer64 | 64-bit pointer               |
+
+The type key may be `type` or `field_type`, and type names are
+case-insensitive (`u32` = `U32`). Fields with an unknown type are skipped
+with a warning (`spectre scan` reports them as an error instead).
 
 ### Version Ranges
 

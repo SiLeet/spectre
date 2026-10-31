@@ -89,6 +89,10 @@ structures:
         desc: "Player display name"
 ```
 
+The type key may also be written `type`, and type names are
+case-insensitive (`u32`, `string:32`); see
+[game-integration.md](game-integration.md#field-types).
+
 ### 5. spectre-bot — Bot Execution Engine
 
 Runs configurable bot scripts with scheduling support. A bot is defined in a YAML config:

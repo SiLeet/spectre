@@ -645,7 +645,11 @@ fn load_game_offsets(game: &str, explicit: Option<&str>) -> Result<GameOffsets> 
 }
 
 /// YAML mirrors of the spectre-game offset file format. Defined locally so the
-/// CLI does not depend on spectre-game's (in-flux) serde types.
+/// CLI does not depend on spectre-game's (in-flux) serde types, and because the
+/// CLI loader is deliberately stricter: unknown or malformed field types are an
+/// error here (spectre-game skips them with a warning), `game`/`version` are
+/// optional, and a `length` key sets the size of a string field. The accepted
+/// key and type spellings match spectre-game's loader.
 #[derive(serde::Deserialize)]
 struct YamlGameFile {
     #[serde(default)]
@@ -668,7 +672,8 @@ struct YamlStructDef {
 #[derive(serde::Deserialize)]
 struct YamlFieldDef {
     name: String,
-    #[serde(rename = "type")]
+    /// Accepted under the keys `type` and `field_type`.
+    #[serde(rename = "type", alias = "field_type")]
     field_type: String,
     #[serde(default)]
     offset: u64,
@@ -678,12 +683,25 @@ struct YamlFieldDef {
     length: Option<u32>,
 }
 
+/// Parse a field type name, case-insensitively: `u8`..`u64`, `i8`..`i64`,
+/// `f32`, `f64`, `bool`, `pointer32`/`ptr32`, `pointer64`/`ptr64`/`pointer`,
+/// and strings as `string` (128 bytes), `string:N` or `String(N)`.
 fn parse_field_type(raw: &str) -> Result<FieldType> {
-    let s = raw.trim().to_lowercase();
-    if let Some(len_str) = s.strip_prefix("string:") {
-        let len = len_str
-            .parse::<u32>()
-            .with_context(|| format!("invalid string length in field type '{raw}'"))?;
+    let s = raw.trim().to_ascii_lowercase();
+    if let Some(rest) = s.strip_prefix("string").filter(|r| !r.is_empty()) {
+        let len_str = rest
+            .strip_prefix(':')
+            .or_else(|| rest.strip_prefix('(').and_then(|r| r.strip_suffix(')')))
+            .ok_or_else(|| {
+                anyhow!("invalid field type '{raw}' (expected string, string:N or String(N))")
+            })?
+            .trim();
+        let len = len_str.parse::<u32>().ok().filter(|&n| n > 0).ok_or_else(|| {
+            anyhow!(
+                "invalid string length '{len_str}' in field type '{raw}' \
+                 (expected a positive integer, e.g. String(32))"
+            )
+        })?;
         return Ok(FieldType::String(len));
     }
     match s.as_str() {
@@ -701,21 +719,25 @@ fn parse_field_type(raw: &str) -> Result<FieldType> {
         "string" => Ok(FieldType::String(128)),
         "pointer32" | "ptr32" => Ok(FieldType::Pointer32),
         "pointer64" | "ptr64" | "pointer" => Ok(FieldType::Pointer64),
-        other => bail!("unknown field type '{other}' in offsets YAML"),
+        _ => bail!("unknown field type '{raw}' in offsets YAML"),
     }
 }
 
 fn parse_offsets_file(path: &str, fallback_game: &str) -> Result<GameOffsets> {
     let text = std::fs::read_to_string(path)
         .with_context(|| format!("cannot read offsets file '{path}'"))?;
-    let yf: YamlGameFile =
-        serde_yaml::from_str(&text).with_context(|| format!("invalid offsets YAML in '{path}'"))?;
+    parse_offsets_yaml(&text, fallback_game).with_context(|| format!("invalid offsets YAML in '{path}'"))
+}
+
+fn parse_offsets_yaml(text: &str, fallback_game: &str) -> Result<GameOffsets> {
+    let yf: YamlGameFile = serde_yaml::from_str(text)?;
 
     let mut structures = Vec::with_capacity(yf.structures.len());
     for ys in yf.structures {
         let mut fields = Vec::with_capacity(ys.fields.len());
         for yfd in ys.fields {
-            let field_type = parse_field_type(&yfd.field_type)?;
+            let field_type = parse_field_type(&yfd.field_type)
+                .with_context(|| format!("structure '{}', field '{}'", ys.name, yfd.name))?;
             let field_type = match (field_type, yfd.length) {
                 (FieldType::String(_), Some(n)) => FieldType::String(n),
                 (ft, _) => ft,
@@ -2107,6 +2129,115 @@ mod tests {
             .join(rel)
             .to_string_lossy()
             .into_owned()
+    }
+
+    fn field_types(yaml: &str) -> Vec<FieldType> {
+        let go = parse_offsets_yaml(yaml, "fallback").unwrap();
+        go.structures[0].fields.iter().map(|f| f.field_type).collect()
+    }
+
+    #[test]
+    fn offsets_yaml_accepts_type_and_field_type_keys() {
+        let yaml = "
+structures:
+  - name: S
+    fields:
+      - { name: a, type: u32, offset: 0 }
+      - { name: b, field_type: U64, offset: 4 }
+      - { name: c, type: Pointer64, offset: 12 }
+";
+        assert_eq!(
+            field_types(yaml),
+            vec![FieldType::U32, FieldType::U64, FieldType::Pointer64]
+        );
+        // game/version are optional; the CLI game name fills in.
+        assert_eq!(parse_offsets_yaml(yaml, "fallback").unwrap().game, "fallback");
+    }
+
+    #[test]
+    fn offsets_yaml_without_a_type_key_is_rejected() {
+        let err = parse_offsets_yaml("structures: [{name: S, fields: [{name: a, offset: 0}]}]", "g")
+            .unwrap_err();
+        assert!(format!("{err:#}").contains("missing field `type`"), "{err:#}");
+    }
+
+    #[test]
+    fn string_field_type_syntaxes() {
+        for (raw, len) in [
+            ("string", 128),
+            ("String", 128),
+            ("string:64", 64),
+            ("STRING:8", 8),
+            ("String(32)", 32),
+            ("string(32)", 32),
+            (" String( 16 ) ", 16),
+        ] {
+            assert_eq!(parse_field_type(raw).unwrap(), FieldType::String(len), "{raw}");
+        }
+        // `length` overrides the size of any string spelling.
+        let yaml = "
+structures:
+  - name: S
+    fields:
+      - { name: a, type: string, length: 11, offset: 0 }
+      - { name: b, field_type: String(32), length: 4, offset: 16 }
+";
+        assert_eq!(field_types(yaml), vec![FieldType::String(11), FieldType::String(4)]);
+    }
+
+    #[test]
+    fn malformed_string_lengths_are_rejected() {
+        for raw in ["String(abc)", "string:", "String()", "string(0)", "String(-1)", "string:4x"] {
+            let err = parse_field_type(raw).unwrap_err().to_string();
+            assert!(err.contains("invalid string length"), "{raw}: {err}");
+            assert!(err.contains(raw.trim()), "{raw}: {err}");
+        }
+        for raw in ["String(32", "String32", "string[32]", "strings"] {
+            let err = parse_field_type(raw).unwrap_err().to_string();
+            assert!(err.contains("expected string, string:N or String(N)"), "{raw}: {err}");
+        }
+        assert!(parse_field_type("u128").unwrap_err().to_string().contains("unknown field type 'u128'"));
+    }
+
+    #[test]
+    fn bad_field_type_error_names_the_field() {
+        let yaml = "structures: [{name: Player, fields: [{name: nick, field_type: String(x), offset: 0}]}]";
+        let err = format!("{:#}", parse_offsets_yaml(yaml, "g").unwrap_err());
+        assert!(err.contains("structure 'Player', field 'nick'"), "{err}");
+        assert!(err.contains("String(x)"), "{err}");
+    }
+
+    #[test]
+    fn bundled_afk_journey_offsets_load() {
+        let go = parse_offsets_file(&repo_file("games/afk-journey/offsets.yaml"), "afk-journey").unwrap();
+        assert_eq!(go.game, "afk-journey");
+        let names: Vec<&str> = go.structures.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["PlayerState", "Resources", "TeamState", "HeroInfo"]);
+        let player = &go.structures[0];
+        assert_eq!(player.base_offset, 0x1A2B3C00);
+        let nickname = player.fields.iter().find(|f| f.name == "nickname").unwrap();
+        assert_eq!(nickname.field_type, FieldType::String(32));
+        assert_eq!(nickname.offset, 0x10);
+        let heroes = go.structures[2].fields.iter().find(|f| f.name == "heroes_ptr").unwrap();
+        assert_eq!(heroes.field_type, FieldType::Pointer64);
+        // PlayerState ends with a u64 at 0x34.
+        assert_eq!(build_scan_patterns(&go)[0].span(), 0x3C);
+    }
+
+    #[test]
+    fn every_offsets_yaml_in_the_repo_loads() {
+        for rel in [
+            "games/afk-journey/offsets.yaml",
+            "spectre-game/games/afk-journey.yaml",
+            "examples/practice-offsets.yaml",
+        ] {
+            let go = parse_offsets_file(&repo_file(rel), "x").unwrap_or_else(|e| panic!("{rel}: {e:#}"));
+            assert!(!go.structures.is_empty(), "{rel}");
+            assert!(go.structures.iter().all(|s| !s.fields.is_empty()), "{rel}");
+        }
+        let practice = parse_offsets_file(&repo_file("examples/practice-offsets.yaml"), "x").unwrap();
+        let types: Vec<FieldType> = practice.structures[0].fields.iter().map(|f| f.field_type).collect();
+        assert_eq!(types, vec![FieldType::U32, FieldType::U8, FieldType::String(11)]);
     }
 
     #[test]

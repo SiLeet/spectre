@@ -258,10 +258,12 @@ Things to know:
   [docs/game-integration.md](../docs/game-integration.md).
 - `spectre scan afk-journey [--pid N | --dump FILE]` uses
   `games/afk-journey/offsets.yaml`. That file contains **placeholder**
-  offsets, and in 0.2.0 `scan` cannot load it at all (`missing field 'type'`:
-  the file uses `field_type: U32`, `scan` reads `type: u32`). Until that is
-  fixed, pass your own file with `--offsets`, written like
-  `practice-offsets.yaml`.
+  offsets, so its matches are layout hits, not your gold. Pass your own file
+  with `--offsets`, written like `practice-offsets.yaml` (`type: u32` and
+  `field_type: U32` both work, see
+  [docs/game-integration.md](../docs/game-integration.md#field-types)). The
+  0.2.0 release binary cannot load the bundled file at all
+  (`missing field 'type'`); builds from the current source can.
 - For an Android emulator add `--adb` to `find`, `search`, `dump` and
   `regions` (needs `adb` on PATH and a connected device, see `spectre adb list`).
 
@@ -356,8 +358,6 @@ and `bot` (`click`, `swipe`, `wait`, `log`).
   want may not be among them; leave it off while hunting.
 - `spectre bot` ignores per-task `interval_ms`, `conditions` and `schedule`
   (see step 3).
-- `spectre scan afk-journey` cannot load the bundled placeholder offsets
-  (see step 2).
 
 ## Next steps
 

@@ -168,10 +168,31 @@
   über deutlich mehr Zyklen (≥6) UND nur Slots, die in beiden Zuständen über Minuten
   stabil sind, plus Live-Probe.
 
+### ✅ T24: Bot produktiv — Scheduler live, Daily-Gift automatisiert (2026-10-31)
+- **Windows Task `Spectre AFK Bot`** (15-Minuten-Takt, nur interaktiv) ruft
+  `scripts/afk-bot-watch.sh --scheduled` auf. Live bestätigt: 32 Läufe / 27
+  verifizierte Claims im Log, Läufe feuern pünktlich alle 15 min.
+- **Idle-Gate**: `--min-idle` via `GetLastInputInfo` — SKIP (exit 5), wenn der PC
+  in Benutzung ist (live: 114 s < 180 s → SKIP). Der Bot übernimmt den Screen
+  nie, während Sergej spielt oder arbeitet.
+- **Lock**: `.spectre/afk-bot.lock` serialisiert konkurrierende Läufe (exit 6,
+  stale nach 3 min) — nötig, weil geplante und manuelle Läufe sich ansonsten
+  in die Tap-Sequenz greifen (live erlebt).
+- **Daily Journey's Gift** (`scripts/afk-daily-gift.py`): öffnet Login Rewards
+  (schwebt in der Welt → Kamera-Pan-Suche mit Orange-Probe), tippt nur Zeilen
+  mit grünem Badge (G−R>40 = geclaimed + heute; Zukunfts-Tage grau, werden nie
+  angetippt → kein Kauf-Risiko aus den Event-Tabs), dismissed „Rewards Obtained"
+  und die Item-Info-Tooltips geclaimter Zeilen. Live: Day 3 geclaimt
+  („Rewards Obtained", 10 Briefe); No-Op-Pfad verifiziert.
+- **Wichtiges UI-Faktum:** Der Login-Rewards-Eintrag **verschwindet**, sobald die
+  Tagesbelohnung geholt ist — fehlender Button = „heute schon geclaimt" (exit 0).
+- `--scheduled` läuft das Daily-Gift einmal pro Tag nach dem ersten erfolgreichen
+  Chest-Claim (Marker `.spectre/daily-gift-last.txt`).
+
 ## Bonus (Claude)
 
 ### ✅ Release-Workflow (PR #7)
-- GitHub Actions Release-Job baut `spectre.exe` und publisht Release v0.2.0. Merged + CI grün.
+ - GitHub Actions Release-Job baut `spectre.exe` und publisht Release v0.2.0. Merged + CI grün.
 
 ---
 

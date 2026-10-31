@@ -4,7 +4,9 @@
 //! UID so /proc/<pid>/mem is readable).
 
 use spectre_core::types::{ScanMatch, ScanPattern, ScanValue, ValueType};
-use spectre_native::{create_default_reader, NativeReader};
+use spectre_native::create_default_reader;
+#[cfg(windows)]
+use spectre_native::NativeReader;
 use std::process::{Child, Command};
 use std::time::Duration;
 

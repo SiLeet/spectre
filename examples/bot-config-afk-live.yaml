@@ -79,6 +79,28 @@ tasks:
       - !InputClick
         x: 474
         y: 1010
+      # Second pass: if the first attempt desynced (a panel was open, a popup was
+      # in the way), this one still lands. Claiming an empty chest is a no-op.
+      - !Wait
+        millis: 800
+      - !InputClick
+        x: 60
+        y: 1036
+      - !Wait
+        millis: 2500
+      - !InputClick
+        x: 975
+        y: 760
+      - !Wait
+        millis: 1800
+      - !InputClick
+        x: 960
+        y: 602
+      - !Wait
+        millis: 1500
+      - !InputClick
+        x: 474
+        y: 1010
       - !Log
         message: "claim_afk: tap sequence done (AFK chest claimed, panel closed)"
         level: Info

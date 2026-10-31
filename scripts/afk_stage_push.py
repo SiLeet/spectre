@@ -25,6 +25,7 @@ import afk_claim_vision as v  # noqa: E402
 REPO = Path(__file__).resolve().parent.parent
 BATTLE_BTN = (1280, 1000)
 AUTO_BATTLE_BTN = (780, 1000)
+SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
 AFK_PROGRESS = (60, 1036)
 
 
@@ -43,8 +44,9 @@ def classify_battle(img) -> str:
         return 'LOADING'
     if arena[2] > arena[0] + 50 and arena[2] > 150:
         return 'BATTLE'
-    if card > 200:
-        return 'RESULT'
+    if card > 160:   # victory ~232, defeat ~183, prep arena ~82
+        title = v.avg(img, (960, 60))
+        return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     if v.avg(img, BATTLE_BTN)[1] > 150:
         return 'PREP'
     return 'UNKNOWN'
@@ -125,6 +127,9 @@ def main() -> int:
         v.tap(AUTO_BATTLE_BTN, 4.0)
         st, _ = wait_for({'BATTLE', 'LOADING'}, 30, 'sp_auto_start')
         print(f'    auto battle started ({st})', flush=True)
+        if st == 'BATTLE':
+            v.tap(SPEED_X2_BTN, 1.5)      # 2x speed; x4 needs premium (locked)
+            print('    2x speed enabled', flush=True)
         t0 = time.time()
         stable, last = 0, st
         while time.time() - t0 < args.auto_minutes * 60:
@@ -133,6 +138,9 @@ def main() -> int:
             print(f'    t+{int(time.time()-t0):>3}s: {st}', flush=True)
             # Victory cards and reward popups flash by mid-run; only a return to
             # the prep screen (or the launcher) really ends auto battle.
+            if st == 'DEFEAT':
+                print(f'    DEFEAT after {int(time.time()-t0)}s — stage wall reached', flush=True)
+                break
             if st in ('BATTLE', 'LOADING', 'RESULT', 'UNKNOWN'):
                 stable = 0
                 if st == 'UNKNOWN' and last == 'UNKNOWN':

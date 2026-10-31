@@ -54,6 +54,9 @@ def classify_battle(img) -> str:
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     # the AFK panel has the same green Battle button as the prep screen; its
     # orange "Claim" chip at (1390,704) is the reliable difference
+    back = v.lum(v.avg(img, v.BACK))
+    if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
+        return 'STATS'
     claim = v.avg(img, (1390, 704))
     if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
         return 'AFK_PANEL'
@@ -68,6 +71,8 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
     while time.time() - t0 < timeout:
         img = v.shot(tag)
         last = classify_battle(img)
+        if last == 'STATS':
+            v.tap(v.BACK, 1.5)
         if last in states:
             return last, img
         time.sleep(2.0)
@@ -113,6 +118,11 @@ def main() -> int:
                 break
             if st in ('BATTLE', 'LOADING'):
                 st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL'}, args.max_battle_seconds, 'sp_wait')
+                continue
+            if st == 'STATS':
+                v.tap(v.BACK, 1.5)
+                st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL', 'BATTLE'}, 20, 'sp_stats')
+                print(f'    stats overlay dismissed: {st}', flush=True)
                 continue
             if st == 'AFK_PANEL':
                 v.tap((960, 910), 4.0)
@@ -162,7 +172,10 @@ def main() -> int:
             if st == 'DEFEAT':
                 print(f'    DEFEAT after {int(time.time()-t0)}s — stage wall reached', flush=True)
                 break
-            if st in ('BATTLE', 'LOADING', 'RESULT', 'UNKNOWN'):
+            if st == 'STATS':
+                v.tap(v.BACK, 1.5)
+                stable = 0
+            elif st in ('BATTLE', 'LOADING', 'RESULT', 'UNKNOWN'):
                 stable = 0
                 if st == 'UNKNOWN' and last == 'UNKNOWN':
                     stable += 1

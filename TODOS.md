@@ -94,6 +94,15 @@
 ### ✅ T16: AFK-Beispiel-Bots (examples/bot-config-afk.yaml, safe_claim) — erledigt 2026-10-31 (#17)
 ### ✅ T17: Native Linux-Reader (pread auf /proc/<pid>/mem) — erledigt 2026-10-31 (#18)
 ---
+## P4 — Für Claude (neu, 2026-11-01, ohne Live-Gerät machbar)
+- ⬜ **T18: v0.4.0-Release vorbereiten** — Version-Bump + CHANGELOG für
+  hunt/hot/offsets/range-search (Tag wird von Hermes gesetzt). Brief in CLAUDE-TASKS.md.
+- ⬜ **T19: Bot-Loop ehrt Task-Config** — schedule > interval > default pro Task,
+  Task-Kopf-Bedingungen. Brief in CLAUDE-TASKS.md.
+- ⬜ **T20: CLI-Referenz + README auf hunt/hot/offsets/range-search** aktualisieren.
+  Brief in CLAUDE-TASKS.md.
+- 📌 Hermes macht weiterhin den **Live-Teil** (hot am Gerät läuft seit b56f897;
+  nächster Schritt: Gold-Offset-Bestätigung per Action-Diff).
 
 ## Bonus (Claude)
 

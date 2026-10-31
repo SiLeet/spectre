@@ -681,3 +681,123 @@ AUFGABE:
 
 BRANCH: feature/T17-linux-reader
 ```
+
+---
+---
+
+## T18 — Release-Pipeline für v0.4.0 vorbereiten (hunt/hot/offsets/range-search)
+
+**Berührt:** `Cargo.toml` + `spectre-*/Cargo.toml` (Version-Bump), `CHANGELOG.md` (neu anlegen),
+`.github/workflows/ci.yml`/`release.yml` NUR falls nötig. **KEINE** Crate-Quellcode-Änderungen.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND: main enthält inzwischen CLI-Features, die noch in KEINEM Release
+sind: `spectre hunt` (Commit 3e742dd), `spectre hot` (T13 + Fix b56f897),
+`spectre offsets` (T15), `spectre search --min/--max` (T14). Letztes Release
+ist v0.3.0 und hat davon nichts. Der Release-Workflow (.github/workflows/
+release.yml) baut bereits per Tag v* — vorbereiten muss man nur Versionen,
+Changelog und den Tag-Commit.
+
+AUFGABE:
+  1. Version-Bump 0.3.0 -> 0.4.0 in ALLEN Cargo.toml (Workspace-Root + alle
+     Crates; Achtung: workspace.dependencies vs. eigene Version-Felder
+     prüfen, keine Abhängigkeits-Versionsangaben zwischen Crates brechen).
+  2. CHANGELOG.md im Repo-Root neu anlegen mit Abschnitt "0.4.0 (2026-11-01)"
+     und den Features seit 0.3.0, belegt durch die Commits (git log):
+     - spectre hunt (CLI, Diff-basierte Offset-Kandidaten)
+     - spectre hot (On-Device-Scan, xxd/od+grep, nur Treffer über adb)
+     - spectre offsets (YAML-Viewer + Validator)
+     - spectre search --min/--max (Range-Suche, auch f32)
+     - spectre adb list/ping (Bluestacks-Discovery)
+  3. KEIN Tag pushen! Nur den Vorbereitungs-Commit auf Branch
+     feature/T18-release-v040. Der Tag v0.4.0 wird anschließend von einem
+     Menschen/Hermes gesetzt, damit CI einmal sauber durchläuft.
+  4. DoD: cargo check/test/clippy grün, CHANGELOG verlinkt Feature-Namen,
+     keine Quellcode-Änderungen.
+
+BRANCH: feature/T18-release-v040
+```
+
+
+## T19 — Bot-Loop: Intervall/Bedingungen/Zeitplan pro Task respektieren
+
+**Berührt:** `spectre-bot/src/engine.rs`, `spectre-bot/src/scheduler.rs`, config-Deserialisierung, Tests. **KEINE** anderen Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND (bekannte Grenze, offen kommuniziert in examples/):
+Die Bot-Engine führt Tasks aus, ignoriert aber pro Task-Konfiguration:
+  - interval (wie oft der Task in der Schleife laufen darf)
+  - Bedingungen am Task-Kopf (conditions) — nur Bedingungen IN Aktionen
+    werden ausgewertet
+  - schedule (cron) — existiert im Scheduler, wird aber von der Loop
+    nicht konsistent mit interval abgestimmt
+Ziel: Die Loop soll eine TaskConfig korrekt respektieren:
+  a) schedule gesetzt -> Task nur zu den Cron-Zeiten starten
+  b) sonst interval gesetzt -> Task höchstens alle N Sekunden starten
+  c) sonst -> bei jeder Loop-Iteration (wie bisher)
+Bedingungen am Task-Kopf sollen vor dem ersten Start ausgewertet werden
+(field via ConditionSource, siehe engine.rs handle_condition) und die
+Task-Ausführung überspringen, solange sie false sind.
+
+AUFGABE:
+  1. Lies spectre-bot/src/engine.rs + scheduler.rs und die TaskConfig-
+     Struktur (wo auch immer definiert, vermutlich spectre-core oder
+     spectre-bot/config.rs). Dokumentiere die IST-Semantik in einem
+     Kommentar.
+  2. Implementiere: Task-Loop ehrt schedule > interval > default.
+     - Cron-Parsing existiert bereits (chrono, T7) — wiederverwenden.
+     - Intervall-Tracking pro Task-Instanz (letzter Start-Zeitstempel),
+       nicht global.
+     - Wenn ein Task wegen schedule/interval/Bedingung übersprungen
+       wird: debug!-Log-Eintrag mit Grund.
+  3. Tests (mindestens):
+     - Task mit interval: läuft nicht zweimal innerhalb des Intervalls
+     - Task mit schedule: startet nur zum Cron-Zeitfenster (Test mit
+       injizierter Zeitquelle, nicht echten Sleep)
+     - Task-Kopf-Bedingung false -> Task wird übersprungen, andere Tasks
+       laufen trotzdem
+  4. Backward-kompatibel: fehlende Felder = default = jede Iteration.
+     Bestehende Tests unverändert grün.
+
+BRANCH: feature/T19-bot-loop-config
+```
+
+
+---
+
+## T20 — CLI-Referenz + README auf hunt/hot/offsets/range-search aktualisieren
+
+**Berührt:** `docs/cli-reference.md`, `README.md`. **KEINE** Crates.
+
+```
+KONTEXT-Teil (oben) + folgende Aufgabe:
+
+HINTERGRUND: docs/cli-reference.md (417 Zeilen, T5) und README wurden vor
+mehreren CLI-Features geschrieben. Es fehlen Doku-Abschnitte für:
+  - spectre hunt <pid> <min> <max> [--type u32|u64|f32|f64] [--interval]
+    [--bytes] [--heap-min] [--limit] [--context] [--adb]
+  - spectre hot <pid> <hex> --adb [--base] [--limit] [--json]
+  - spectre offsets [--check]
+  - spectre search ... --min A --max B (T14)
+  - spectre adb list | ping (Bluestacks-Discovery)
+Zusätzlich: README-Feature-Tabelle/Beispiele ergänzen, und im README einen
+Abschnitt "Live-Offset-Discovery" mit einem kurzen Ablauf: search -> dump ->
+hunt -> hot (Referenz auf docs/memory-first.md und docs/afk-journey-guide.md).
+
+AUFGABE:
+  1. Ermittle die exakten Argumente aus spectre-cli/src/main.rs und den
+     jeweiligen Modulen (hunt.rs etc.) — Doku NICHT aus dem Kopf erfinden.
+  2. docs/cli-reference.md: für jedes neue Kommando einen Abschnitt mit
+     Syntax, Optionen, Beispiel(en) — Beispiele aus echten Lauf-Helpern
+     ableiten (nicht erfundene Zahlen).
+  3. README: Feature-Liste + Quickstart um hunt/hot/offsets ergänzen.
+  4. Markdown linten (keine kaputten Links/Code-Blöcke).
+  5. DoD: docs referenzieren existierende Flags 1:1; cargo nicht nötig,
+     aber git diff auf Tippfehler prüfen.
+
+BRANCH: feature/T20-cli-docs
+```

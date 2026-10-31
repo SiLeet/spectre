@@ -47,6 +47,11 @@ def classify_battle(img) -> str:
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
         title = v.avg(img, (960, 60))
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
+    # the AFK panel has the same green Battle button as the prep screen; its
+    # orange "Claim" chip at (1390,704) is the reliable difference
+    claim = v.avg(img, (1390, 704))
+    if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
+        return 'AFK_PANEL'
     if v.avg(img, BATTLE_BTN)[1] > 150:
         return 'PREP'
     return 'UNKNOWN'
@@ -96,25 +101,30 @@ def main() -> int:
     st = classify_battle(img)
     print(f'    initial battle screen state: {st}', flush=True)
 
-    if st not in ('PREP', 'RESULT'):
+    if st not in ('PREP', 'RESULT', 'DEFEAT'):
         # enter the stage screen through the AFK panel
         for _ in range(3):
             if st in ('PREP', 'RESULT'):
                 break
             if st in ('BATTLE', 'LOADING'):
-                st, _ = wait_for({'PREP', 'RESULT'}, args.max_battle_seconds, 'sp_wait')
+                st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL'}, args.max_battle_seconds, 'sp_wait')
+                continue
+            if st == 'AFK_PANEL':
+                v.tap((960, 910), 4.0)
+                st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'BATTLE'}, 25, 'sp_prep')
+                print(f'    after AFK panel Battle: {st}', flush=True)
                 continue
             v.tap(v.BACK, 1.2)
             v.tap(AFK_PROGRESS, 3.0)
             v.tap((960, 910), 4.0)          # "Battle" in the AFK panel
-            st, _ = wait_for({'PREP', 'RESULT', 'BATTLE'}, 30, 'sp_enter')
+            st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'BATTLE'}, 30, 'sp_enter')
             print(f'    after entering: {st}', flush=True)
     if st == 'BATTLE':
         st, _ = wait_for({'PREP', 'RESULT'}, args.max_battle_seconds, 'sp_wait2')
     if st == 'LAUNCHER':
         print('    ERROR: game crashed / not running (BlueStacks launcher) — restart the game', flush=True)
         return 3
-    if st not in ('PREP', 'RESULT'):
+    if st not in ('PREP', 'RESULT', 'DEFEAT'):
         print(f'    ERROR: not on a battle screen ({st})', flush=True)
         return 1
 

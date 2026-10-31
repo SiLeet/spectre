@@ -62,7 +62,20 @@ fi
 
 mkdir -p "$OUT_DIR/logs"
 LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
+
+# Preferred path: the vision driver only taps after verifying the screen state
+# (and after a team_power memory preflight). Falls back to the CLI tap sequence
+# only when python/PIL is unavailable — never on a state mismatch, that is
+# exactly what produced silent no-ops before.
+if python -c 'import PIL' >/dev/null 2>&1; then
+  {
+    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (vision driver)"
+    python scripts/afk-claim-vision.py --pid "$pid" --base "$base" 2>&1
+  } | tee -a "$LOG"
+  exit "${PIPESTATUS[0]}"
+fi
+
 {
-  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base"
+  echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) pid=$pid heap_base=$base (CLI tap fallback, no PIL)"
   "$SPECTRE" -v bot "$OUT" --adb --once 2>&1
 } | tee -a "$LOG"

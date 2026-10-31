@@ -504,9 +504,31 @@ The wrapper writes `.spectre/afk-live.generated.yaml` (gitignored), appends to
 3 when the heap base can't be resolved — safe to call from cron/Task Scheduler
 every 15 minutes.
 
-**Caveat:** the taps are blind. If a purchase/bundle dialog happens to be open
-when a round fires, a tap can land on it. Only schedule the wrapper while the
-game is idling on the homestead screen, or supervise the first hours.
+### State-checked claims (preferred)
+
+`scripts/afk-claim-vision.py` screenshots the emulator, classifies the screen
+(WORLD / PANEL / POPUP) from a few luminance/contrast probes and only taps when
+the expected screen is up. The classification is day/night-safe (the game tints
+the world, not the UI) and was validated offline against 13 labelled
+screenshots. Together with a `team_power` memory preflight (refuses when the pid
+or heap base is stale) this replaces the blind tap sequence:
+
+```
+preflight team_power = 259850
+initial state: WORLD
+after chest tap: POPUP
+after claim: PANEL
+claim verified (popup closed, panel back)
+```
+
+`afk-bot-watch.sh` uses this driver whenever `PIL` is importable and only falls
+back to the CLI tap sequence when it is not. A state mismatch now aborts the
+round instead of firing blind taps — that failure mode is what silently skipped
+three claims earlier.
+
+**Caveat:** the taps are blind in *position*; the state gate ensures the target
+screen is up, but a purchase/bundle dialog on top of it would still be tapped.
+Only schedule the wrapper while the game idles on the homestead screen.
 
 ## Known limitations (0.4.0)
 

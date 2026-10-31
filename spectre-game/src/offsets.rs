@@ -54,6 +54,10 @@ pub struct YamlFieldDef {
     /// Optional human-readable description.
     #[serde(default)]
     pub desc: Option<String>,
+    /// Optional byte length of a string field (overrides `string`'s default
+    /// of 128); the same key the CLI's `--offsets` loader accepts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<u32>,
 }
 
 /// Deserialize a `u64` from either a YAML integer or a string in decimal or
@@ -141,8 +145,17 @@ fn parse_field_type(raw: &str) -> Option<FieldType> {
     }
 }
 
+/// The core type of a YAML field: its type string plus an optional `length`
+/// for strings.  `None` if the type string is unknown.
+pub(crate) fn resolve_field_type(yf: &YamlFieldDef) -> Option<FieldType> {
+    match (parse_field_type(&yf.field_type)?, yf.length) {
+        (FieldType::String(_), Some(n)) => Some(FieldType::String(n)),
+        (ft, _) => Some(ft),
+    }
+}
+
 fn to_field_def(yf: &YamlFieldDef) -> Option<FieldDef> {
-    let field_type = match parse_field_type(&yf.field_type) {
+    let field_type = match resolve_field_type(yf) {
         Some(ft) => ft,
         None => {
             warn!(
@@ -192,14 +205,18 @@ impl From<YamlGameFile> for LoadedOffsets {
     }
 }
 
-/// Load and convert a single YAML offsets file into core types.
-pub fn load_file(path: impl AsRef<Path>) -> Result<LoadedOffsets> {
+/// Read and deserialize a single YAML offsets file without converting it,
+/// e.g. to inspect or [`validate`](crate::validate::validate) it.
+pub fn read_yaml_file(path: impl AsRef<Path>) -> Result<YamlGameFile> {
     let path = path.as_ref();
     let text =
         fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
-    let yaml: YamlGameFile = serde_yaml::from_str(&text)
-        .with_context(|| format!("failed to parse {}", path.display()))?;
-    Ok(yaml.into())
+    serde_yaml::from_str(&text).with_context(|| format!("failed to parse {}", path.display()))
+}
+
+/// Load and convert a single YAML offsets file into core types.
+pub fn load_file(path: impl AsRef<Path>) -> Result<LoadedOffsets> {
+    Ok(read_yaml_file(path)?.into())
 }
 
 /// Candidate `games/` directories: relative to the CWD, the crate dir, and

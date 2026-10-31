@@ -80,6 +80,12 @@
 - docs/afk-journey-guide.md (Screens, Währungen, sichere Trigger-Aktionen), docs/memory-first.md.
 - TODOS.md + CLAUDE-TASKS.md als Übergabe für parallele Claude-Arbeit.
 
+### ✅ T13: On-device Hot-Scan (`spectre hot`) — erledigt 2026-10-31 (#14)
+- xxd+grep auf dem Gerät, nur Treffer über adb; byte-aligned, Chunk-Overlap. ⚠️ Noch nicht live am Gerät getestet.
+### ✅ T14: Range-Suche (`search --min/--max`) — erledigt 2026-10-31 (#15)
+### ✅ T15: `spectre offsets` + Validator — erledigt 2026-10-31 (#16)
+### ✅ T16: AFK-Beispiel-Bots (examples/bot-config-afk.yaml, safe_claim) — erledigt 2026-10-31 (#17)
+### ✅ T17: Native Linux-Reader (pread auf /proc/<pid>/mem) — erledigt 2026-10-31 (#18)
 ---
 
 ## Bonus (Claude)

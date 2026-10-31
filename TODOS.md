@@ -219,7 +219,16 @@
   Kampfkraft-Sortierung, 2 Kämpfe). Danach: Versuche aufgebraucht (5/5), das
   Spiel bot einen **Diamanten-Kauf** („Warrior's Guarantee x1") — erkannt,
   CANCELLED und Run gestoppt (T36-Kategorie: Kauf-Risiko). Daily fertig.
-- ⬜ T28: Dream Realm (7/7) — Flow explorieren.
+- ✅ T28: Dream Realm (7/7) — Flow automatisiert + live verifiziert (2026-11-01, 09f3e41).
+  `scripts/afk_dream_realm.py` läuft 2/2 Kämpfe sauber (Chances 7/7 → 4/7,
+  Highest Damage 99.2 % / 1,807,104), Exit in WORLD. Kern-Erkenntnisse: der
+  Elite-Challenge-Kampf ist ein ~90 s Damage-Race (kein Win/Lose) — alter Code
+  wartete nur 75 s und las den laufenden Kampf als Niederlage; Prep-Battle-
+  Button sitzt bei (1280,1010), (960,1010) ist dort der SKIP-Button (nie
+  antippen). Endzustand ist eine helle „BATTLE ENDED“-Karte (orangefarbener
+  Banner, „Tap to close“ unten mitte), keine dim Popup-Sequence; danach ggf.
+  Rewards-Popup/Hero-Card. State-Probes statt OCR, keine Blind-Taps bei
+  unbekannten Frames. Chances verbrauchen sich wie Arena-Versuche (Daily).
 - ⬜ T29: Legend Trial / Arcane Labyrinth / Honor Duel — Flows explorieren.
 - ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).
 - ⬜ T31: Mail/Quest-Log-Reminder (nur claimen, wenn Marker-Tag alt) prüfen.

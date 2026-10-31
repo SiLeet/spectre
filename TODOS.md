@@ -313,3 +313,9 @@ verifiziert live, committet, markiert. Safety im Prompt: keine Käufe/Keys/
 Leveling (T29/T33/T35 bleiben Policy-Blocker), Lock-Check gegen den 15-Min-Task
 (.spectre/afk-bot.lock < 20 min = warten), Patch-Dateien statt heredoc-Quoting.
 Queue-Laufs landen im Cron-Historie + TODOS.md. Stop: cronjob_manage pause/remove.
+- 🟦 T30-Fund 2 (00:1x): Die Homestead-Kamera driftet (Scheduled-Läufe + Taps
+  schieben sie). Welt-Anker (Battle Modes-Button, Login Rewards) sind
+  kamera-abhängig — Feld-Taps landen dann auf falschen Objekten (Battle Modes
+  statt Feld). Kandidat für Kamera-Reset: der Kompass-Button (960,800) (unklar).
+  Nächster Versuch: Compass-Tap → verifizieren, dass die Feld-Icons an den
+  bekannten Positionen wieder auftauchen → dann Walk+Harvest-Flow.

@@ -198,4 +198,11 @@ mod tests {
         let cfg = BotConfig::from_yaml_file(path).unwrap();
         assert!(cfg.tasks.iter().any(|t| t.schedule.is_some()));
     }
+
+    #[test]
+    fn afk_example_config_loads() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/bot-config-afk.yaml");
+        let cfg = BotConfig::from_yaml_file(path).unwrap();
+        assert_eq!(cfg.tasks.len(), 3);
+    }
 }

@@ -2264,6 +2264,7 @@ structures:
             "games/afk-journey/offsets.yaml",
             "spectre-game/games/afk-journey.yaml",
             "examples/practice-offsets.yaml",
+            "examples/afk-offsets-placeholder.yaml",
         ] {
             let go = parse_offsets_file(&repo_file(rel), "x").unwrap_or_else(|e| panic!("{rel}: {e:#}"));
             assert!(!go.structures.is_empty(), "{rel}");

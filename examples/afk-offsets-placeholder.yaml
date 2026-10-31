@@ -1,0 +1,28 @@
+# PLACEHOLDER offsets for examples/bot-config-afk.yaml (AFK Journey).
+#
+# !!! Every base_offset below is a dummy — REPLACE it with an address you
+# !!! verified yourself (see examples/README.md, "AFK Journey pattern").
+#
+# The bot resolves each field as the absolute address
+# `base_offset + offset`, so one structure per value with `offset: 0`
+# keeps it simple: put the address you found straight into `base_offset`.
+# Heap addresses change on every game start; re-check them after a restart.
+
+game: afk-journey
+version: "placeholder"
+structures:
+  - name: Gold
+    base_offset: 0xDEADBEEF   # REPLACE with verified gold address
+    fields:
+      - name: gold
+        type: i64
+        offset: 0
+        desc: "Gold coins (Town screen, top-left)"
+
+  - name: Exp
+    base_offset: 0xCAFEBABE   # REPLACE with verified EXP address
+    fields:
+      - name: exp
+        type: u64
+        offset: 0
+        desc: "Player experience points"

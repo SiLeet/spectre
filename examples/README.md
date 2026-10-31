@@ -12,6 +12,7 @@ a real one.
 | [2](#step-2--the-same-on-a-real-game-afk-journey) | Same workflow on AFK Journey | the game |
 | [3](#step-3--validate-a-bot-config) | Validate a bot config | nothing |
 | [4](#step-4--lua-scripts) | Run Lua scripts | practice target (game + adb for `afk-bot.lua`) |
+| [5](#step-5--afk-journey-pattern-from-placeholder-to-real-offset) | Turn a placeholder offset into a real one | the game |
 
 All output below is real output from spectre 0.2.0 on Windows 11, shortened
 where marked with `...`. Your PIDs, addresses and hit counts will differ.
@@ -25,7 +26,9 @@ where marked with `...`. Your PIDs, addresses and hit counts will differ.
 | `practice-offsets.yaml` | Offsets file describing the practice target's memory layout |
 | `practice.lua` | Lua script that watches the practice score (reads only, no adb) |
 | `bot-config.yaml` | Demo bot config for AFK Journey (three tasks, one cron-scheduled) |
-| `afk-bot.lua` | Demo Lua bot for AFK Journey (needs the game and adb) |
+| `afk-bot.lua` | Demo Lua bot for AFK Journey, modes `battle` and `safe_claim` (needs the game and adb) |
+| `bot-config-afk.yaml` | AFK Journey bot with only safe actions (claim rewards, idle check, Homestead) — placeholders |
+| `afk-offsets-placeholder.yaml` | Placeholder gold/EXP addresses (`0xDEADBEEF`, `0xCAFEBABE`) for `bot-config-afk.yaml` |
 
 ---
 
@@ -299,7 +302,8 @@ game process from `metadata.process`; without it spectre stops with
 Note that the CLI loop runs **every enabled task's actions each round and
 then sleeps `default_interval_ms`** — per-task `interval_ms`, task-level
 `conditions` and `schedule` are validated but not applied yet. Guard steps
-with `!MemoryCheck` / `!Condition` actions instead.
+with `!Condition` actions instead: a failed `!MemoryCheck` only prints a
+warning, the actions after it still run.
 
 ---
 
@@ -340,9 +344,112 @@ To run it for real you need the game, real offsets in place of the
 `0x12345678` placeholders, and `adb` with a connected device for the clicks
 (`--input-backend adb` is the default).
 
+`afk-bot.lua` has a second mode, `safe_claim`, that only reads gold/EXP and
+claims login rewards every five minutes, logging gold before and after the
+claim. Select it with `$env:SPECTRE_MODE = "safe_claim"` (bash:
+`SPECTRE_MODE=safe_claim`). Its `OFFSET_GOLD = 0xDEADBEEF` and
+`OFFSET_EXP = 0xCAFEBABE` are placeholders: until you replace them it logs
+`read at 0xDEADBEEF failed` and does not click.
+
 Scripts get two modules: `spectre` (`read_u32`, `read_u64`, `read_i32`,
 `read_f32`, `read_string`, `read_fields`, `regions`, `find_process`, `scan`)
 and `bot` (`click`, `swipe`, `wait`, `log`).
+
+---
+
+## Step 5 — AFK Journey pattern: from placeholder to real offset
+
+`bot-config-afk.yaml` and the `safe_claim` mode of `afk-bot.lua` use only the
+zero-risk actions from [docs/afk-journey-guide.md](../docs/afk-journey-guide.md#trigger-actions-for-offset-confirmation-cheap--safe):
+claim login rewards, read gold/EXP, Homestead visitor requests. They ship
+with placeholder addresses. Check the file first:
+
+```
+> spectre bot examples/bot-config-afk.yaml --dry-run
+config validated successfully:
+  instance:         default
+  input backend:    adb
+  default interval: 300000 ms
+  memory poll:      250 ms
+  enabled:          true
+  tasks:            3
+    - claim_rewards (interval=0 ms, enabled=true, actions=1)
+    - idle_check (interval=0 ms, enabled=true, actions=3)
+    - homestead_request (interval=0 ms, enabled=false, actions=6)
+```
+
+`homestead_request` is disabled on purpose: bundle (real-money) popups can
+appear on Homestead entry and its tap positions are not in the guide. All
+three tasks run once per round, every `default_interval_ms` = 5 minutes
+(see step 3 for why per-task timing does not apply).
+
+To replace a placeholder — here gold, shown in the Town screen top-left:
+
+1. **Note the value and find the process.** The game rounds: "259K" means
+   somewhere between 259000 and 259999.
+
+   ```powershell
+   spectre find afk                     # note the PID, e.g. 12345
+   ```
+
+2. **Hunt the range.** `hunt` dumps the busiest heaps twice, 5 s apart, and
+   keeps values inside the range that did not change. Do not touch the game
+   meanwhile.
+
+   > **Not in the 0.2.0 or 0.3.0 release binaries:** `hunt` is only in a
+   > build from source of the current `main` (step 0 (b)). With a release
+   > binary, narrow the value down with `search` as in step 2 instead.
+
+   ```powershell
+   spectre hunt 12345 259000 259999 --context
+   spectre hunt 12345 259000 259999 --type u64 --context   # if gold is 8 bytes
+   ```
+
+   Note the top few candidate addresses.
+
+3. **Confirm with a safe action and `dumpdiff`.** Dump a range around a
+   candidate, do a safe action that gives gold, dump again. Check first that
+   it really gives gold: the Journey's Gift reward can be diamonds only, or
+   nothing ("Tomorrow"); the AFK Treasure Chest in Homestead gives gold.
+
+   ```powershell
+   spectre dump 12345 0x1a2b3c00 4096 --format raw --output before.dump
+   # ...claim Journey's Gift (if it has gold) or the AFK Treasure Chest...
+   spectre dump 12345 0x1a2b3c00 4096 --format raw --output after.dump
+   spectre dumpdiff before.dump after.dump --base 0x1a2b3c00
+   ```
+
+   The address whose bytes grew by the claimed amount is gold. A value that
+   moved by something else is a copy or unrelated; one that did not move
+   only rules itself out if the action really gave gold.
+
+4. **Put it into the offsets file.** In `examples/afk-offsets-placeholder.yaml`
+   replace `base_offset: 0xDEADBEEF` with the address (the bot reads
+   `base_offset + offset`, and `offset` is `0`). Same for EXP and
+   `0xCAFEBABE`. For the Lua bot set `OFFSET_GOLD` / `OFFSET_EXP` in
+   `afk-bot.lua`. Fix the `type:` if `hunt` found it as `u32` instead of
+   `i64`/`u64`.
+
+5. **Verify.** One round, with logs:
+
+   ```powershell
+   spectre -v bot examples/bot-config-afk.yaml --once
+   ```
+
+   `memory check 'gold' passed` instead of
+   `ReadProcessMemory at 0xdeadbeef failed` means the address is readable;
+   the `safe_claim` Lua mode also prints the gold before and after the claim.
+
+Things to know:
+
+- Heap addresses change on every game start: after a restart, repeat steps
+  2-4, or follow a pointer chain to a stable base
+  (`spectre chain`, [docs/game-integration.md](../docs/game-integration.md)).
+- `spectre bot` and `spectre script` read memory **natively** only. An
+  address found with `hunt/search/dump --adb` inside an Android emulator
+  cannot be read by them; only the CLI commands with `--adb` can.
+- Lines marked `REPLACE` in the YAML/Lua are coordinates or addresses that
+  are not verified (coordinates are for BlueStacks 1920x1080).
 
 ---
 
@@ -358,6 +465,8 @@ and `bot` (`click`, `swipe`, `wait`, `log`).
   want may not be among them; leave it off while hunting.
 - `spectre bot` ignores per-task `interval_ms`, `conditions` and `schedule`
   (see step 3).
+- `spectre bot` and `spectre script` have no `--adb` memory reader (see
+  step 5).
 
 ## Next steps
 

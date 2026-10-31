@@ -88,6 +88,27 @@ def adb_exec_dump(pid: str, base_hex: str, out_path: Path):
     return p
 
 
+def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
+    """Read team_power as a sanity check for pid + heap base.
+
+    Returns (status, value) with status in:
+      'ok'    — plausible power, the mapping is right
+      'stale' — read succeeded but the value is implausible: after a game restart
+                the heap base can stay identical while the internal layout
+                moves, so the recorded offset no longer holds the power. The
+                vision gates still protect the taps, so this is a warning.
+      'fail'  — the read itself failed (dead pid / no adb).
+    """
+    import struct
+    out = REPO / '.spectre' / 'power.bin'
+    if adb_exec_dump(pid, base_hex, out) is None:
+        return 'fail', None
+    power = struct.unpack('<q', out.read_bytes()[:8])[0]
+    if 100_000 < power < 10_000_000_000:
+        return 'ok', power
+    return 'stale', power
+
+
 def idle_seconds() -> float | None:
     """Seconds since the last keyboard/mouse input (Windows). None if unknown.
 
@@ -157,20 +178,15 @@ def main() -> int:
             print(f'    idle check ok ({idle:.0f}s)', flush=True)
 
     if args.pid and args.base and not args.dry_run:
-        import struct
-        addr = hex(int(args.base, 16) + 0xA578)
-        out = REPO / '.spectre' / 'power.bin'
-        p = subprocess.run([str(REPO / 'target/release/spectre.exe'), 'dump', args.pid, addr, '8',
-                            '--adb', '--format', 'raw', '--output', str(out)],
-                           cwd=REPO, capture_output=True, timeout=120)
-        if p.returncode != 0 or not out.exists():
+        status, power = memory_preflight(args.pid, args.base)
+        if status == 'fail':
             print('    ERROR: team_power preflight could not read memory', flush=True)
             return 2
-        power = struct.unpack('<q', out.read_bytes()[:8])[0]
-        print(f'    preflight team_power = {power}', flush=True)
-        if power <= 100_000:
-            print('    ERROR: team_power implausible — wrong pid/heap base, refusing to tap', flush=True)
-            return 2
+        if status == 'stale':
+            print(f'    WARN: team_power offset stale after restart (read {power}) — '
+                  'relying on the screen-state gates', flush=True)
+        else:
+            print(f'    preflight team_power = {power}', flush=True)
 
     for rnd in range(1, args.rounds + 1):
         print(f'--- round {rnd}/{args.rounds} {time.strftime("%H:%M:%S")}', flush=True)

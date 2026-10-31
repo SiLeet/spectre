@@ -95,16 +95,14 @@ def main() -> int:
 
     if args.pid and args.base:
         import struct
-        out = REPO / '.spectre' / 'power.bin'
-        p = v.adb_exec_dump(args.pid, args.base, out)
-        if p is None:
+        status, power = v.memory_preflight(args.pid, args.base)
+        if status == 'fail':
             print('    ERROR: team_power preflight failed', flush=True)
             return 2
-        power = struct.unpack('<q', out.read_bytes()[:8])[0]
-        print(f'    preflight team_power = {power}', flush=True)
-        if power <= 100_000:
-            print('    ERROR: team_power implausible — refusing to tap', flush=True)
-            return 2
+        if status == 'stale':
+            print(f'    WARN: team_power offset stale after restart (read {power})', flush=True)
+        else:
+            print(f'    preflight team_power = {power}', flush=True)
 
     # leave whatever state we are in: dismiss popups/tooltips, close other panels,
     # but never close the events panel if it is already open

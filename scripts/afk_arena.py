@@ -11,6 +11,10 @@ Maps the verified T27 flow (TODOS.md 'T27 (Teilstand)'):
      selection; tap Challenge! again for the next attempt
   6. stop after --fights attempts, or on repeated unknown states
 
+NOTE: the single-fight path is the verified one (3 live runs). Chaining several
+fights in one run needs the victory-card dismissal to line up, which is flaky —
+the scheduler calls this script once per attempt instead.
+
 Verification: every step takes a screenshot into .spectre/shots/ and classifies
 it via afk_stage_push.classify_battle where reliable; the arena screens have
 their own look, so the script additionally checks that the screen CHANGED
@@ -102,9 +106,39 @@ def screen_signature(img: Image.Image) -> tuple[int, int, int]:
     return avg(img, (960, 540)), avg(img, (960, 300)), avg(img, (500, 540))
 
 
+
+def arena_state(img: Image.Image) -> str:
+    """Classify the arena chain: RESULT card, PREP (Battle button) or SELECT."""
+    card = avg(img, (960, 300))
+    if sum(card) / 3 > 190:                 # bright victory/defeat card
+        return 'RESULT'
+    btn = avg(img, ARENA_BATTLE)
+    if btn[1] > 120 and btn[1] > btn[0] + 20 and btn[1] > btn[2] + 20:
+        return 'PREP'                       # green Battle button at the bottom
+    return 'SELECT'
+
+
+def advance_to_fight(tag: str, steps: int = 6) -> str:
+    """Drive the arena chain to a running fight: dismiss results, pick the left
+    (lowest-power) opponent, press Battle on the prep screen."""
+    for i in range(steps):
+        img = shot(f'{tag}_step{i}')
+        st = arena_state(img)
+        print(f'    [{tag}] step {i}: {st}', flush=True)
+        if st == 'RESULT':
+            tap((480, 300), 1.5)            # dismiss the result card
+        elif st == 'PREP':
+            tap(ARENA_BATTLE, 3.0)
+            return 'PREP'
+        else:
+            tap(OPPONENT_LEFT, 2.5)         # left card = lowest combat power
+    return 'STUCK'
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument('--fights', type=int, default=4)
+    ap.add_argument('--fights', type=int, default=1,
+                    help='fights per run; the verified path is 1 — call the script N times for N attempts')
     ap.add_argument('--wait-fight', type=float, default=80,
                     help='seconds to wait for one arena fight to resolve')
     ap.add_argument('--dry-run', action='store_true')
@@ -129,21 +163,16 @@ def main() -> int:
     wins = 0
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
-        if fight > 1:
-            # after a resolved fight: Challenge! -> Select Opponent -> prep
-            tap(CHALLENGE_AGAIN, 3.0)
-            tap(OPPONENT_LEFT, 2.0)
-        # the prep screen (Arena I, teams placed) has its own Battle button
-        tap(ARENA_BATTLE, 3.0)
-        img = shot(f'arena_3_f{fight}_start')
-        sig_before = screen_signature(img)
-
-        # the fight runs on its own; wait for it to resolve
+        st = advance_to_fight(f'arena_f{fight}')
+        if st != 'PREP':
+            print(f'    ERROR: could not reach a fight ({st}) — aborting', flush=True)
+            break
+        sig_before = screen_signature(shot(f'arena_{fight}_start'))
         time.sleep(args.wait_fight)
-        img = shot(f'arena_3_f{fight}_after')
+        img = shot(f'arena_{fight}_after')
         sig_after = screen_signature(img)
         changed = sum(dist(a, b) for a, b in zip(sig_before, sig_after)) > 40
-        print(f'    changed={changed} sig_before={sig_before} sig_after={sig_after}', flush=True)
+        print(f'    changed={changed} {sig_before} -> {sig_after}', flush=True)
         if not changed:
             print('    WARN: screen unchanged after the fight — aborting', flush=True)
             break

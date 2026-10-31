@@ -269,3 +269,7 @@ Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9
   Schwächster Gegner = kleinste Kampfkraft. Zu prüfen: ist die Liste aufsteigend
   sortiert (dann ist "linke Karte" korrekt)? Wenn nicht: Ziffern-Reader für den
   Power-Strip (Template-Matching) oder Refresh-bis-schwächster-links.
+- ✅ T27b (YAGNI-Schnitt 19:3x): Mehrkampf-Kette ist fragil (Victory-Card-Dismiss +
+  Prep-Erkennung). Statt State-Loop-Feintuning: `afk_arena.py --fights 1` ist der
+  verifizierte Pfad (3 Live-Läufe, changed=True), der Scheduler ruft es N-mal auf.
+  Multi-Fight-Chaining bleibt als optionaler Ausbau notiert, nicht als Blocker.

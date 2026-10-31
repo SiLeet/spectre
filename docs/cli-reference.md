@@ -448,10 +448,12 @@ you: a little-endian u32 `259000` is `b8f30300`.
 
 Text output is one address per line and a `-- N match(es)` summary line.
 
-> **Limitation.** A match must fit inside one 256-byte `od` line, so an
-> occurrence that starts in the last (pattern length − 1) bytes of a line is
-> missed (about 1% for a 4-byte pattern), and a pattern longer than 256 bytes
-> never matches although up to 4096 bytes are accepted. Re-check a missing
+> **Limitation.** A match must fit inside one 256-byte `od` line. Lines start
+> 256-byte aligned, so a naturally aligned value (`u32` at a 4-byte, `u64` at
+> an 8-byte address) is never missed; an unaligned occurrence that starts in
+> the last (pattern length − 1) bytes of a line is (3/256 ≈ 1.2% of unaligned
+> positions for 4 bytes, 7/256 ≈ 2.7% for 8 bytes), and a pattern longer
+> than 256 bytes never matches although up to 4096 bytes are accepted. Re-check a missing
 > address with `spectre dump`.
 
 ```bash
@@ -690,10 +692,13 @@ table followed by `found N device(s)`. If no device is listed, it prints
 `no ADB devices found` and (*main only*) falls back to BlueStacks NXT
 discovery: it reads every `bst.instance.<name>.adb_port` entry from
 `%PROGRAMDATA%\BlueStacks_nxt\bluestacks.conf`, runs
-`adb connect 127.0.0.1:<port>` for each, and lists the instances that report
-`device` with `BlueStacks` as the model. Instances that are not running are
-skipped with a warning. The printed serial `127.0.0.1:<port>` is the host
-and port to pass as `--adb-host` / `--adb-port` (`scan`, `hunt`, `hot`,
+`adb connect 127.0.0.1:<port>` for each, and lists every instance whose
+`adb connect` output says `connected` (the device state is not checked;
+STATE always shows `device`, MODEL `BlueStacks`), followed by
+`found N BlueStacks instance(s) — start the emulator if none are ready`, or
+`no BlueStacks instance ready (is the emulator running?)` if none connects.
+Instances that do not connect are skipped with a warning. The printed
+serial `127.0.0.1:<port>` is the host and port to pass as `--adb-host` / `--adb-port` (`scan`, `hunt`, `hot`,
 `serve`); commands with only `--adb` (`dump`, `search`, `find`, ...) always
 use `127.0.0.1:5555`.
 
@@ -703,11 +708,15 @@ round-trip latency in milliseconds and `OK` (state `device`) or
 prints adb's error and exits with 1.
 
 **adb binary** (*main only*). Both subcommands, and the `--adb` backend of
-every other command, use `adb` from `PATH` if it is there, otherwise the
-first existing one of `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`,
+every other command, pick the first match of: a file named exactly `adb`
+on `PATH`, `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`,
 `C:\Program Files\BlueStacks_nxt\HD-Adb.exe`,
-`%PROGRAMDATA%\BlueStacks_nxt\HD-Adb.exe` and `adb.exe` in the current
-folder. v0.3.0 only uses `adb` from `PATH`.
+`%PROGRAMDATA%\BlueStacks_nxt\HD-Adb.exe`, and finally plain `adb` resolved
+through `PATH`. On Windows the first check never matches `adb.exe`, so an
+installed SDK or BlueStacks adb wins over the `adb.exe` on `PATH` (a known
+bug; mixing adb versions makes them restart each other's server). An
+`adb.exe` in the current folder is only used if that folder is on `PATH`
+too. v0.3.0 only uses `adb` from `PATH`.
 
 ```bash
 spectre adb list

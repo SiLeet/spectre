@@ -54,6 +54,12 @@ def classify_battle(img) -> str:
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     # the AFK panel has the same green Battle button as the prep screen; its
     # orange "Claim" chip at (1390,704) is the reliable difference
+    # "Turn off Auto Battle?" / exit confirmations: bright round X at (1014,710)
+    # and a green round check at (1155,710). Never confirm — cancel instead.
+    xbtn = v.avg(img, (1014, 710))
+    okbtn = v.avg(img, (1155, 710))
+    if v.lum(xbtn) > 200 and okbtn[1] > okbtn[0] + 30 and okbtn[1] > 90:
+        return 'CONFIRM'
     back = v.lum(v.avg(img, v.BACK))
     if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
         return 'STATS'
@@ -73,6 +79,8 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
         last = classify_battle(img)
         if last == 'STATS':
             v.tap(v.BACK, 1.5)
+        elif last == 'CONFIRM':
+            v.tap((1014, 710), 1.5)   # cancel, never confirm
         if last in states:
             return last, img
         time.sleep(2.0)
@@ -152,47 +160,51 @@ def main() -> int:
         v.tap(AUTO_BATTLE_BTN, 4.0)
         st, _ = wait_for({'BATTLE', 'LOADING'}, 12, 'sp_auto_start')
         if st in ('PREP', 'RESULT', 'DEFEAT'):
-            # Auto Battle is not available right now (observed locked after a
-            # defeat); fall back to a single battle via the green button.
-            print('    auto battle not available — using a single battle', flush=True)
-            v.tap(BATTLE_BTN, 3.0)
-            st, _ = wait_for({'BATTLE', 'LOADING'}, 25, 'sp_single_start')
-        print(f'    auto battle started ({st})', flush=True)
-        if st == 'BATTLE':
-            v.tap(SPEED_X2_BTN, 1.5)      # 2x speed; x4 needs premium (locked)
-            print('    2x speed enabled', flush=True)
-        t0 = time.time()
-        stable, last = 0, st
-        while time.time() - t0 < args.auto_minutes * 60:
-            time.sleep(20)
-            st = classify_battle(v.shot(f'sp_auto_{int(time.time()-t0)}'))
-            print(f'    t+{int(time.time()-t0):>3}s: {st}', flush=True)
-            # Victory cards and reward popups flash by mid-run; only a return to
-            # the prep screen (or the launcher) really ends auto battle.
-            if st == 'DEFEAT':
-                print(f'    DEFEAT after {int(time.time()-t0)}s — stage wall reached', flush=True)
-                break
-            if st == 'STATS':
-                v.tap(v.BACK, 1.5)
-                stable = 0
-            elif st in ('BATTLE', 'LOADING', 'RESULT', 'UNKNOWN'):
-                stable = 0
-                if st == 'UNKNOWN' and last == 'UNKNOWN':
-                    stable += 1
-                if st == 'UNKNOWN' and stable >= 3:
-                    print(f'    auto battle ended (stuck on an unknown screen) after {int(time.time()-t0)}s', flush=True)
-                    break
-            elif st == last:
-                stable += 1
-                if stable >= 2:
-                    print(f'    auto battle ended ({st}) after {int(time.time()-t0)}s', flush=True)
-                    break
-            else:
-                stable = 0
-            last = st
+            # Auto Battle is inert after a defeat: fall through to single battles
+            # instead of idling until the timeout.
+            print('    auto battle not available — fighting single battles', flush=True)
+            args.auto = False
+            if args.battles < 3:
+                args.battles = 3
+            st = 'PREP'
         else:
-            print(f'    auto battle still running after {args.auto_minutes:.0f} min — leaving it', flush=True)
-        return 0
+            print(f'    auto battle started ({st})', flush=True)
+            if st == 'BATTLE':
+                v.tap(SPEED_X2_BTN, 1.5)   # x4 is premium-locked; never tap it
+                print('    2x speed enabled', flush=True)
+            t0 = time.time()
+            stable, last = 0, st
+            while time.time() - t0 < args.auto_minutes * 60:
+                time.sleep(20)
+                st = classify_battle(v.shot(f'sp_auto_{int(time.time()-t0)}'))
+                print(f'    t+{int(time.time()-t0):>3}s: {st}', flush=True)
+                if st == 'CONFIRM':
+                    v.tap((1014, 710), 1.5)   # cancel "turn off auto battle?"
+                    stable = 0
+                elif st == 'STATS':
+                    v.tap(v.BACK, 1.5)
+                    stable = 0
+                elif st == 'DEFEAT':
+                    print(f'    DEFEAT after {int(time.time()-t0)}s — stage wall reached', flush=True)
+                    break
+                elif st in ('BATTLE', 'LOADING', 'RESULT'):
+                    stable = 0
+                elif st == 'UNKNOWN':
+                    stable += 1 if last == 'UNKNOWN' else 0
+                    if stable >= 3:
+                        print(f'    auto battle stuck on an unknown screen after {int(time.time()-t0)}s', flush=True)
+                        break
+                elif st == last:
+                    stable += 1
+                    if stable >= 2:
+                        print(f'    auto battle ended ({st}) after {int(time.time()-t0)}s', flush=True)
+                        break
+                else:
+                    stable = 0
+                last = st
+            else:
+                print(f'    auto battle still running after {args.auto_minutes:.0f} min — leaving it', flush=True)
+            return 0
 
     for i in range(1, args.battles + 1):
         v.tap(BATTLE_BTN, 3.0)

@@ -10,8 +10,8 @@
 //!   spectre find <name> [--json] [--adb]
 //!   spectre regions <pid> [--filter PERMS] [--json] [--adb]
 //!   spectre search <pid> <type> <value> [--limit N] [--continue] [--state PATH]
-//!   spectre hot <pid> <hex> --adb [--base ADDR] [--limit N] [--json]
 //!   spectre search <pid> <type> --min A --max B [--limit N] [--continue] [--state PATH]
+//!   spectre hot <pid> <hex> --adb [--base ADDR] [--limit N] [--json]
 //!   spectre bot <config.yaml> [--once] [--name N] [--dry-run]
 //!   spectre info [--json]
 //!   spectre serve [--port P] [--rate-limit N] [--allow-origin O]...

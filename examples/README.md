@@ -466,8 +466,9 @@ Things to know:
   Search for the two's-complement value instead (`u32 4294967291`).
 - `search --limit N` stops the *first* scan after N hits, so the address you
   want may not be among them; leave it off while hunting.
-- Up to 0.3.0, `spectre bot` ignores per-task `interval_ms`, `conditions`
-  and `schedule`; a build of the current `main` applies them (see step 3).
+- The 0.2.0 and 0.3.0 release binaries of `spectre bot` ignore per-task
+  `interval_ms`, `conditions` and `schedule`; newer builds apply them (see
+  step 3).
 - `spectre bot` and `spectre script` have no `--adb` memory reader (see
   step 5).
 

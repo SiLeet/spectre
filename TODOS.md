@@ -382,3 +382,9 @@ Kauf-Items, Preise, Qty-Angaben) — NICHT den Recruit-Screen. Sofort verlassen.
 Der eigentliche Recruit-Flow (Einzel-Recruit mit 1 Ticket, Daily-Quest
 „Recruit in Noble Tavern x1") braucht eine eigene Vermessung — Blind-Taps in
 Shops sind tabu (Kauf-Risiko). Tickets: 1.260 vorhanden, nicht dringend.
+### 🟨 T38-Update: Noble Tavern Recruit — kostet 300 DIAMANTEN, nicht Tickets
+Recruit 1 (780,874) öffnete „Use Diamond x300?“ (Cancel/Confirm) — die 1.260
+Invite-Letters wurden NICHT automatisch verwendet. Darüber ein „Rate Up Limited
+Bundle I“ für 98 (echtes Geld!). Cancel getippt, nichts gekauft. Der Recruit
+über Tickets braucht vermutlich einen Währungs-Toggle am Recruit-Button —
+Vermessung nötig. Bis dahin: Recruit-Feature blockiert (300💎 = Policy).

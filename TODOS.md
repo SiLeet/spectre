@@ -138,6 +138,20 @@
   Claim → Slot bestätigen. Tooling dafür liegt in `scripts/gold-hunt.sh` + `scripts/gold-analyze.py`
   (3-Zeitpunkt-Dump A/B/C über die großen Heaps, Wallet-Kriterium A≠B, B==C, stabil im Idle).
 
+### 🟦 T22: ui_state-Offset (Panel offen vs. Welt) — Methode gescheitert, Heuristik bleibt
+- Ziel: Claim im Bot verifizierbar machen (statt Reset-Tap-Heuristik).
+- Versuch 1: 4-Zustands-Schnitt W1/P1/W2/P2 über die ersten 4 MB des Hot-Heaps
+  (`scripts/ui-state-hunt.sh`) → 163 u32-Kandidaten (W1==W2, P1==P2, W!=P, Wert ≤255).
+- Versuch 2: Live-Nachprüfung der 6 besten Kandidaten (`scripts/ui-state-verify.sh`,
+  je 2× Welt / 2× Panel) → **alle gefallen**: Werte sind Pointer/Rauschen, kein 0/1-Flip.
+- Lehre: Der Hot-Heap churnt so stark, dass Whole-Heap-Diffs auf dieser Basis keine
+  stabilen State-Slots liefern; jeder Kandidat MUSS live in beiden Zuständen
+  nachgelesen werden, sonst pflanzt man Zufallstreffer in die Config.
+- Bot bleibt bei: 2× Back + Leerraum-Tap vor der Sequenz (verifiziert aus AFK-Panel,
+  Resonating Hall und Hero-Detail). Falls ui_state später gebraucht wird: Kandidaten
+  über deutlich mehr Zyklen (≥6) UND nur Slots, die in beiden Zuständen über Minuten
+  stabil sind, plus Live-Probe.
+
 ## Bonus (Claude)
 
 ### ✅ Release-Workflow (PR #7)

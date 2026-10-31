@@ -215,8 +215,10 @@
   Quick Claim) + Mail (Read All), alle state-gated. Live: 10 Diamonds + 2K Gold
   + 60 XP aus Quests, 100 Diamonds + 20K Gold aus Mail.
 - ✅ T26: Scheduler integriert Daily-Gift + Dailies-Runner (Marker-Files).
-- ⬜ T27: Arena-Flow (4/4 tägliche Versuche) — Battle Modes → Arena-Karte →
-  Fight/Skip-Flow verifizieren (gleiche Screen-Gate-Methode).
+- ✅ T27: Arena-Flow — Live kartiert + `afk_arena.py` (schwachster Gegner via
+  Kampfkraft-Sortierung, 2 Kämpfe). Danach: Versuche aufgebraucht (5/5), das
+  Spiel bot einen **Diamanten-Kauf** („Warrior's Guarantee x1") — erkannt,
+  CANCELLED und Run gestoppt (T36-Kategorie: Kauf-Risiko). Daily fertig.
 - ⬜ T28: Dream Realm (7/7) — Flow explorieren.
 - ⬜ T29: Legend Trial / Arcane Labyrinth / Honor Duel — Flows explorieren.
 - ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).

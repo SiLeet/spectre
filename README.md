@@ -150,6 +150,9 @@ touch games/my-game/offsets.yaml
 ```
 
 See [docs/game-integration.md](docs/game-integration.md) for the full guide.
+Game knowledge (screens, currencies, safe trigger actions) for the target
+title lives in [docs/afk-journey-guide.md](docs/afk-journey-guide.md);
+the memory-first automation principle is in [docs/memory-first.md](docs/memory-first.md).
 
 ## License
 

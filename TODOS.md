@@ -375,3 +375,10 @@ Beträge wachsen passiv, „...received your help." feuert selbstständig. Lesar
 das Spiel sammelt automatisch (Worker-System), die Feld-Icons sind nur Anzeige.
 Falls Sergej einen manuellen Harvest-Weg kennt: Queue wieder öffnen, sonst
 closed — nichts zu automatisieren.
+
+### 🟨 Feature-Notiz (00:4x): Noble Tavern Recruit — Flow ungeklärt, Shop-Gefahr
+Der Tap auf das Tavern-Gebäude öffnete den **Recruitment Store** (Shop mit
+Kauf-Items, Preise, Qty-Angaben) — NICHT den Recruit-Screen. Sofort verlassen.
+Der eigentliche Recruit-Flow (Einzel-Recruit mit 1 Ticket, Daily-Quest
+„Recruit in Noble Tavern x1") braucht eine eigene Vermessung — Blind-Taps in
+Shops sind tabu (Kauf-Risiko). Tickets: 1.260 vorhanden, nicht dringend.

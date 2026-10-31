@@ -279,6 +279,12 @@ impl BotTask {
         }
     }
 
+    /// Interval used for interval-based firing: `interval_ms`, or
+    /// `default_ms` when it is `0`. Not used when `schedule` is set.
+    pub fn effective_interval_ms(&self, default_ms: u32) -> u32 {
+        if self.interval_ms > 0 { self.interval_ms } else { default_ms }
+    }
+
     /// Check whether all guard conditions pass given the raw field values.
     ///
     /// `field_values` maps field name → raw bytes as read from process memory.

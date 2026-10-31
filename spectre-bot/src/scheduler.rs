@@ -4,13 +4,27 @@
 /// at its configured interval (or, for tasks with a cron `schedule`, once
 /// per matching local-time minute), evaluates guard conditions, and
 /// delegates to `BotEngine` for action execution.
+///
+/// Per-task semantics (also what `spectre bot` uses):
+/// - Firing: `schedule` (cron) > `interval_ms` > config `default_interval_ms`.
+///   A cron task starts at most once per matching local minute; an interval
+///   task at most once per interval, measured per task from its last slot.
+///   An interval task's first slot is the first tick after `start()`.
+/// - A due task consumes its slot, then its head `conditions` are checked:
+///   all true -> actions run; any false -> skipped until the next slot; a
+///   failed field read -> skipped (logged, counted as a failure), the loop
+///   and the other tasks keep running.
+/// - Every skip is logged with its reason (debug; failed reads at warn).
+/// - A `Stop` result disables the task for the rest of the run.
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+use chrono::{DateTime, TimeZone};
 use tokio::time::{Duration, Instant};
 
 use crate::actions::{BotCondition, BotTask};
+use crate::config::BotConfig;
 use crate::cron::CronTrigger;
 use crate::engine::BotEngine;
 
@@ -101,6 +115,17 @@ impl TaskScheduler {
         }
     }
 
+    /// Create a scheduler with all tasks, the default interval and the
+    /// global `enabled` switch of `config`.
+    pub fn from_config(config: &BotConfig) -> anyhow::Result<TaskScheduler> {
+        let mut sched = TaskScheduler::new(config.default_interval_ms);
+        sched.global_enabled = config.enabled;
+        for task in &config.tasks {
+            sched.add_task(task)?;
+        }
+        Ok(sched)
+    }
+
     // ── Task Management ────────────────────────────────────────────────
 
     /// Add a task to the scheduler. Tasks are snapshotted at start-time.
@@ -119,7 +144,7 @@ impl TaskScheduler {
             None => tracing::info!(
                 "scheduler: added task '{}' (interval={}ms, enabled={})",
                 task.name,
-                task.interval_ms,
+                task.effective_interval_ms(self.default_interval_ms),
                 task.enabled
             ),
         }
@@ -224,12 +249,29 @@ impl TaskScheduler {
             return;
         }
         self.state.lock().unwrap().shutdown = true;
+        self.wait().await;
+        tracing::info!("scheduler: stopped");
+    }
+
+    /// Wait until the tick loop exits (after `stop()` or Ctrl+C).
+    pub async fn wait(&self) {
         let handle = self.tick_task.lock().unwrap().take();
         if let Some(handle) = handle {
             let _ = handle.await;
         }
         self.running.store(false, Ordering::SeqCst);
-        tracing::info!("scheduler: stopped");
+    }
+
+    /// Run every enabled task once, now, ignoring `schedule` / interval
+    /// timing but still checking head `conditions` (for `bot --once`).
+    pub async fn run_once(&mut self, engine: &BotEngine) {
+        if !self.global_enabled {
+            tracing::debug!("scheduler: globally disabled — nothing to run");
+            return;
+        }
+        for ts in self.tasks.iter_mut().filter(|ts| ts.enabled) {
+            run_task(ts, engine).await;
+        }
     }
 
     /// Pause the tick loop (current tick finishes, then no more until resume).
@@ -290,7 +332,15 @@ async fn run_tick_loop(
         // Check pause
         let paused = state.lock().unwrap().paused;
         if !paused {
-            tick(&mut tasks, global_enabled, default_interval_ms, &engine).await;
+            tick(
+                &mut tasks,
+                global_enabled,
+                default_interval_ms,
+                &engine,
+                Instant::now(),
+                &chrono::Local::now(),
+            )
+            .await;
         }
 
         // Wait for the next tick interval (allows cancellation)
@@ -301,15 +351,17 @@ async fn run_tick_loop(
 }
 
 /// Execute one tick: for each task that is due, check guards and run actions.
-async fn tick(
+///
+/// `now` drives interval tasks and `wall_now` cron tasks; both are passed
+/// in so tests can step time without sleeping.
+async fn tick<Tz: TimeZone>(
     tasks: &mut [TaskState],
     global_enabled: bool,
     default_interval_ms: u32,
     engine: &BotEngine,
+    now: Instant,
+    wall_now: &DateTime<Tz>,
 ) {
-    let now = Instant::now();
-    let wall_now = chrono::Local::now();
-
     for ts in tasks.iter_mut() {
         // 1. Skip disabled tasks or when globally disabled
         if !ts.enabled || !global_enabled {
@@ -320,15 +372,29 @@ async fn tick(
         //    matching minute (the minute is consumed even if the guard
         //    below fails, mirroring how interval tasks consume their slot).
         let due = match ts.cron.as_mut() {
-            Some(trigger) => trigger.should_fire(&wall_now),
+            Some(trigger) => {
+                let due = trigger.should_fire(wall_now);
+                if !due {
+                    tracing::debug!(
+                        "task '{}': not a new '{}' minute — skipping",
+                        ts.task.name,
+                        trigger.schedule()
+                    );
+                }
+                due
+            }
             None => {
-                let interval_ms = if ts.task.interval_ms > 0 {
-                    ts.task.interval_ms
-                } else {
-                    default_interval_ms
-                };
+                let interval_ms = ts.task.effective_interval_ms(default_interval_ms);
                 let interval = Duration::from_millis(interval_ms as u64);
-                ts.last_run.is_none_or(|last| now >= last + interval)
+                let due = ts.last_run.is_none_or(|last| now >= last + interval);
+                if !due {
+                    tracing::debug!(
+                        "task '{}': interval {}ms not elapsed — skipping",
+                        ts.task.name,
+                        interval_ms
+                    );
+                }
+                due
             }
         };
         if !due {
@@ -336,66 +402,76 @@ async fn tick(
         }
         ts.last_run = Some(now);
 
-        // 3. Evaluate guard conditions
-        let field_names = collect_guard_field_names(&ts.task.conditions);
-        let field_values = if field_names.is_empty() {
-            HashMap::new()
-        } else {
-            let result = engine.ctx().read_fields(&field_names);
-            match result {
-                Ok(values) => values,
-                Err(e) => {
-                    tracing::warn!(
-                        "task '{}': guard field read failed: {} — skipping tick",
-                        ts.task.name,
-                        e
-                    );
-                    ts.fail_count += 1;
-                    continue;
-                }
+        run_task(ts, engine).await;
+    }
+}
+
+/// Check a task's head conditions and, if they pass, run its actions.
+async fn run_task(ts: &mut TaskState, engine: &BotEngine) {
+    // 3. Evaluate guard conditions
+    let field_names = collect_guard_field_names(&ts.task.conditions);
+    let field_values = if field_names.is_empty() {
+        HashMap::new()
+    } else {
+        let result = engine.ctx().read_fields(&field_names);
+        match result {
+            Ok(values) => values,
+            Err(e) => {
+                tracing::warn!(
+                    "task '{}': guard field read failed: {} — skipping tick",
+                    ts.task.name,
+                    e
+                );
+                ts.fail_count += 1;
+                return;
             }
-        };
-
-        if !ts.task.guard_passes(&field_values) {
-            tracing::debug!(
-                "task '{}': guard conditions not met — skipping tick",
-                ts.task.name
-            );
-            continue;
         }
+    };
 
-        // 4. Execute the action tree
-        tracing::info!(
-            "task '{}': executing {} actions",
-            ts.task.name,
-            ts.task.actions.len()
+    if !ts.task.guard_passes(&field_values) {
+        tracing::debug!(
+            "task '{}': guard conditions not met — skipping tick",
+            ts.task.name
         );
-        let results = engine.execute_actions(&ts.task.actions).await;
+        return;
+    }
 
-        // 5. Process results
-        let failures = results.iter().filter(|r| r.is_error()).count();
-        let stops = results.iter().filter(|r| r.is_stop()).count();
+    // 4. Execute the action tree
+    tracing::info!(
+        "task '{}': executing {} actions",
+        ts.task.name,
+        ts.task.actions.len()
+    );
+    let results = engine.execute_actions(&ts.task.actions).await;
 
-        if failures > 0 {
-            ts.fail_count += failures as u32;
-            tracing::warn!(
-                "task '{}': {} action(s) failed (total failures: {})",
-                ts.task.name,
-                failures,
-                ts.fail_count
-            );
-        } else {
-            ts.fail_count = 0; // reset on clean tick
+    // 5. Process results
+    for r in &results {
+        if let crate::engine::ActionResult::Error(e) = r {
+            tracing::warn!("task '{}': error: {}", ts.task.name, e);
         }
+    }
+    let failures = results.iter().filter(|r| r.is_error()).count();
+    let stops = results.iter().filter(|r| r.is_stop()).count();
 
-        if stops > 0 {
-            tracing::info!(
-                "task '{}': received {} stop signal(s) — disabling",
-                ts.task.name,
-                stops
-            );
-            ts.enabled = false;
-        }
+    if failures > 0 {
+        ts.fail_count += failures as u32;
+        tracing::warn!(
+            "task '{}': {} action(s) failed (total failures: {})",
+            ts.task.name,
+            failures,
+            ts.fail_count
+        );
+    } else {
+        ts.fail_count = 0; // reset on clean tick
+    }
+
+    if stops > 0 {
+        tracing::info!(
+            "task '{}': received {} stop signal(s) — disabling",
+            ts.task.name,
+            stops
+        );
+        ts.enabled = false;
     }
 }
 
@@ -417,13 +493,7 @@ fn tick_ms_for_tasks(tasks: &[TaskState], default_interval_ms: u32) -> u32 {
     let mut intervals: Vec<u32> = tasks
         .iter()
         .filter(|ts| ts.cron.is_none())
-        .map(|ts| {
-            if ts.task.interval_ms > 0 {
-                ts.task.interval_ms
-            } else {
-                default_interval_ms
-            }
-        })
+        .map(|ts| ts.task.effective_interval_ms(default_interval_ms))
         .collect();
     if tasks.iter().any(|ts| ts.cron.is_some()) {
         intervals.push(CRON_TICK_MS);
@@ -465,6 +535,43 @@ mod tests {
         }
     }
 
+    #[derive(Debug, Default)]
+    struct DumpReader;
+    impl spectre_core::reader::MemoryReader for DumpReader {
+        fn backend_kind(&self) -> spectre_core::types::BackendKind {
+            spectre_core::types::BackendKind::DumpFile
+        }
+        fn find_process(
+            &self,
+            _n: &str,
+        ) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
+            Ok(Vec::new())
+        }
+        fn list_processes(&self) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
+            Ok(Vec::new())
+        }
+        fn memory_regions(
+            &self,
+            _p: u32,
+        ) -> anyhow::Result<Vec<spectre_core::types::MemoryRegion>> {
+            Ok(Vec::new())
+        }
+        fn process_name(&self, _p: u32) -> anyhow::Result<Option<String>> {
+            Ok(None)
+        }
+        fn read_bytes(&self, _p: u32, _a: u64, _s: u32) -> anyhow::Result<Vec<u8>> {
+            Ok(Vec::new())
+        }
+        fn scan(
+            &self,
+            _p: u32,
+            _pat: Vec<spectre_core::types::ScanPattern>,
+            _l: bool,
+        ) -> anyhow::Result<Vec<spectre_core::types::ScanReport>> {
+            Ok(Vec::new())
+        }
+    }
+
     #[test]
     fn gcd_and_tick_computation() {
         assert_eq!(gcd(500, 300), 100);
@@ -488,43 +595,6 @@ mod tests {
             schedule: None,
         };
         sched.add_task(&task).unwrap();
-
-        #[derive(Debug, Default)]
-        struct DumpReader;
-        impl spectre_core::reader::MemoryReader for DumpReader {
-            fn backend_kind(&self) -> spectre_core::types::BackendKind {
-                spectre_core::types::BackendKind::DumpFile
-            }
-            fn find_process(
-                &self,
-                _n: &str,
-            ) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
-                Ok(Vec::new())
-            }
-            fn list_processes(&self) -> anyhow::Result<Vec<spectre_core::types::ProcessInfo>> {
-                Ok(Vec::new())
-            }
-            fn memory_regions(
-                &self,
-                _p: u32,
-            ) -> anyhow::Result<Vec<spectre_core::types::MemoryRegion>> {
-                Ok(Vec::new())
-            }
-            fn process_name(&self, _p: u32) -> anyhow::Result<Option<String>> {
-                Ok(None)
-            }
-            fn read_bytes(&self, _p: u32, _a: u64, _s: u32) -> anyhow::Result<Vec<u8>> {
-                Ok(Vec::new())
-            }
-            fn scan(
-                &self,
-                _p: u32,
-                _pat: Vec<spectre_core::types::ScanPattern>,
-                _l: bool,
-            ) -> anyhow::Result<Vec<spectre_core::types::ScanReport>> {
-                Ok(Vec::new())
-            }
-        }
 
         let engine = std::sync::Arc::new(crate::engine::BotEngine::new(
             Box::new(DumpReader),
@@ -604,6 +674,142 @@ mod tests {
             .add_task(&task("good-cron", 0, Some("*/5 * * * *")))
             .unwrap();
         assert_eq!(sched.task_names(), vec!["good-cron".to_owned()]);
+    }
+
+    /// Context that counts reads of `run:<task>` fields (one per task run),
+    /// serves `hp` = 50 and fails on `broken`.
+    type Counts = Arc<Mutex<HashMap<String, u32>>>;
+    struct CountCtx(Counts);
+    impl ActionContext for CountCtx {
+        fn resolve_field(&self, field_name: &str) -> anyhow::Result<Vec<u8>> {
+            match field_name {
+                "hp" => Ok(50u32.to_le_bytes().to_vec()),
+                "broken" => anyhow::bail!("read failed"),
+                _ => {
+                    *self.0.lock().unwrap().entry(field_name.to_owned()).or_default() += 1;
+                    Ok(0u32.to_le_bytes().to_vec())
+                }
+            }
+        }
+    }
+
+    fn count_engine() -> (BotEngine, Counts) {
+        let counts = Counts::default();
+        let engine = BotEngine::new(
+            Box::new(DumpReader),
+            Box::new(NoopInput),
+            Box::new(CountCtx(Arc::clone(&counts))),
+            crate::engine::HookRegistry::new(),
+        );
+        (engine, counts)
+    }
+
+    /// Task whose single action marks one run in [`CountCtx`].
+    fn counted(name: &str, interval_ms: u32, schedule: Option<&str>) -> BotTask {
+        BotTask {
+            actions: vec![BotAction::MemoryCheck {
+                field: format!("run:{name}"),
+                op: crate::actions::ComparisonOp::GtEq,
+                value: crate::actions::ValueSpec::U64(0),
+            }],
+            ..task(name, interval_ms, schedule)
+        }
+    }
+
+    fn guard(field: &str) -> BotCondition {
+        BotCondition {
+            field: field.into(),
+            op: crate::actions::ComparisonOp::Lt,
+            value: crate::actions::ValueSpec::U64(30),
+        }
+    }
+
+    fn runs(counts: &Counts, name: &str) -> u32 {
+        counts.lock().unwrap().get(&format!("run:{name}")).copied().unwrap_or(0)
+    }
+
+    fn wall(h: u32, mi: u32, sec: u32) -> chrono::DateTime<chrono::Utc> {
+        chrono::Utc.with_ymd_and_hms(2026, 10, 26, h, mi, sec).unwrap()
+    }
+
+    #[tokio::test]
+    async fn interval_task_does_not_run_twice_within_interval() {
+        let (engine, counts) = count_engine();
+        let mut ts = states(&[counted("a", 1000, None), counted("d", 0, None)]);
+        let t0 = Instant::now();
+        let w = wall(10, 0, 0);
+        tick(&mut ts, true, 5000, &engine, t0, &w).await;
+        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(999), &w).await;
+        assert_eq!(runs(&counts, "a"), 1);
+        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(1000), &w).await;
+        assert_eq!(runs(&counts, "a"), 2);
+        // interval_ms = 0 uses the default (5000 ms).
+        assert_eq!(runs(&counts, "d"), 1);
+        tick(&mut ts, true, 5000, &engine, t0 + Duration::from_millis(5000), &w).await;
+        assert_eq!(runs(&counts, "d"), 2);
+    }
+
+    #[tokio::test]
+    async fn cron_task_starts_only_in_matching_minute() {
+        let (engine, counts) = count_engine();
+        // A 1 ms interval_ms would fire every tick: schedule must win.
+        let mut ts = states(&[counted("c", 1, Some("*/15 * * * *"))]);
+        let t0 = Instant::now();
+        let mut step = 0u64;
+        for (h, mi, sec, expect) in [
+            (10, 7, 0, 0),
+            (10, 15, 0, 1),
+            (10, 15, 30, 1), // same minute: no second start
+            (10, 16, 0, 1),
+            (10, 30, 5, 2),
+        ] {
+            step += 1;
+            let now = t0 + Duration::from_secs(step * 60);
+            tick(&mut ts, true, 500, &engine, now, &wall(h, mi, sec)).await;
+            assert_eq!(runs(&counts, "c"), expect, "at {h}:{mi}:{sec}");
+        }
+    }
+
+    #[tokio::test]
+    async fn false_or_unreadable_head_condition_skips_only_that_task() {
+        let (engine, counts) = count_engine();
+        let mut guarded = counted("guarded", 0, None);
+        guarded.conditions = vec![guard("hp")]; // hp = 50, needs < 30
+        let mut broken = counted("broken", 0, None);
+        broken.conditions = vec![guard("broken")]; // read fails
+        let mut ts = states(&[guarded, broken, counted("free", 0, None)]);
+
+        tick(&mut ts, true, 500, &engine, Instant::now(), &wall(10, 0, 0)).await;
+        assert_eq!(runs(&counts, "guarded"), 0);
+        assert_eq!(runs(&counts, "broken"), 0);
+        assert_eq!(ts[1].fail_count, 1);
+        assert_eq!(runs(&counts, "free"), 1);
+    }
+
+    #[tokio::test]
+    async fn run_once_ignores_timing_but_applies_conditions() {
+        let (engine, counts) = count_engine();
+        let mut guarded = counted("guarded", 0, None);
+        guarded.conditions = vec![guard("hp")];
+        let mut off = counted("off", 0, None);
+        off.enabled = false;
+        let cfg = BotConfig {
+            tasks: vec![counted("cron", 0, Some("0 0 1 1 *")), guarded, off],
+            ..BotConfig::default()
+        };
+        let mut sched = TaskScheduler::from_config(&cfg).unwrap();
+        sched.run_once(&engine).await;
+        assert_eq!(runs(&counts, "cron"), 1);
+        assert_eq!(runs(&counts, "guarded"), 0);
+        assert_eq!(runs(&counts, "off"), 0);
+
+        let mut sched = TaskScheduler::from_config(&BotConfig {
+            enabled: false,
+            ..cfg
+        })
+        .unwrap();
+        sched.run_once(&engine).await;
+        assert_eq!(runs(&counts, "cron"), 1);
     }
 
     #[derive(Default)]

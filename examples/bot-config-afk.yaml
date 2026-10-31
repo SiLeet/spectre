@@ -15,11 +15,14 @@
 #     resolutions need other values. Lines marked REPLACE are not in the
 #     guide at all — find them on your own screen.
 #
-# How `spectre bot` runs this file today (spectre-cli):
-#   - Every round it runs ALL enabled tasks, top to bottom, then sleeps
-#     `default_interval_ms`. Per-task `interval_ms`, task-level `conditions`
-#     and `schedule` are validated but NOT applied yet.
-#     So the 300000 ms below is what really makes this run every 5 minutes.
+# How `spectre bot` runs this file (bot crate TaskScheduler):
+#   - Each task has its own timing: `schedule` (cron) if set, else
+#     `interval_ms`, else `default_interval_ms` (300000 ms = 5 minutes here).
+#     Task-level `conditions` are checked before each start; if one is false
+#     or its field cannot be read, that task is skipped and the other tasks
+#     still run (an unreadable field is a warning; other skips need `-vv`).
+#   - `--once` runs every enabled task one time right away, ignoring
+#     `schedule`/interval but still checking task-level `conditions`.
 #   - `!MemoryCheck` does NOT stop the actions after it: a failed check only
 #     prints a warning. To make a click depend on memory, use `!Condition`.
 #   - `!Log` and passed checks log at info level: add `-v` to see them.
@@ -39,7 +42,7 @@ metadata:
 
 input_backend: adb
 enabled: true
-default_interval_ms: 300000    # one round every 5 minutes (see above)
+default_interval_ms: 300000    # tasks without interval_ms/schedule: every 5 minutes
 memory_poll_ms: 250
 
 tasks:
@@ -85,9 +88,8 @@ tasks:
           message: "claim_rewards: gold <= 0 — skipped"
           level: Warn
 
-  # b) Idle check — read gold and EXP every round (= every 5 minutes, see
-  #    default_interval_ms). `schedule` states the intent for the library
-  #    scheduler (TaskScheduler); spectre-cli ignores it today.
+  # b) Idle check — read gold and EXP every 5 minutes on the clock
+  #    (:00, :05, :10, ...), driven by `schedule`.
   - name: idle_check
     enabled: true
     schedule: "*/5 * * * *"

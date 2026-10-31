@@ -207,9 +207,10 @@ spectre bot my-bot.yaml --once
 ```
 
 The bot needs the process named in `metadata.process` (or `metadata.pid`) to
-be running. In 0.2.0 the CLI loop runs every enabled task's actions each
-round and then sleeps `default_interval_ms`; per-task `interval_ms`,
-`conditions` and cron `schedule` are validated but not applied yet.
+be running. Each task runs on its own timing (cron `schedule`, else
+`interval_ms`, else `default_interval_ms`) and only while its `conditions`
+hold; `--once` runs every enabled task once, ignoring the timing. (Up to
+0.3.0 the CLI loop ran every task each `default_interval_ms` instead.)
 
 ## Running a Lua Script
 

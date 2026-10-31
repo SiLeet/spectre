@@ -379,13 +379,12 @@ spectre bot [FLAGS] [OPTIONS] <config>
 | `--once` | Run once and exit (no scheduling loop) |
 | `-n`, `--name <name>` | Bot instance name (for multi-bot setups) |
 
-Without `--once`, the CLI runs the actions of every enabled task, then
-sleeps `default_interval_ms`, and repeats.
-
-> **Current limitation.** The CLI loop does not use the bot crate's
-> `TaskScheduler` yet: per-task `interval_ms` and task-level `conditions`
-> are shown by `--dry-run` but not applied. Use `!MemoryCheck` / `!Condition`
-> actions inside a task to guard its steps.
+Without `--once`, the bot crate's `TaskScheduler` runs each enabled task on
+its own timing: cron `schedule` if set, else `interval_ms`, else
+`default_interval_ms`. Task-level `conditions` are checked before each
+start; a false condition or an unreadable field skips only that task.
+`--once` runs every enabled task once, ignoring the timing but not the
+`conditions`. `--dry-run` prints each task's effective timing.
 
 ```bash
 spectre bot examples/bot-config.yaml --dry-run
@@ -620,8 +619,7 @@ plus either `interval_ms` (`0` or omitted = `default_interval_ms`) or a
 cron-style `schedule` such as `"0 */6 * * *"` (minute hour day month
 weekday; supports `*`, values, ranges, `*/n` steps and lists). A bad
 `schedule` is rejected when the config is loaded. `conditions` are guard
-conditions for the bot crate's scheduler; see the limitation under
-[`bot`](#bot) — the CLI loop validates `schedule` but does not honour it yet.
+conditions checked before each task start (see [`bot`](#bot)).
 
 Actions and values are Rust enums and are written with **YAML tags**:
 

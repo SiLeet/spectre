@@ -4,6 +4,7 @@ use spectre_core::error::SpectreError;
 use spectre_core::reader::MemoryReader;
 use spectre_core::scanner::{ScanConfig, scan_memory};
 use spectre_core::types::{BackendKind, MemoryRegion, ProcessInfo, ScanPattern, ScanReport};
+use tracing::warn;
 
 /// ADB-backed MemoryReader implementation for Android emulators.
 ///
@@ -296,5 +297,415 @@ fn char_to_nibble(ch: char) -> u8 {
         'a'..='f' => (ch as u8) - b'a' + 10,
         'A'..='F' => (ch as u8) - b'A' + 10,
         _ => 0,
+    }
+}
+
+// ── On-device pattern grep (hot scan) ─────────────────────────────────────
+
+/// Longest pattern [`AdbReader::grep_memory`] accepts: each chunk reads one
+/// extra page, which must cover any match that starts in the chunk.
+pub const GREP_MAX_PATTERN: usize = 4096;
+
+impl AdbReader {
+    /// Search `regions` of `pid` for byte `patterns` *on the device*, so only
+    /// match offsets cross the adb pipe instead of a full hex dump.
+    ///
+    /// Regions are read in page-aligned chunks of `chunk` bytes (rounded up
+    /// to whole pages; 1 MiB is a good default). Only matches inside
+    /// `[start, end)` of a region are reported, so a region may start
+    /// unaligned. A chunk the device cannot read is logged and skipped; if
+    /// no chunk at all can be read (no root, dead pid) this is an error.
+    /// Scanning stops early once `limit` matches are found (0 = unlimited).
+    ///
+    /// Returns `(absolute address, pattern index)` pairs sorted by address.
+    pub fn grep_memory(
+        &self,
+        pid: u32,
+        regions: &[MemoryRegion],
+        patterns: &[Vec<u8>],
+        chunk: u32,
+        limit: usize,
+    ) -> Result<Vec<(u64, usize)>> {
+        grep_regions(pid, regions, patterns, chunk, limit, |cmd| {
+            self.run_adb_shell(cmd)
+        })
+    }
+}
+
+/// Core of [`AdbReader::grep_memory`], with the shell runner injected for tests.
+fn grep_regions(
+    pid: u32,
+    regions: &[MemoryRegion],
+    patterns: &[Vec<u8>],
+    chunk: u32,
+    limit: usize,
+    mut run: impl FnMut(&str) -> Result<String>,
+) -> Result<Vec<(u64, usize)>> {
+    const PAGE: u64 = 4096;
+    if patterns.is_empty() {
+        bail!("grep_memory needs at least one pattern");
+    }
+    if let Some(p) = patterns
+        .iter()
+        .find(|p| p.is_empty() || p.len() > GREP_MAX_PATTERN)
+    {
+        bail!(
+            "pattern length {} out of range (1..={GREP_MAX_PATTERN} bytes)",
+            p.len()
+        );
+    }
+    // Hex-encoding here is also the injection guard: only [0-9a-f ] reaches the shell.
+    let tokens: Vec<String> = patterns.iter().map(|p| hex_tokens(p)).collect();
+    let chunk = u64::from(chunk.max(1)).div_ceil(PAGE) * PAGE;
+
+    let mut hits = Vec::new();
+    let mut readable = 0usize;
+    let mut last_err = None;
+    'scan: for r in regions {
+        let mut addr = r.start - r.start % PAGE;
+        while addr < r.end {
+            let len = (r.end - addr).min(chunk);
+            // One extra page so a match starting in this chunk but ending in
+            // the next is still seen; `< addr + len` gives each start to exactly
+            // one chunk, so overlapping chunks never report a match twice.
+            let cmd = grep_chunk_command(pid, addr / PAGE, len.div_ceil(PAGE) + 1, &tokens);
+            match run(&cmd).and_then(|out| parse_grep_output(&out, &tokens)) {
+                Ok((found, read)) => {
+                    readable += 1;
+                    if read < len {
+                        warn!("hot scan: short read at {addr:#x}: {read:#x} of {len:#x} bytes");
+                    }
+                    hits.extend(
+                        found
+                            .into_iter()
+                            .map(|(off, idx)| (addr + off, idx))
+                            .filter(|&(a, _)| a >= r.start && a < addr + len),
+                    );
+                }
+                Err(e) => {
+                    warn!("hot scan: skipping unreadable chunk {addr:#x}+{len:#x}: {e:#}");
+                    last_err = Some(e);
+                }
+            }
+            addr += len;
+            if limit > 0 && hits.len() >= limit {
+                break 'scan;
+            }
+        }
+    }
+    if let (0, Some(e)) = (readable, last_err) {
+        return Err(e.context(format!("hot scan: no memory of pid {pid} was readable")));
+    }
+    hits.sort_unstable();
+    hits.dedup();
+    if limit > 0 {
+        hits.truncate(limit);
+    }
+    Ok(hits)
+}
+
+/// Device command that greps `count` pages from page `skip` of `/proc/<pid>/mem`.
+///
+/// Why xxd: grep cannot take NUL bytes in `-e` patterns, so memory and
+/// patterns are both compared as hex text. `xxd -p -c1` prints one byte per
+/// line and `tr` turns that into `"b8 f3 03 00 "`: the chunk is one line (no
+/// match lost at a line break) and every byte is a 3-char token, so a match
+/// can only start on a byte boundary (no mid-byte false hit that would also
+/// swallow a real overlapping one) and `grep -b` offset / 3 is the byte offset.
+/// `echo end` lands in the same stream, so its `<3 * bytes read>:end` line
+/// proves the root shell ran and tells how much dd actually read; with no
+/// root nothing (or `0:end`) comes back.
+///
+/// `tokens` must come from [`hex_tokens`] (shell-safe `[0-9a-f ]`).
+fn grep_chunk_command(pid: u32, skip: u64, count: u64, tokens: &[String]) -> String {
+    let es: String = tokens.iter().map(|t| format!(" -e \"{t}\"")).collect();
+    format!(
+        "su -c '(dd if=/proc/{pid}/mem bs=4096 skip={skip} count={count} 2>/dev/null \
+         | xxd -p -c1; echo end) | tr \"\\n\" \" \" | grep -boF{es} -e end' 2>/dev/null"
+    )
+}
+
+/// Parse `grep -bo` lines (`<char offset>:<match>`) into
+/// `((byte offset, pattern index) hits, bytes read)`. A missing or `0:end`
+/// sentinel means the device read nothing, which is an error.
+///
+/// shortcut: `grep -o` reports non-overlapping matches only, so a real
+/// occurrence overlapping an earlier real hit (self-similar patterns like
+/// `00000000` inside a zero run) is missed; re-check with `spectre dump`.
+fn parse_grep_output(output: &str, tokens: &[String]) -> Result<(Vec<(u64, usize)>, u64)> {
+    let mut hits = Vec::new();
+    let mut end = None;
+    for line in output.lines() {
+        let Some((off, m)) = line.split_once(':') else {
+            continue;
+        };
+        let Ok(off) = off.trim().parse::<u64>() else {
+            continue;
+        };
+        let m = m.trim();
+        if m == "end" {
+            end = Some(off);
+        } else if let Some(idx) = tokens.iter().position(|t| t.trim_end() == m) {
+            hits.push((off / 3, idx));
+        }
+    }
+    match end {
+        Some(off) if off > 0 && off.is_multiple_of(3) => Ok((hits, off / 3)),
+        Some(off) if off > 0 => {
+            bail!("unexpected device output (end at {off}); is xxd -c1 supported?")
+        }
+        _ => bail!("device read no memory (no root, dead pid or unreadable page)"),
+    }
+}
+
+/// One `"xx "` token per byte, the format `xxd -p -c1 | tr "\n" " "` produces.
+fn hex_tokens(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x} ")).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn region(start: u64, end: u64) -> MemoryRegion {
+        MemoryRegion {
+            start,
+            end,
+            perms: "rw-p".to_owned(),
+            path: None,
+        }
+    }
+
+    /// What `(xxd -p -c1; echo end) | tr "\n" " " | grep -boF -e ... -e end`
+    /// prints for `data` (checked against the real tools).
+    fn fake_device_grep(data: &[u8], tokens: &[String]) -> String {
+        let line = hex_tokens(data) + "end ";
+        let mut pats: Vec<&str> = tokens.iter().map(String::as_str).collect();
+        pats.push("end");
+        let mut out = String::new();
+        let mut pos = 0;
+        // grep -o: leftmost match, then continue after it (non-overlapping).
+        while let Some((at, p)) = pats
+            .iter()
+            .filter_map(|&p| line[pos..].find(p).map(|i| (pos + i, p)))
+            .min_by_key(|&(at, p)| (at, usize::MAX - p.len()))
+        {
+            out.push_str(&format!("{at}:{p}\n"));
+            pos = at + p.len();
+        }
+        out
+    }
+
+    /// Runner simulating `/proc/<pid>/mem` holding `mem` at `base`; dd stops
+    /// at `failing_page` like a real read error.
+    fn fake_runner<'a>(
+        mem: &'a [u8],
+        base: u64,
+        failing_page: Option<u64>,
+        tokens: &'a [String],
+        calls: &'a mut Vec<(u64, u64)>,
+    ) -> impl FnMut(&str) -> Result<String> + 'a {
+        move |cmd: &str| {
+            let arg = |key: &str| -> u64 {
+                cmd.split_whitespace()
+                    .find_map(|t| t.strip_prefix(key))
+                    .unwrap()
+                    .parse()
+                    .unwrap()
+            };
+            let (skip, mut count) = (arg("skip="), arg("count="));
+            calls.push((skip, count));
+            if let Some(p) = failing_page.filter(|p| (skip..skip + count).contains(p)) {
+                count = p - skip;
+            }
+            let from = (skip * 4096 - base) as usize;
+            let to = (from + (count * 4096) as usize).min(mem.len());
+            Ok(fake_device_grep(&mem[from.min(to)..to], tokens))
+        }
+    }
+
+    type Hits = Vec<(u64, usize)>;
+
+    fn scan(
+        mem: &[u8],
+        base: u64,
+        regions: &[MemoryRegion],
+        pats: &[Vec<u8>],
+        chunk: u32,
+        limit: usize,
+        failing_page: Option<u64>,
+    ) -> (Result<Hits>, Vec<(u64, u64)>) {
+        let tokens: Vec<String> = pats.iter().map(|p| hex_tokens(p)).collect();
+        let mut calls = Vec::new();
+        let run = fake_runner(mem, base, failing_page, &tokens, &mut calls);
+        let hits = grep_regions(1, regions, pats, chunk, limit, run);
+        (hits, calls)
+    }
+
+    #[test]
+    fn hex_tokens_are_lowercase_space_separated_bytes() {
+        assert_eq!(hex_tokens(&[0xde, 0xAD, 0x00, 0x0f]), "de ad 00 0f ");
+    }
+
+    #[test]
+    fn command_contains_only_numeric_and_hex_inputs() {
+        let cmd = grep_chunk_command(1234, 5, 257, &[hex_tokens(&[0xb8, 0xf3]), "00 ".into()]);
+        assert_eq!(
+            cmd,
+            "su -c '(dd if=/proc/1234/mem bs=4096 skip=5 count=257 2>/dev/null \
+             | xxd -p -c1; echo end) | tr \"\\n\" \" \" \
+             | grep -boF -e \"b8 f3 \" -e \"00 \" -e end' 2>/dev/null"
+        );
+        // Exactly the two quotes wrapping the su -c script.
+        assert_eq!(cmd.matches('\'').count(), 2);
+    }
+
+    #[test]
+    fn parser_maps_char_offsets_to_bytes_and_reads_sentinel() {
+        let tokens = vec![
+            hex_tokens(&[0xb8, 0xf3, 0x03, 0x00]),
+            hex_tokens(&[0xde, 0xad]),
+        ];
+        let out = "0:b8 f3 03 00 \n180:de ad \r\n44:ca fe \ngarbage\n300:end\n";
+        // "ca fe" is not ours; the sentinel says 100 bytes were read.
+        let (hits, read) = parse_grep_output(out, &tokens).unwrap();
+        assert_eq!(hits, vec![(0, 0), (60, 1)]);
+        assert_eq!(read, 100);
+    }
+
+    #[test]
+    fn missing_or_empty_sentinel_is_an_error() {
+        let tokens = vec![hex_tokens(&[0])];
+        // su denied (nothing), dd read nothing (`0:end`), bad format.
+        for out in ["", "0:end\n", "3:00 \n31:end\n"] {
+            assert!(parse_grep_output(out, &tokens).is_err(), "{out:?}");
+        }
+    }
+
+    #[test]
+    fn mid_byte_hit_cannot_hide_real_match() {
+        // Hex "1000000000": a mid-byte "00000000" at nibble 1 used to swallow
+        // the real u32 zero at byte 1.
+        let tokens = vec![hex_tokens(&[0; 4])];
+        let out = fake_device_grep(&[0x10, 0, 0, 0, 0], &tokens);
+        assert_eq!(parse_grep_output(&out, &tokens).unwrap(), (vec![(1, 0)], 5));
+        // Hex "0010000001000000": u32 1 at byte 4 used to be lost the same way.
+        let tokens = vec![hex_tokens(&[1, 0, 0, 0])];
+        let out = fake_device_grep(&[0, 0x10, 0, 0, 1, 0, 0, 0], &tokens);
+        assert_eq!(parse_grep_output(&out, &tokens).unwrap(), (vec![(4, 0)], 8));
+    }
+
+    #[test]
+    fn grep_finds_matches_across_chunk_boundaries() {
+        let base = 0x7000_0000;
+        let pat = vec![0xb8, 0xf3, 0x03, 0x00];
+        let mut mem = vec![0u8; 3 * 4096];
+        // Straddles the 4096-byte chunk boundary, first byte of the last
+        // chunk, last bytes of the region.
+        let at = [28, 4096 - 2, 2 * 4096, 3 * 4096 - 4];
+        for &a in &at {
+            mem[a..a + 4].copy_from_slice(&pat);
+        }
+        let reg = [region(base, base + mem.len() as u64)];
+        let (hits, calls) = scan(&mem, base, &reg, &[pat], 4096, 0, None);
+        let want: Vec<(u64, usize)> = at.iter().map(|&a| (base + a as u64, 0)).collect();
+        assert_eq!(hits.unwrap(), want);
+        // One chunk per page, each reading one overlap page.
+        let first = base / 4096;
+        assert_eq!(calls, vec![(first, 2), (first + 1, 2), (first + 2, 2)]);
+    }
+
+    #[test]
+    fn failing_chunk_is_skipped_not_fatal() {
+        let base = 0x1000_0000;
+        let pat = vec![0x11, 0x22, 0x33];
+        let mut mem = vec![0u8; 3 * 4096];
+        mem[10..13].copy_from_slice(&pat);
+        mem[4096 + 50..4096 + 53].copy_from_slice(&pat);
+        mem[2 * 4096 + 100..2 * 4096 + 103].copy_from_slice(&pat);
+        let reg = [region(base, base + mem.len() as u64)];
+        // Page 1 is unreadable: chunk 0 still reads its own page (dd stops at
+        // the overlap page), chunk 1 reads nothing and is skipped.
+        let (hits, calls) = scan(&mem, base, &reg, &[pat], 4096, 0, Some(base / 4096 + 1));
+        assert_eq!(
+            hits.unwrap(),
+            vec![(base + 10, 0), (base + 2 * 4096 + 100, 0)]
+        );
+        assert_eq!(calls.len(), 3);
+    }
+
+    #[test]
+    fn nothing_readable_is_an_error_not_zero_matches() {
+        let base = 0x1000_0000;
+        let mem = vec![0u8; 4096];
+        let reg = [region(base, base + 4096)];
+        // dd reads nothing (no root / dead pid).
+        let (hits, _) = scan(&mem, base, &reg, &[vec![0]], 4096, 0, Some(base / 4096));
+        assert!(hits.is_err());
+        // su denied: run_adb_shell fails on the empty output.
+        let run = |_: &str| -> Result<String> { bail!("adb shell failed") };
+        assert!(grep_regions(1, &reg, &[vec![0]], 4096, 0, run).is_err());
+    }
+
+    #[test]
+    fn unaligned_region_start_and_limit_across_regions() {
+        let base = 0x4000;
+        let pat = vec![0xaa, 0xbb];
+        let mut mem = vec![0u8; 3 * 4096];
+        for a in [0x10, 0x100, 0x200, 2 * 4096 + 8, 2 * 4096 + 16] {
+            mem[a..a + 2].copy_from_slice(&pat);
+        }
+        // First region starts mid-page (e.g. clipped to --base 0x4080).
+        let regs = [
+            region(base + 0x80, base + 4096),
+            region(base + 2 * 4096, base + 3 * 4096),
+        ];
+        let (hits, _) = scan(&mem, base, &regs, std::slice::from_ref(&pat), 4096, 0, None);
+        let addrs: Vec<u64> = hits.unwrap().iter().map(|h| h.0).collect();
+        assert_eq!(
+            addrs,
+            vec![
+                base + 0x100,
+                base + 0x200,
+                base + 2 * 4096 + 8,
+                base + 2 * 4096 + 16
+            ]
+        );
+        // --limit 3 stops in the second region and keeps the lowest three.
+        let (hits, calls) = scan(&mem, base, &regs, std::slice::from_ref(&pat), 4096, 3, None);
+        let addrs: Vec<u64> = hits.unwrap().iter().map(|h| h.0).collect();
+        assert_eq!(addrs, vec![base + 0x100, base + 0x200, base + 2 * 4096 + 8]);
+        assert_eq!(calls.len(), 2);
+        // --limit 2 is met by the first region: the second is never read.
+        let (_, calls) = scan(&mem, base, &regs, &[pat], 4096, 2, None);
+        assert_eq!(calls.len(), 1);
+    }
+
+    #[test]
+    fn multiple_patterns_report_their_index() {
+        let base = 0x2000;
+        let mut mem = vec![0u8; 4096];
+        mem[0..2].copy_from_slice(&[0xaa, 0xbb]);
+        mem[100..103].copy_from_slice(&[0x01, 0x02, 0x03]);
+        let pats = vec![vec![0x01, 0x02, 0x03], vec![0xaa, 0xbb]];
+        let (hits, _) = scan(
+            &mem,
+            base,
+            &[region(base, base + 4096)],
+            &pats,
+            1 << 20,
+            0,
+            None,
+        );
+        assert_eq!(hits.unwrap(), vec![(base, 1), (base + 100, 0)]);
+    }
+
+    #[test]
+    fn invalid_patterns_are_rejected_before_any_shell_call() {
+        let run = |_: &str| -> Result<String> { panic!("must not run") };
+        assert!(grep_regions(1, &[region(0, 4096)], &[], 4096, 0, run).is_err());
+        assert!(grep_regions(1, &[region(0, 4096)], &[vec![]], 4096, 0, run).is_err());
+        let huge = vec![vec![0u8; GREP_MAX_PATTERN + 1]];
+        assert!(grep_regions(1, &[region(0, 4096)], &huge, 4096, 0, run).is_err());
     }
 }

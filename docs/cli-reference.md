@@ -24,6 +24,7 @@ spectre [FLAGS] [SUBCOMMAND]
 | [`find`](#find) | Find processes by name |
 | [`regions`](#regions) | List memory regions of a process |
 | [`search`](#search) | Search memory for a value; refine previous results |
+| [`hot`](#hot) | Search a byte pattern on the device; only matches cross adb |
 | [`bot`](#bot) | Run a bot automation script |
 | [`script`](#script) | Execute a Lua bot script |
 | [`info`](#info) | Show version and available backends |
@@ -300,6 +301,50 @@ only those addresses and keeps the ones that now hold the new value.
 spectre search 12345 u32 42 --limit 100
 spectre search 12345 u32 55 --continue
 spectre search 12345 f32 98.5 --state hp-search.json
+```
+
+## hot
+
+Search a process's anonymous rw regions for a byte pattern *on the Android
+device*. The device runs `dd | xxd | tr | grep` itself, so only match offsets
+cross the adb pipe instead of a full hex dump — a whole-heap scan takes
+seconds, which keeps before/after diff cycles short. ADB only.
+
+```
+spectre hot [FLAGS] [OPTIONS] <pid> <hex> --adb
+```
+
+| Argument | Description |
+|----------|-------------|
+| `<pid>` | Target process ID |
+| `<hex>` | Byte pattern as hex in memory order, e.g. `b8f30300` or `"b8 f3 03 00"` (max 4096 bytes) |
+
+| Flag / option | Description |
+|---------------|-------------|
+| `--adb` | Use ADB backend (required: the scan runs on the device) |
+| `--adb-host <adb-host>` | ADB host (default: 127.0.0.1) |
+| `--adb-port <adb-port>` | ADB port (default: 5555) |
+| `--base <base>` | Only report matches at or above this address [default: 0] |
+| `--json` | Output as JSON (array of 0x-hex addresses) |
+| `--limit <limit>` | Stop after N matches (0 = unlimited) [default: 0] |
+
+Scanned regions are `rw` mappings that are unnamed or `[anon:...]`. Memory is
+read in 1 MiB chunks with one page of overlap, so matches across chunk
+boundaries are found. Memory is compared as one `"xx "` token per byte, so
+matches are always byte-aligned. A chunk the device cannot read is skipped
+with a warning (a partly readable chunk warns about the short read) instead
+of aborting the scan; if nothing at all can be read (no root, dead pid) the
+command fails instead of reporting 0 matches. The device needs `su`, `xxd`
+(with `-c`), `tr` and `grep` (toybox on Android 8+). Values are not encoded
+for you: a little-endian u32 `259000` is `b8f30300`.
+
+> **Limitation.** `grep -o` reports non-overlapping matches only, so an
+> occurrence that overlaps an earlier match (self-similar patterns such as
+> `00000000` inside a run of zeros) can be missed.
+
+```bash
+spectre hot 4321 b8f30300 --adb
+spectre hot 4321 "b8 f3 03 00" --adb --base 0x70000000 --limit 50 --json
 ```
 
 ## bot

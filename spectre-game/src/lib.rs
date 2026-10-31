@@ -6,9 +6,11 @@
 
 pub mod offsets;
 pub mod registry;
+pub mod validate;
 
 pub use offsets::{LoadedOffsets, OffsetLoader, YamlFieldDef, YamlGameFile, YamlStructDef};
 pub use registry::{GameEntry, GameRegistry, quick_struct, version_in_range};
+pub use validate::{Issue, Severity, validate};
 
 // ── Re-exports from spectre-core ─────────────────────────────────────────
 //

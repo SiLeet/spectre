@@ -28,6 +28,7 @@ spectre [FLAGS] [SUBCOMMAND]
 | [`bot`](#bot) | Run a bot automation script |
 | [`script`](#script) | Execute a Lua bot script |
 | [`info`](#info) | Show version and available backends |
+| [`offsets`](#offsets) | Show and validate a game's offsets YAML (no game: list games) |
 | [`serve`](#serve) | Start the read-only web dashboard (127.0.0.1 only) |
 | [`adb`](#adb) | ADB device management |
 
@@ -432,6 +433,43 @@ and the games found under `games/`.
 ```bash
 spectre info
 spectre info --json
+```
+
+## offsets
+
+Show and validate a game's offsets YAML, or list the available games.
+
+```
+spectre offsets [FLAGS] [game]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `game` | Game name (`games/<game>/offsets.yaml` or `games/<game>.yaml`) or a path to an offsets YAML file. Omit to list the games found under `games/` |
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON (`path`, `offsets`, `issues`) |
+
+With a game, prints every field as a table (structure with base offset,
+field, type, offset, description), then a validation report: `ok` or a
+list of issues with the structure/field they belong to.
+
+| Check | Severity |
+|-------|----------|
+| `version` missing or empty | error |
+| Duplicate structure name | error |
+| Duplicate field name within a structure | error |
+| Unknown field type | error |
+| Overlapping field byte ranges within a structure (`offset` .. `offset + size(type)`) | warning |
+
+Exits with status 1 if any error is found; warnings alone exit 0, since
+placeholder offsets may overlap until they are confirmed.
+
+```bash
+spectre offsets
+spectre offsets afk-journey
+spectre offsets examples/practice-offsets.yaml --json
 ```
 
 ## serve

@@ -273,3 +273,11 @@ Priority-3-Paket vor der nächsten Scheduler-Änderung (Subagent-Review deleg_d9
   Prep-Erkennung). Statt State-Loop-Feintuning: `afk_arena.py --fights 1` ist der
   verifizierte Pfad (3 Live-Läufe, changed=True), der Scheduler ruft es N-mal auf.
   Multi-Fight-Chaining bleibt als optionaler Ausbau notiert, nicht als Blocker.
+
+- 🟦 T28-Update (Dream Realm live verifiziert): Hub -> Battle (960,1040) ->
+  Elite-Challenge-Prep -> Battle (960,1010) -> ~70 s Bossfight -> **Victory
+  Rewards** (2 Briefe) und danach eine **Vollbild-Hero-Card** (Dazzling DPS /
+  Untouchable), die einen Tap außen (z. B. 100,100) zum Schließen braucht.
+  `scripts/afk_dream_realm.py` gebaut; offene Fix-Baustelle: Hero-Card-State
+  (hell Vollbild, L(960,300) > 190) als eigener Zustand + Dismiss. Versuche:
+  Chances 7/7, jedes Fight-Ergebnis verbraucht einen Versuch.

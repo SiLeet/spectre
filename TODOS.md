@@ -564,8 +564,13 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
 - ✅ T45c: Instant AFK Attempts NACH dem Push claimen — ABGEDECKT (T45c-Update
   unten, 03:1x): das Chest-Popup hat nur EINEN Claim-Button (960,606), der die
   Daily „Claim Instant AFK Rewards x1" mit abhakt. Kein separates Feature.
-- ⬜ T45d: Dura's Trials — Retry-bis-Sieg (Fail = Token-Refund, Tokens reset daily).
+- 🟨 T45d: Dura's Trials — Retry-bis-Sieg (Fail = Token-Refund, Tokens reset daily).
   Neuer Mode: Turm-Rotation (6 Tage, 2 Klassen/Tag) → class-gear Notes.
+  🟨 Queue-Driver 03:4x: Umsetzung in DIESEM Lauf env-blockiert — BlueStacks-VM
+  war aus (erst durch den Driver gebootet), aber der PC zeigt kontinuierliche
+  Input-Bursts (idle nie > 60 s; Input alle 1–3 Min = aktive Nutzung). Idle-Gate
+  (180 s) schlägt an → keine Game-Taps. Exploration (wo ist Dura's Trials im
+  Menü, Token-Counter, Retry-Flow) im nächsten freien Fenster.
 - ⬜ T45e: Arena auf 10 Tickets (5 frei + 5 gekauft = 10/Tag max); Defense-Formation
   setzen; über der Last-100-Champion-Linie bleiben (Wochenend-Demotion-Gamble).
 - ⬜ T45f: Legend Trial alle 4 Türme am SONNTAG (Rotation: Light Mo/Fri/Sun,
@@ -579,10 +584,15 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
 - ⬜ T45j: Season-End-Arbitrage (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim;
   Season-Mats 24h vor Ende dumpen). Braucht Season-Kalender → sobald Season-Nähe
   erkennbar (Banner-Timer), Scheduler-Task.
-- ⬜ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
+- ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
-- ⬜ T45l: Temporal Essence Swap: hero-spezifische Essence ↔ universal (Lucky-Flip-Picks
-  nie tot). Notiz für Guide/Manuell.
+  ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`
+  (§ Free-economy edges) dokumentiert — Slot-Selektion = Scheduler-Slot-Problem,
+  kein UI-Bot-Bedarf vor late-game. Off-game abschließbar, deshalb gezogen.
+- ✅ T45l: Temporal Essence Swap: hero-spezifische Essence ↔ universal (Lucky-Flip-Picks
+  nie tot). Notiz für Guide/Manuell — ✅ Queue-Driver 03:4x: Guide-Abschnitt in
+  `docs/afk-journey-guide.md` (Swap-Richtung, +15-Unlimited-Regel, Bot-Regel:
+  swap-to-universal als Default-Sink). Manueller Step bleibt (EX-Page).
 - ⏸️ Nicht automatisieren laut Research: Gems für Attempts/Refreshes, Level-800-Stop
   (Stats flatten, Hourglass-Wert kollabiert).
 ### ✅ T45c-Update (03:1x): Chest-Popup verifiziert — kein separater Instant-Button

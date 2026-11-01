@@ -60,6 +60,36 @@ Compiled 2026-10-31 from Prydwen, Fandom, Gacha.gg, GameRant, BlueStacks.
 - Battle Drills rewards convert to mail when a round ends — mail is a
   claimable-reward pool.
 
+## Free-economy edges (bot/manual notes, T45k + T45l)
+
+From `docs/research/mechanics-gaps.md` §5–6 — operational notes, no gem/real-money actions:
+
+### Temporal Essence Swap (T45l)
+- On the EX upgrade page there is a **Temp Essence Swap** button: hero-specific
+  temporal essence ⇄ universal essence, limited by how much universal essence is
+  actually built into that hero; **unlimited for heroes at +15**.
+- Consequence for any reward/shop pick: **hero-specific essence is never a dead
+  pick** — take it, then swap it to universal. Excess specific shards on a +15
+  hero are pure universal essence.
+- Direction of the swap is lossy-neutral only one way: you can only "take back"
+  universal essence by putting a specific bottle back into the same hero. Bot
+  rule (manual step for now): never dump specific essence before checking the
+  swap direction; swap-to-universal is the default sink for Lucky-Flip picks.
+
+### Supreme Arena settlement slot (T45k)
+- Calculation time is **player-selectable, 12:00–24:00 UTC**, takes effect
+  *next day*, settles inside a **10-minute window**; in the last 30 minutes only
+  re-challenges of the *same* opponent are allowed, with a **15-minute lockout**.
+- Off-peak recipe: slot when your district sleeps → rank snapshot before the
+  crowd pushes. Season start: set 24:00 UTC (full day to climb), switch to an
+  off-peak slot once the level stabilises.
+- Final-30-minute play needs **two prepared snipe targets** (15-min same-target
+  lockout). 3 free Glory Badges/day (up to 12 more with diamonds — policy:
+  never automated); off-season Mon/Tue: no rewards, but still set formation.
+- Bot relevance: this is a **scheduler-slot problem**, not a UI problem — the
+  only action is "set the slot once". Late-game feature (Talent Tree applies
+  here); not worth UI automation before the account reaches Supreme Arena.
+
 ## Trigger actions for offset confirmation (cheap + safe)
 
 Prefer actions that change a currency with zero risk:

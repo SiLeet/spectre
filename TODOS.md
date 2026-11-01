@@ -388,3 +388,15 @@ Invite-Letters wurden NICHT automatisch verwendet. Darüber ein „Rate Up Limit
 Bundle I“ für 98 (echtes Geld!). Cancel getippt, nichts gekauft. Der Recruit
 über Tickets braucht vermutlich einen Währungs-Toggle am Recruit-Button —
 Vermessung nötig. Bis dahin: Recruit-Feature blockiert (300💎 = Policy).
+
+## P6 — Idle-Architektur (Sergejs Korrektur, 2026-11-01)
+> 15-Minuten-Chest-Claims bringen bei einem Idle-Game NICHTS (fixe Rate, 12-h-Cap).
+> Der Hebel ist Progression: hohe Stage = hohe Rate, Heldenpower = hohe Stage.
+
+- ✅ T39: Scheduler umgebaut: Task "Spectre AFK Daily" 05:10 (nach Reset) macht
+  alles (Chest, Quests 5 Tabs, Mail, Login, Arena 4/4, Dream Realm 7/7,
+  Stage-Push bis Wand); Task "Spectre AFK Progress" 17:10 macht Chest (Cap-Schutz)
+  + Stage-Push. 15-Minuten-Task gelöscht. Idle-Gate bleibt.
+- ⬜ T40: Stage-Push in den Progress-Run (nach Helden-Leveling auch mehrfach).
+- ⏸️ T33: Helden-Leveling — jetzt DER zentrale Hebel (Rate × Level), braucht Regel.
+- ⬜ T41: Nach jedem Push prüfen, ob eine neue Wand erreicht ist → Team-Power-Report.

@@ -141,7 +141,7 @@ def reach_world(max_steps: int = 6) -> bool:
 
 
 def open_battle_modes(max_steps: int = 4) -> bool:
-    """From the world view, open the Battle Modes menu and verify it.""
+    """From the world view, open the Battle Modes menu and verify it."""
     if not reach_world():
         return False
     tap(GROUND, 0.8)               # dismiss any interact menu first
@@ -288,11 +288,19 @@ def main() -> int:
         tap(CLAIM, 2.5)
         state = classify(shot(f'r{rnd}_4_after'))
         print(f'    after claim: {state}', flush=True)
+        if state == 'POPUP':
+            # the claim popup can persist past the tap (T38 #8): retry once,
+            # then fail loudly instead of reporting a claim that never landed
+            print('    claim popup still open, retrying claim', flush=True)
+            tap(CLAIM, 2.5)
+            state = classify(shot(f'r{rnd}_4b_retry'))
+            print(f'    after claim retry: {state}', flush=True)
         if state == 'PANEL':
             tap(BACK, 1.0)
             print('    claim verified (popup closed, panel back)', flush=True)
         else:
-            print(f'    WARN: unexpected state after claim: {state}', flush=True)
+            print(f'    ERROR: unexpected state after claim: {state}', flush=True)
+            return 1
 
         if rnd < args.rounds and args.pause:
             time.sleep(args.pause)

@@ -203,6 +203,10 @@ def main() -> int:
     ap.add_argument('--battles', type=int, default=1)
     ap.add_argument('--auto', action='store_true',
                     help='use the Auto Battle button (climbs stages until defeat)')
+    ap.add_argument('--retry-defeats', action='store_true',
+                    help='night mode: on DEFEAT tap Retry and keep pushing (for '
+                         'long idle windows - the retry loop wins the wall '
+                         'eventually, verified 249->252)')
     ap.add_argument('--auto-minutes', type=float, default=10)
     ap.add_argument('--max-battle-seconds', type=float, default=150)
     ap.add_argument('--pid', default=None)
@@ -371,6 +375,11 @@ def main() -> int:
                     v.tap(v.BACK, 1.5)
                 elif st == 'DEFEAT':
                     wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
+                    if args.retry_defeats:
+                        print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
+                              '- retrying (night mode)', flush=True)
+                        v.tap((1280, 1020), 3.0)   # Retry button
+                        continue
                     print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                           '— stage wall reached', flush=True)
                     break
@@ -382,6 +391,11 @@ def main() -> int:
                     st2 = classify_battle(v.shot('sp_auto_confirm'))
                     if st2 == 'DEFEAT':
                         wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
+                        if args.retry_defeats:
+                            print('    DEFEAT confirmed - retrying (night mode)', flush=True)
+                            v.tap((1280, 1020), 3.0)   # Retry button
+                            stable = 0
+                            continue
                         print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                               '— stage wall reached', flush=True)
                         break

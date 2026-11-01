@@ -31,7 +31,7 @@ from PIL import Image
 REPO = Path(__file__).resolve().parent.parent
 import os
 TMP = REPO / '.spectre' / f'shots-{os.getpid()}'   # per-run dir: concurrent runs must not collide
-TMP.mkdir(parents=True, exist_ok=True)
+# created lazily in shot(): importing this module (--help, dry-run) must not touch the disk
 ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
 SERIAL = '127.0.0.1:5555'
 
@@ -60,15 +60,18 @@ def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1
 
 def shot(name: str) -> Image.Image:
     path = TMP / f'{name}.png'
+    TMP.mkdir(parents=True, exist_ok=True)
     with open(path, 'wb') as fh:
         p = subprocess.run([str(ADB), '-s', SERIAL, 'exec-out', 'screencap', '-p'],
                            stdout=fh, timeout=60)
     if p.returncode != 0:
         raise RuntimeError('screencap failed')
     im = Image.open(path)
-    im.load()
-    out = im.convert('RGB')
-    im.close()
+    try:
+        im.load()
+        out = im.convert('RGB')
+    finally:
+        im.close()   # also on a failed convert (fd leak on the error path)
     return out
 
 
@@ -109,7 +112,7 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
       'fail'  — the read itself failed (dead pid / no adb).
     """
     import struct
-    out = REPO / '.spectre' / 'power.bin'
+    out = TMP / 'power.bin'   # per-run path: concurrent runs raced on the shared file
     if adb_exec_dump(pid, base_hex, out) is None:
         return 'fail', None
     raw = out.read_bytes()

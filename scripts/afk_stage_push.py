@@ -10,7 +10,7 @@ and always leaves the game on the result screen (no stray taps).
 
 Usage: python scripts/afk_stage_push.py [--battles N] [--max-battle-seconds 150]
 Exit codes: 0 finished/pushed, 1 stuck (unknown screen), 2 memory preflight,
-5 skipped (PC in use).
+3 game crashed (BlueStacks launcher), 5 skipped (PC in use).
 """
 from __future__ import annotations
 
@@ -75,17 +75,24 @@ def classify_battle(img) -> str:
         return 'LOADING'
     if pause < 55:
         return 'BATTLE'
-    if card > 160:   # victory ~232, defeat ~183, prep arena ~82
-        title = v.avg(img, (960, 60))
-        return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
-    # the AFK panel has the same green Battle button as the prep screen; its
-    # orange "Claim" chip at (1390,704) is the reliable difference
-    # "Turn off Auto Battle?" / exit confirmations: bright round X at (1014,710)
-    # and a green round check at (1155,710). Never confirm — cancel instead.
+    # CONFIRM + POPUP before the bright-card branch: a reward popup or an
+    # undimmed dialog over a bright backdrop otherwise read as RESULT/DEFEAT
+    # (single mode counted a popup as a victory; the RESULT path then taps
+    # (960,540) blind, which can land on a store tile — review finding).
+    # CONFIRM first: its probes are specific (bright X + green check), a real
+    # result card (gold/red title band) does not match both.
+    # NOTE: keep this AFTER the BATTLE check — night battle frames read as
+    # v.classify POPUP (verified on shots-36248 sp_auto_3/_14) and must
+    # still classify as BATTLE.
     xbtn = v.avg(img, (1014, 710))
     okbtn = v.avg(img, (1155, 710))
     if v.lum(xbtn) > 200 and okbtn[1] > okbtn[0] + 30 and okbtn[1] > 90:
         return 'CONFIRM'
+    if v.classify(img) == 'POPUP':
+        return 'POPUP'
+    if card > 160:   # victory ~232, defeat ~183, prep arena ~82
+        title = v.avg(img, (960, 60))
+        return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     back = v.lum(v.avg(img, v.BACK))
     if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
         return 'STATS'
@@ -108,7 +115,7 @@ def ocr_text(png: Path) -> list[str]:
         p = subprocess.run(
             [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
              "-File", str(OCR_PS1), "-Path", str(png)],
-            capture_output=True, timeout=90, text=True, encoding="utf-8",
+            capture_output=True, timeout=15, text=True, encoding="utf-8",
             errors="replace")
         if p.returncode != 0:
             return []
@@ -118,9 +125,18 @@ def ocr_text(png: Path) -> list[str]:
 
 
 def parse_stage(lines: list[str]) -> int | None:
-    """Stage number from OCR lines like 'AFK Stage 249' / 'AFK 249'."""
+    """Stage number from OCR lines like 'AFK Stage 249' / 'AFK 249'.
+
+    Anchored so quest counters ('Complete AFK 2 quests') cannot win: 'Stage'
+    lines are matched first with word boundaries, the loose 'AFK <n>' fallback
+    only accepts the number at the end of the line.
+    """
     for ln in lines:
-        m = re.search(r"AFK\s*(?:Stage\s*)?(\d{1,4})", ln, re.I)
+        m = re.search(r"\bAFK\s*Stage\s*(\d{1,4})\b", ln, re.I)
+        if m:
+            return int(m.group(1))
+    for ln in lines:
+        m = re.search(r"\bAFK\s*(\d{1,4})\s*$", ln, re.I)
         if m:
             return int(m.group(1))
     return None
@@ -159,11 +175,18 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
     Never raises: a failed report must not break the push run.
     """
     rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "reason": reason, "stage": None, "power": None}
+           "reason": reason, "stage": None, "power": None,
+           "png": None, "ocr_ok": False, "lines": []}
     try:
         img = v.shot(tag)
         png = v.TMP / f"{tag}.png"
+        rec["png"] = str(png)
         lines = ocr_text(png)
+        rec["ocr_ok"] = bool(lines)
+        if not lines:
+            # a failed OCR run and a text-free frame are otherwise
+            # indistinguishable in the JSONL
+            rec["ocr_error"] = "ocr returned no text (failed or text-free frame)"
         rec["stage"] = parse_stage(lines)
         rec["power"] = parse_power(lines)
         rec["lines"] = lines[:14]
@@ -173,10 +196,11 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
         WALL_LOG.parent.mkdir(parents=True, exist_ok=True)
         with open(WALL_LOG, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    except OSError as exc:
+    except Exception as exc:                      # noqa: BLE001 - report must not kill the run
         rec["error"] = f"log write failed: {exc}"
+    err = f" error={rec['error']}" if rec.get("error") else ""
     print(f"    wall report: {reason} stage={rec.get('stage')} "
-          f"power={rec.get('power')}", flush=True)
+          f"power={rec.get('power')}{err}", flush=True)
     return rec
 
 
@@ -184,12 +208,20 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
     t0 = time.time()
     last = 'UNKNOWN'
     while time.time() - t0 < timeout:
-        img = v.shot(tag)
+        try:
+            img = v.shot(tag)
+        except Exception as exc:          # transient adb hiccup: retry, don't die
+            print(f'    WARN: shot failed ({exc}) - retrying', flush=True)
+            time.sleep(3.0)
+            continue
         last = classify_battle(img)
-        if last == 'STATS':
-            v.tap(v.BACK, 1.5)
-        elif last == 'CONFIRM':
-            v.tap((1014, 710), 1.5)   # cancel, never confirm
+        try:
+            if last == 'STATS':
+                v.tap(v.BACK, 1.5)
+            elif last == 'CONFIRM':
+                v.tap((1014, 710), 1.5)   # cancel, never confirm
+        except Exception as exc:
+            print(f'    WARN: tap failed ({exc})', flush=True)
         if last in states:
             return last, img
         if last == 'LAUNCHER':          # game crashed/closed: no point waiting
@@ -299,6 +331,7 @@ def main() -> int:
         return 1
 
     wins = 0
+    planned = args.battles
 
     if args.auto:
         if st == 'RESULT':
@@ -332,8 +365,7 @@ def main() -> int:
             # instead of idling until the timeout.
             print('    auto battle not available — fighting single battles', flush=True)
             args.auto = False
-            if args.battles < 3:
-                args.battles = 3
+            planned = max(args.battles, 3)   # floor, without rewriting the user's --battles
             st = 'PREP'
         else:
             print(f'    auto battle started ({st})', flush=True)
@@ -344,11 +376,27 @@ def main() -> int:
             # instantly via the Skip button (verified: 21 s remaining -> PREP).
             t0 = time.time()
             skipped = 0
+            retries = 0
+            unknowns = 0
             while time.time() - t0 < args.auto_minutes * 60:
+                if args.min_idle > 0:
+                    idle = v.idle_seconds()
+                    if idle is not None and idle < args.min_idle:
+                        wall_report(f'auto_abort_pc_in_use_{int(time.time()-t0)}s')
+                        print('    SKIP: PC is in use — aborting the auto run', flush=True)
+                        return 5
                 time.sleep(3)
                 tag = f'sp_auto_{int(time.time()-t0)}'
-                img = v.shot(tag)
+                try:
+                    img = v.shot(tag)
+                except Exception as exc:          # transient adb hiccup
+                    print(f'    WARN: shot failed ({exc}) - retrying', flush=True)
+                    continue
                 st = classify_battle(img)
+                if st == 'LAUNCHER':
+                    wall_report(f'auto_launcher_after_{int(time.time()-t0)}s')
+                    print('    ERROR: game crashed (launcher) mid-chain — aborting', flush=True)
+                    return 3
                 if st in ('UNKNOWN', 'POPUP') and is_auto_complete(ocr_text(v.TMP / f'{tag}.png')):
                     # the chain ended by itself: close the summary card and
                     # restart Auto Battle while the time window is open
@@ -366,19 +414,46 @@ def main() -> int:
                               '— stage wall reached', flush=True)
                         break
                     continue
+                if st == 'RESULT':
+                    # victory card mid-chain (also the win after a night-mode
+                    # retry): close it and re-arm Auto Battle while the window
+                    # is open — otherwise the loop spun silently to the timeout.
+                    print('    victory card mid-chain — closing, re-arming auto', flush=True)
+                    v.tap((960, 540), 2.5)
+                    st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'BATTLE'}, 20, 'sp_auto_result')
+                    if st == 'PREP':
+                        v.tap(AUTO_BATTLE_BTN, 4.0)
+                        st, _ = wait_for({'BATTLE', 'LOADING'}, 12, 'sp_auto_rearm')
+                        if st == 'BATTLE':
+                            v.tap(SPEED_X2_BTN, 1.5)   # re-armed chains lose the x2 tap
+                            continue
+                    continue
                 if st == 'BATTLE':
                     v.tap(SKIP_BTN, 1.5)   # resolve the fight instantly
                     skipped += 1
+                    unknowns = 0
                 elif st == 'CONFIRM':
                     v.tap((1014, 710), 1.5)   # cancel "turn off auto battle?"
+                    unknowns = 0
                 elif st == 'STATS':
                     v.tap(v.BACK, 1.5)
+                    unknowns = 0
                 elif st == 'DEFEAT':
-                    wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
+                    if retries == 0 or retries % 10 == 0:
+                        wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
                     if args.retry_defeats:
+                        if retries >= 200:
+                            print(f'    DEFEAT x{retries} — retry cap reached, stopping',
+                                  flush=True)
+                            break
+                        retries += 1
                         print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
-                              '- retrying (night mode)', flush=True)
+                              f'- retrying (night mode, retry {retries})', flush=True)
                         v.tap((1280, 1020), 3.0)   # Retry button
+                        # verify the retry engaged; a dialog may own the screen
+                        st2, _ = wait_for({'BATTLE', 'PREP', 'LOADING', 'CONFIRM'}, 12, 'sp_retry')
+                        if st2 == 'CONFIRM':
+                            v.tap((1014, 710), 1.5)   # cancel, never confirm
                         continue
                     print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                           '— stage wall reached', flush=True)
@@ -390,11 +465,20 @@ def main() -> int:
                     time.sleep(3)
                     st2 = classify_battle(v.shot('sp_auto_confirm'))
                     if st2 == 'DEFEAT':
-                        wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
+                        if retries == 0 or retries % 10 == 0:
+                            wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
                         if args.retry_defeats:
+                            if retries >= 200:
+                                print(f'    DEFEAT x{retries} — retry cap reached, stopping',
+                                      flush=True)
+                                break
+                            retries += 1
                             print('    DEFEAT confirmed - retrying (night mode)', flush=True)
                             v.tap((1280, 1020), 3.0)   # Retry button
-                            stable = 0
+                            st3, _ = wait_for({'BATTLE', 'PREP', 'LOADING', 'CONFIRM'},
+                                              12, 'sp_retry2')
+                            if st3 == 'CONFIRM':
+                                v.tap((1014, 710), 1.5)   # cancel, never confirm
                             continue
                         print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                               '— stage wall reached', flush=True)
@@ -403,6 +487,15 @@ def main() -> int:
                     print(f'    wall reached: {skipped} fights skipped in {int(time.time()-t0)}s',
                           flush=True)
                     break
+                else:
+                    # UNKNOWN/POPUP without the summary card: tolerated briefly,
+                    # but a persistent unknown screen must not spin silently.
+                    unknowns += 1
+                    if unknowns >= 15:
+                        wall_report(f'auto_unknown_streak_{int(time.time()-t0)}s')
+                        print(f'    ERROR: {st} persists ({unknowns} polls) — aborting',
+                              flush=True)
+                        return 1
             else:
                 # leave the game clean: cancel a possibly open confirm dialog
                 # (a stray skip tap can hit the auto toggle) and close the
@@ -420,27 +513,63 @@ def main() -> int:
                       flush=True)
             return 0
 
-    for i in range(1, args.battles + 1):
+    for i in range(1, planned + 1):
+        if args.min_idle > 0:
+            idle = v.idle_seconds()
+            if idle is not None and idle < args.min_idle:
+                print('    SKIP: PC is in use — aborting the run', flush=True)
+                return 5
         v.tap(BATTLE_BTN, 3.0)
-        st, _ = wait_for({'BATTLE', 'RESULT'}, 25, f'sp_start_{i}')
+        st, _ = wait_for({'BATTLE', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}')
         print(f'    battle {i}: started ({st})', flush=True)
+        if st == 'PREP':
+            # the Battle tap was swallowed by a transition frame: one re-tap
+            # before declaring the fight a failure (review finding)
+            v.tap(BATTLE_BTN, 3.0)
+            st, _ = wait_for({'BATTLE', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}b')
+            print(f'    battle {i}: restarted ({st})', flush=True)
         if st == 'BATTLE':
-            st, _ = wait_for({'RESULT', 'PREP'}, args.max_battle_seconds, f'sp_end_{i}')
+            st, _ = wait_for({'RESULT', 'PREP', 'DEFEAT'}, args.max_battle_seconds, f'sp_end_{i}')
         if st == 'RESULT':
             wins += 1
             print(f'    battle {i}: VICTORY (AFK progress +1)', flush=True)
+        elif st == 'DEFEAT':
+            wall_report(f'battle_{i}_defeat')
+            print(f'    battle {i}: DEFEAT — stage wall reached, stopping', flush=True)
+            break
         else:
-            # neither result card nor prep after a battle: likely defeat or stall
+            # neither result card nor prep after a battle: likely stall
             wall_report(f'battle_{i}_no_victory_{st.lower()}')
-            print(f'    battle {i}: no victory screen ({st}) — likely DEFEAT, stopping', flush=True)
+            print(f'    battle {i}: no victory screen ({st}) — stopping', flush=True)
             break
         time.sleep(1.5)
 
     if wins:
-        wall_report(f'single_push_complete_{wins}of{args.battles}')
-    print(f'    pushed {wins}/{args.battles} stage(s); game left on the result screen', flush=True)
+        wall_report(f'single_push_complete_{wins}of{planned}')
+    print(f'    pushed {wins}/{planned} stage(s); game left on the result screen', flush=True)
     return 0
 
 
+def prune_shots(keep: int = 30) -> None:
+    """Keep only the newest screenshots of this run's shots dir.
+
+    A 10-minute auto run polls every ~3 s — hundreds of MB per run if never
+    pruned; scheduled runs would fill the disk over weeks.
+    """
+    try:
+        pngs = sorted(v.TMP.glob('*.png'), key=lambda p: p.stat().st_mtime)
+        for p in pngs[:-keep]:
+            p.unlink()
+    except OSError:
+        pass
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        code = main()
+    except Exception as exc:                      # noqa: BLE001 - clean exit, no traceback
+        print(f'    FATAL: {type(exc).__name__}: {exc}', flush=True)
+        code = 1
+    finally:
+        prune_shots()
+    sys.exit(code)

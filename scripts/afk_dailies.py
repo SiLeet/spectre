@@ -97,6 +97,8 @@ def run_dailies(min_idle: float) -> int:
         print(f'    preflight team_power = {power}', flush=True)
     elif status == 'skip':
         print('    no pid/base given — memory preflight skipped', flush=True)
+    elif status == 'disabled':
+        print(f'    team_power guard disabled (offset stale, read {power})', flush=True)
     else:
         print(f'    WARN: team_power offset stale (read {power})', flush=True)
 

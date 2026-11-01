@@ -99,8 +99,8 @@ def main() -> int:
         if status == 'fail':
             print('    ERROR: team_power preflight failed', flush=True)
             return 2
-        if status == 'stale':
-            print(f'    WARN: team_power offset stale after restart (read {power})', flush=True)
+        if status == 'disabled':
+            print(f'    team_power guard disabled (offset stale, read {power})', flush=True)
         else:
             print(f'    preflight team_power = {power}', flush=True)
 

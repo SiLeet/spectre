@@ -21,6 +21,8 @@ was unrecognised — blind taps are refused), 2 adb/preflight error,
 from __future__ import annotations
 
 import argparse
+import json
+import struct
 import subprocess
 import sys
 import time
@@ -34,6 +36,146 @@ TMP = REPO / '.spectre' / f'shots-{os.getpid()}'   # per-run dir: concurrent run
 # created lazily in shot(): importing this module (--help, dry-run) must not touch the disk
 ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
 SERIAL = '127.0.0.1:5555'
+
+# --- team_power guard (T44) -------------------------------------------------
+# The offset is valid for ONE process lifetime only: after a game restart the
+# heap base can survive while the layout inside the region moves, so the slot
+# goes stale. Re-location is anchored on the last VERIFIED value (state file):
+# power moves slowly and only upward for this bot, so a tight window
+# [0.98x .. 5x last] + stability across two dumps + >=2 display copies
+# (the game keeps display copies next to the authoritative slot) isolates the
+# slot without any screen-state dependency.
+POWER_STATE = REPO / '.spectre' / 'power-state.json'
+DEFAULT_POWER_OFFSET = 0xA578
+SCAN_BYTES = 16 * 1024 * 1024
+GUARD_LO, GUARD_HI = 100_000, 10_000_000_000
+
+
+def load_power_state() -> dict:
+    try:
+        return json.loads(POWER_STATE.read_text())
+    except Exception:
+        return {}
+
+
+def save_power_state(state: dict) -> None:
+    try:
+        state['updated'] = time.strftime('%Y-%m-%dT%H:%M:%S')
+        POWER_STATE.write_text(json.dumps(state))
+    except Exception:
+        pass   # the guard is best-effort; never break a run over the state file
+
+
+def adb_exec_dump(pid: str, addr: str, out_path: Path, size: str = '8') -> subprocess.CompletedProcess | None:
+    """spectre dump <addr> as raw bytes. None on failure."""
+    p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, size,
+                        '--adb', '--format', 'raw', '--output', str(out_path)],
+                       cwd=REPO, capture_output=True, timeout=300)
+    if p.returncode != 0 or not Path(out_path).exists():
+        return None
+    return p
+
+
+def read_power(pid: str, base_hex: str, offset: int) -> int | None:
+    """Read the i64 at heap_base + offset. None on failure."""
+    out = TMP / 'power.bin'   # per-run path: concurrent runs raced on the shared file
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if adb_exec_dump(pid, hex(int(base_hex, 16) + offset), out) is None:
+        return None
+    raw = out.read_bytes()
+    if len(raw) < 8:
+        return None
+    return struct.unpack('<q', raw[:8])[0]
+
+
+def scan_i64_range(buf: bytes, lo: int, hi: int) -> dict[int, list[int]]:
+    """All i64 slots (8-byte aligned and +4) whose signed value is in [lo, hi].
+
+    Prefilter: for lo >= 100k every in-range value has zero bytes at +5/+6/+7,
+    so the per-slot cost is three byte reads for almost all offsets."""
+    hits: dict[int, list[int]] = {}
+    b4_max = hi >> 32
+    for off in range(0, len(buf) - 8, 4):
+        if buf[off + 5] or buf[off + 6] or buf[off + 7] or buf[off + 4] > b4_max:
+            continue
+        v = int.from_bytes(buf[off:off + 8], 'little', signed=True)
+        if lo <= v <= hi:
+            hits.setdefault(v, []).append(off)
+    return hits
+
+
+def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[int, int] | None:
+    """Re-locate the team_power slot after a game restart.
+
+    Dumps the first 16 MB of the hot heap twice (5 s apart) and keeps values
+    that (a) sit in the anchored window, (b) are identical in both dumps and
+    (c) exist at >= 2 addresses (display copies + authoritative slot). Returns
+    (offset, value) or None.
+    """
+    lo = max(GUARD_LO, int(last_power * 0.98))
+    hi = min(GUARD_HI, int(last_power * 5) + 1_000_000)
+    dumps: list[bytes] = []
+    try:
+        for i in (1, 2):
+            out = TMP / f'power_scan_{i}.bin'
+            out.parent.mkdir(parents=True, exist_ok=True)
+            if adb_exec_dump(pid, hex(base_int), out, str(SCAN_BYTES)) is None:
+                return None
+            buf = out.read_bytes()
+            if len(buf) < 1024:
+                return None
+            dumps.append(buf)
+            if i == 1:
+                time.sleep(5)
+    finally:
+        for i in (1, 2):
+            try:
+                (TMP / f'power_scan_{i}.bin').unlink()
+            except OSError:
+                pass
+    h1 = scan_i64_range(dumps[0], lo, hi)
+    h2 = scan_i64_range(dumps[1], lo, hi)
+    best: tuple[int, int, int] | None = None   # (copies, value, offset)
+    for val, offs in h1.items():
+        if len(offs) < 2 or val not in h2:
+            continue
+        if best is None or len(offs) > best[0]:
+            best = (len(offs), val, offs[0])
+    if best is None:
+        return None
+    return best[2], best[1]
+
+
+def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
+    """Read team_power as a sanity check for pid + heap base.
+
+    Returns (status, value) with status in:
+      'ok'       — plausible power; the mapping is current (state file updated,
+                   so the next process restart has a fresh re-location anchor)
+      'disabled' — the recorded offset is stale and re-location failed (or no
+                   anchor exists): the guard is OFF for this process lifetime,
+                   the vision gates still protect the taps. Callers log this
+                   quietly instead of spamming a WARN every run (T44).
+      'fail'     — the read itself failed (dead pid / no adb).
+    """
+    st = load_power_state()
+    offset = int(st.get('offset', DEFAULT_POWER_OFFSET))
+    power = read_power(pid, base_hex, offset)
+    if power is None:
+        return 'fail', None
+    if GUARD_LO < power < GUARD_HI:
+        save_power_state({'offset': offset, 'power': power, 'pid': pid, 'base': base_hex})
+        return 'ok', power
+    # stale: try to re-locate from the last verified value
+    last = st.get('power')
+    if last:
+        found = revalidate_power_offset(pid, int(base_hex, 16), int(last))
+        if found:
+            new_off, val = found
+            save_power_state({'offset': new_off, 'power': val, 'pid': pid,
+                              'base': base_hex, 'revalidated': True})
+            return 'ok', val
+    return 'disabled', power
 
 AFK_PROGRESS = (60, 1036)
 CHEST = (975, 760)
@@ -87,41 +229,6 @@ def close_to(c: tuple[int, int, int], ref: tuple[int, int, int], tol: int) -> bo
 
 def lum(c: tuple[int, int, int]) -> float:
     return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
-
-
-def adb_exec_dump(pid: str, base_hex: str, out_path: Path):
-    """Read team_power (heap_base + 0xA578) via spectre dump. None on failure."""
-    addr = hex(int(base_hex, 16) + 0xA578)
-    p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, '8',
-                        '--adb', '--format', 'raw', '--output', str(out_path)],
-                       cwd=REPO, capture_output=True, timeout=120)
-    if p.returncode != 0 or not Path(out_path).exists():
-        return None
-    return p
-
-
-def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
-    """Read team_power as a sanity check for pid + heap base.
-
-    Returns (status, value) with status in:
-      'ok'    — plausible power, the mapping is right
-      'stale' — read succeeded but the value is implausible: after a game restart
-                the heap base can stay identical while the internal layout
-                moves, so the recorded offset no longer holds the power. The
-                vision gates still protect the taps, so this is a warning.
-      'fail'  — the read itself failed (dead pid / no adb).
-    """
-    import struct
-    out = TMP / 'power.bin'   # per-run path: concurrent runs raced on the shared file
-    if adb_exec_dump(pid, base_hex, out) is None:
-        return 'fail', None
-    raw = out.read_bytes()
-    if len(raw) < 8:
-        return 'fail', None
-    power = struct.unpack('<q', raw[:8])[0]
-    if 100_000 < power < 10_000_000_000:
-        return 'ok', power
-    return 'stale', power
 
 
 BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
@@ -231,8 +338,8 @@ def main() -> int:
         if status == 'fail':
             print('    ERROR: team_power preflight could not read memory', flush=True)
             return 2
-        if status == 'stale':
-            print(f'    WARN: team_power offset stale after restart (read {power}) — '
+        if status == 'disabled':
+            print(f'    team_power guard disabled (offset stale, read {power}) — '
                   'relying on the screen-state gates', flush=True)
         else:
             print(f'    preflight team_power = {power}', flush=True)

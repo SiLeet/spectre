@@ -536,3 +536,34 @@ Kosten-Daten für die Entscheidung: ein Batch ≈ 2,4 Mio Gold (47 %). Gold
 hat AFK-Journey-seitig nur diesen Zweck. Sergej entscheiden lassen: Batch
 grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
 (templates/ocr.ps1), Wallet+Kosten lesbar — Umsetzung nach Freigabe ~1 Sprint.
+
+## P7 — Mechanik-Gaps & Automation-Roadmap (Research 2026-11-01)
+> Quelle: docs/research/mechanics-gaps.md (Wiki-confirmed [W] + community [C]).
+> Queue-Discipline wie P5: sequenziell, Corrections werden angehängt.
+
+- ✅ T45a: „Push past the cap still pays" — bereits abgedeckt (Stage-Push ohne Cap-Logik).
+- ✅ T45b: Mystic Collection durch Daily-Chest — bereits abgedeckt (Quick Claim täglich).
+- ⬜ T45c: Instant AFK Attempts NACH dem Push claimen (2h Rewards, 7-Tage-Bank).
+  Daily-Quest „Claim Instant AFK Rewards x1" war 0/1 — Go-Button führt zum AFK-Screen;
+  Instant-Claim-Button im Chest-Popup vermessen → Skript-Feature.
+- ⬜ T45d: Dura's Trials — Retry-bis-Sieg (Fail = Token-Refund, Tokens reset daily).
+  Neuer Mode: Turm-Rotation (6 Tage, 2 Klassen/Tag) → class-gear Notes.
+- ⬜ T45e: Arena auf 10 Tickets (5 frei + 5 gekauft = 10/Tag max); Defense-Formation
+  setzen; über der Last-100-Champion-Linie bleiben (Wochenend-Demotion-Gamble).
+- ⬜ T45f: Legend Trial alle 4 Türme am SONNTAG (Rotation: Light Mo/Fri/Sun,
+  Nature Wed/Sat/Sun, Eternity Thu/Sat/Sun, Will Tue/Fri/Sun) — Key-Release nötig (T29).
+- ⬜ T45g: Primal Lord (Event): Max-Damage-Run FIRST (Eternal Inscription zahlt
+  alle späteren Claims zum Peak); ungenutzte Challenges werden claimbar (nicht verloren).
+- ⬜ T45h: Friend Favors (10/Tag → 1 Chest, Progress carry-over), Guild Activeness
+  vor Sonntag, Homestead-Assists. Freie Chests + Build-Speed.
+- ⬜ T45i: Honor Duel: Rounds 1–2 unterbesetzen (Badges farmen), r8+ höchste Payouts.
+  1 Duel-Ticket/Play (wie T29 — Policy).
+- ⬜ T45j: Season-End-Arbitrage (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim;
+  Season-Mats 24h vor Ende dumpen). Braucht Season-Kalender → sobald Season-Nähe
+  erkennbar (Banner-Timer), Scheduler-Task.
+- ⬜ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
+  15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
+- ⬜ T45l: Temporal Essence Swap: hero-spezifische Essence ↔ universal (Lucky-Flip-Picks
+  nie tot). Notiz für Guide/Manuell.
+- ⏸️ Nicht automatisieren laut Research: Gems für Attempts/Refreshes, Level-800-Stop
+  (Stats flatten, Hourglass-Wert kollabiert).

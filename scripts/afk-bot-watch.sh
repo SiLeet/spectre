@@ -117,7 +117,7 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
       {
         echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) progress stage push"
-        "$PY" scripts/afk_stage_push.py --pid "$pid" --base "$base" --auto --auto-minutes 6 2>&1
+        "$PY" scripts/afk_stage_push.py --pid "$pid" --base "$base" --auto --auto-minutes 6 --retry-defeats 2>&1
       } | tee -a "$LOG"
       rc="${PIPESTATUS[0]}"
     fi
@@ -175,7 +175,7 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     run_daily_task "dream realm (all chances)" "dream-last.txt" \
       "$PY" scripts/afk_dream_realm.py --fights 7
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
-      "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6
+      "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats
   fi
   exit "$rc"
 fi

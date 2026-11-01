@@ -433,9 +433,16 @@ Queue-Eintrag als Task.
   alles (Chest, Quests 5 Tabs, Mail, Login, Arena 4/4, Dream Realm 7/7,
   Stage-Push bis Wand); Task "Spectre AFK Progress" 17:10 macht Chest (Cap-Schutz)
   + Stage-Push. 15-Minuten-Task gelöscht. Idle-Gate bleibt.
-- ⬜ T40: Stage-Push in den Progress-Run (nach Helden-Leveling auch mehrfach).
+- ✅ T40: Stage-Push in den Progress-Run — erledigt 2026-11-01. `afk_stage_push.py`
+  läuft im Daily- (T39, 05:10) und Progress-Run (17:10) mit `--auto --auto-minutes 6`,
+  E2E inkl. Welt-Einstieg (AFK-Progress-Chip), Klassifikator-Reorder, Live: Stage
+  218→254. Commits 041c762, b1f991a, 46c082c; Night-Mode `--retry-defeats` (cc68503,
+  paralleler Writer).
 - ⏸️ T33: Helden-Leveling — jetzt DER zentrale Hebel (Rate × Level), braucht Regel.
-- ⬜ T41: Nach jedem Push prüfen, ob eine neue Wand erreicht ist → Team-Power-Report.
+- ✅ T41: Wand-Report — erledigt 2026-11-01 (Commit 46c082c). `wall_report()`
+  schreibt JSONL nach `.spectre/wall-report.log` (Stage/Power via Offline-WinRT-OCR,
+  `templates/ocr.ps1`) an allen Wand/Exit-Punkten. Live bewiesen: stage=254
+  power=74986; States Auto-Battle-Complete/CONFIRM/POPUP behandelt.
 ### 🟨 T42-Update: AFK Synergy Battle (1/1) — nutzt den Proxy, löst die Wand NICHT
 Der Defeat-Screen bietet „AFK Synergy Battle (1/1)" (Position 930,866) — der
 Proxy-Modus (starke Fremd-Formation). Live getestet: Kampf lief 76 s, endete
@@ -458,3 +465,11 @@ Dialog-Gotcha: „Turn off Auto Battle mode?" erscheint nach jedem
 Battle-Ende/Synergy-Ende — Cancel-Tap (1014,710) nötig, sonst blockiert der
 Dialog die Navigation. Einmaliges Bestätigen schaltet Auto Battle aus
 (reversibel) und befreit die Navigation — aber stoppt den Progress-Loop.
+
+### ⬜ T43: Review-Fix-Batch MED/LOW für `afk_stage_push.py` (Restbefunde des
+Subagent-Reviews zu T41; Nummer T43 statt T42, weil T42 schon von den Synergy-
+Battle-Notizen belegt ist). Bekannte Punkte: RESULT-Branch in der Auto-Chain-Loop
+(feilt noch), DEFEAT im Single-Battle-Wait-Set, LAUNCHER-Erkennung im Chain-Loop,
+parse_stage-Ankerung (False Positives bei freien Zahlen), wall_report mit
+Screenshot-Pfad/ocr_error-Feld, Idle-Recheck im Auto-Run, Exit-3-Doku im
+Docstring. MED zuerst, danach live verifizieren.

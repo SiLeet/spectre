@@ -607,3 +607,14 @@ den zweiten OCR-Read (Level-Animation/Confirm? — Screenshot-Analyse nötig),
 (b) OCR-Parsing verfeinern (Power-Zahlen können als Level fehlgelesen werden),
 (c) Resonance-Heroes stehen auf 74 trotz RL-80 (Widerspruch zum Rules-Panel —
 aufzuklären). Danach: Push-Loop → neue Wand messen.
+
+### ✅ T33-Rest: Resources-out-Detection + OCR-Retry (Leveling-Driver verifiziert)
+Live (2026-11-01 03:4x): Hand 710 (Lv 74) → x10 → Level unverändert →
+„resources exhausted, stopping run" + Top-up-Hinweis im Log. OCR-Retry bei
+leeren Reads. Der Leveling-Driver ist damit produktionsklar: er levelt, bis
+die Ressourcen ausgehen, und stoppt sauber. Wiederaufnahme: automatische
+(Progress-Run 17:10) oder per Cron, sobald EXP/Gold nachgefüllt ist (Chest-
+Claims liefern 123K EXP + 41K Gold pro Claim ~5 h).
+Wand-Stand: Stage 254, Level-Cap 95, Resonanz 80. Die „Wand" bei 250 löst
+sich durch Auto-Battle-Retries (249→252 gemessen) + Leveling. Der
+Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.

@@ -567,3 +567,13 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   nie tot). Notiz für Guide/Manuell.
 - ⏸️ Nicht automatisieren laut Research: Gems für Attempts/Refreshes, Level-800-Stop
   (Stats flatten, Hourglass-Wert kollabiert).
+### ✅ T45c-Update (03:1x): Chest-Popup verifiziert — kein separater Instant-Button
+Das AFK-Chest-Popup hat EINEN Claim-Button (960,606). Die Daily „Claim Instant
+AFK Rewards x1" dürfte durch diesen Claim abgehakt werden (Timing war exakt
+nach dem Push, vor dem 05:00-Reset — der Guide-Tipp). Max Level ist auf
+**Lvl. 95 gestiegen** (Stage-Fortschritt hebt den Level-Cap), Rates jetzt
++21180/h Gold (+3.3 % vs. T27-Zeitpunkt). Chest-Pending beim Claim: 127 Essenz,
+41K Gold, 123K EXP, 1 Hourglass. AFK Progress 252→253.
+Rest des Chest-Flows unverändert: Panel (60,1036) → Truhe (975,760) → Claim
+(960,606) → Back. T45c gilt damit als abgedeckt durch den bestehenden Chest-
+Claim (kein separates Feature nötig).

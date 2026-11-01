@@ -399,6 +399,18 @@ Bundle I“ für 98 (echtes Geld!). Cancel getippt, nichts gekauft. Der Recruit
 über Tickets braucht vermutlich einen Währungs-Toggle am Recruit-Button —
 Vermessung nötig. Bis dahin: Recruit-Feature blockiert (300💎 = Policy).
 
+### 🟦 T38-Update 2 (01:1x, Queue-Driver): Dream Realm hat MEHRERE Boss-Tiers
+mit getrennten Chance-Pools. Die Boss-Page zeigte (nach den 7 Elite-Chancen
+verbraucht): **Snow Stomper (Common I), Chances 7/7** NEBEN dem morgigen
+Necrodrakon (Common II, dort 4/7). D.h. pro Tier existiert ein eigener
+Daily-Pool — potenziell 7 WEITERE tägliche Kämpfe. Offen: (a) Flow zu den
+anderen Tiers navigieren (Tier-Auswahl auf der Boss-Page? Pfeile/Tabs?),
+(b) prüfen, ob `afk_dream_realm.py` tier-agnostisch funktioniert (Probes
+sind auf die aktuelle Boss-Page kalibriert), (c) Kämpfe sind denselben
+Policy-Regeln unterworfen (keine Käufe im Flow). Nächster Schritt: Boss-Page
+live vermessen (Screenshot + Probe der Tier-Nav-Elemente) — erst dann
+Queue-Eintrag als Task.
+
 ## P6 — Idle-Architektur (Sergejs Korrektur, 2026-11-01)
 > 15-Minuten-Chest-Claims bringen bei einem Idle-Game NICHTS (fixe Rate, 12-h-Cap).
 > Der Hebel ist Progression: hohe Stage = hohe Rate, Heldenpower = hohe Stage.

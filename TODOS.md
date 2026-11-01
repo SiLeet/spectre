@@ -521,3 +521,18 @@ im Skill). Fallback: Guard als 'disabled' loggen statt jedes Mal WARN.
 Scheduler-Nebennotiz: `--retry-defeats` (Night-Mode, cc68503) ist jetzt live
 verifiziert — dem Daily/Progress-Run (05:10/17:10) beigeben, sobald der
 parallele Writer mit afk-night.sh fertig ist (Kollisionsvermeidung).
+### 🟦 T33-Update (03:1x, OCR-verifiziert): Helden-Leveling — Kosten pro Batch ~47 % des Golds
+Verifizierte OCR-Lese (WinRT, echte Textzeilen) vom Heldendetail (Shemira,
+Hands of Resonance, Lvl. 74): „Level Up"-Button mit Kosten **2395K Gold +
+63K EXP** und „2985/1100" — Wallet auf dem Detail-Screen: **5104K** (5,1 Mio).
+D.h. ein Level-Up-x10-Batch kostet ~2,4 Mio Gold = **47 % des Bestands** —
+über jeder vernünftigen Schwelle (10 % = 510K). Das x10-Button-Layout:
+(1460,1065) und (1520,1005) starteten NICHT (Lvl. 74 blieb 74) — Button-
+Position/Bedingung noch nicht verifiziert. Die Lvl-74-Werte zeigen auch:
+**Resonance Heroes stehen auf 74, nicht auf Resonance-Level 80** (Widerspruch
+zu Regel 2 im Rules-Panel — vermutlich liegt das Resonance-Level woanders).
+→ T33 bleibt BLOCKIERT auf Sergejs Ressourcen-Regel, ABER jetzt mit echten
+Kosten-Daten für die Entscheidung: ein Batch ≈ 2,4 Mio Gold (47 %). Gold
+hat AFK-Journey-seitig nur diesen Zweck. Sergej entscheiden lassen: Batch
+grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
+(templates/ocr.ps1), Wallet+Kosten lesbar — Umsetzung nach Freigabe ~1 Sprint.

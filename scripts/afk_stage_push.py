@@ -50,14 +50,20 @@ def classify_battle(img) -> str:
     pause = v.lum(v.avg(img, (549, 846)))
     if pause < 55:
         return 'BATTLE'
+    # The AFK panel's orange Claim chip must outrank the WORLD cross-check:
+    # on the dark panel backdrop v.classify() itself reads WORLD, which made
+    # an open panel look like the world view (regression probe r1_1_panel).
+    claim = v.avg(img, (1390, 704))
+    if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
+        return 'AFK_PANEL'
+    # Cross-check with the calibrated vision classifier BEFORE any brightness
+    # heuristic: the open world reads as a bright centre (card ~121-200) or a
+    # dark uniform frame depending on camera/time-of-day, which made pushes
+    # misclassify WORLD as DEFEAT (shots-48848) or abort UNKNOWN (shots-30140).
+    # v.classify puts POPUP first, so dimmed popups never fall through here.
+    if v.classify(img) == 'WORLD':
+        return 'WORLD'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
-        # Cross-check with the calibrated vision classifier: the open world
-        # is bright in the centre too and classified as DEFEAT, which made
-        # every scheduled push silently no-op with "wall reached" when it
-        # started from the world view (found 2026-11-01, shots-48848: the
-        # progress run did chest -> world -> "DEFEAT" without fighting).
-        if v.classify(img) == 'WORLD':
-            return 'WORLD'
         title = v.avg(img, (960, 60))
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     # the AFK panel has the same green Battle button as the prep screen; its

@@ -436,3 +436,13 @@ Queue-Eintrag als Task.
 - ⬜ T40: Stage-Push in den Progress-Run (nach Helden-Leveling auch mehrfach).
 - ⏸️ T33: Helden-Leveling — jetzt DER zentrale Hebel (Rate × Level), braucht Regel.
 - ⬜ T41: Nach jedem Push prüfen, ob eine neue Wand erreicht ist → Team-Power-Report.
+### 🟨 T42-Update: AFK Synergy Battle (1/1) — nutzt den Proxy, löst die Wand NICHT
+Der Defeat-Screen bietet „AFK Synergy Battle (1/1)" (Position 930,866) — der
+Proxy-Modus (starke Fremd-Formation). Live getestet: Kampf lief 76 s, endete
+mit „Turn off Auto Battle mode?"-Dialog, **AFK Progress blieb 249**. Die Synergy
+Battle ist vermutlich kein Stage-Kampf, sondern ein eigenes Event — Verbrauch
+1/1, Fortschritt null. Daily-Quest „Assist in Proxy/Synergy x2" bekommt dadurch
+aber Progress (1/2). Cancelt (X 1014,710).
+Noch offen für die Wand: Helden-Leveling über Resonanz-Panel — Exploration
+scheiterte bisher an Auto-Battle-Interleaving (navigiert mit Verifikation bei
+jedem Schritt nötig, nicht blind).

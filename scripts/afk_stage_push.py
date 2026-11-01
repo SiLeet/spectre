@@ -36,23 +36,15 @@ def classify_battle(img) -> str:
     arena = v.avg(img, (960, 400))
     card = v.lum(v.avg(img, (960, 300)))
     search = v.lum(v.avg(img, (960, 124)))
-    if search > 120 and dark < 60:
-        # BlueStacks launcher: bright search field on a dark background — the
-        # game crashed or was closed. Without this, a crash looked like a
-        # never-ending LOADING screen.
-        return 'LAUNCHER'
-    if dark < 45 and header < 45:
-        return 'LOADING'
     # Theme-independent battle marker: the pause button is dark during a fight
     # (L~44 day and night) while prep ground is bright (L~147) and result cards
     # are very bright (L~238). The arena colour alone is unreliable — stages use
     # different day/night themes.
     pause = v.lum(v.avg(img, (549, 846)))
-    if pause < 55:
-        return 'BATTLE'
-    # The AFK panel's orange Claim chip must outrank the WORLD cross-check:
-    # on the dark panel backdrop v.classify() itself reads WORLD, which made
-    # an open panel look like the world view (regression probe r1_1_panel).
+    # The AFK panel's orange Claim chip outranks everything below: the panel
+    # sits on a dark blurred backdrop that (a) v.classify() itself reads as
+    # WORLD and (b) the LOADING gate matched, which starved the push loop
+    # (live shots-20408: panel open, Battle button visible, stuck until abort).
     claim = v.avg(img, (1390, 704))
     if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
         return 'AFK_PANEL'
@@ -61,8 +53,21 @@ def classify_battle(img) -> str:
     # dark uniform frame depending on camera/time-of-day, which made pushes
     # misclassify WORLD as DEFEAT (shots-48848) or abort UNKNOWN (shots-30140).
     # v.classify puts POPUP first, so dimmed popups never fall through here.
-    if v.classify(img) == 'WORLD':
+    # The check ALSO requires the AFK Progress chip (60,1036): the world HUD
+    # is the only screen that has it (chip lum 132-173 on every true world
+    # frame; night prep / battle transitions read 2-64, where v.classify's
+    # dim-uniform back-arrow predicate falsely says WORLD — shots-19744).
+    if v.classify(img) == 'WORLD' and v.lum(v.avg(img, AFK_PROGRESS)) > 100:
         return 'WORLD'
+    if search > 120 and dark < 60:
+        # BlueStacks launcher: bright search field on a dark background — the
+        # game crashed or was closed. Without this, a crash looked like a
+        # never-ending LOADING screen.
+        return 'LAUNCHER'
+    if dark < 45 and header < 45:
+        return 'LOADING'
+    if pause < 55:
+        return 'BATTLE'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
         title = v.avg(img, (960, 60))
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
@@ -77,9 +82,6 @@ def classify_battle(img) -> str:
     back = v.lum(v.avg(img, v.BACK))
     if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
         return 'STATS'
-    claim = v.avg(img, (1390, 704))
-    if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
-        return 'AFK_PANEL'
     if v.avg(img, BATTLE_BTN)[1] > 150:
         return 'PREP'
     return 'UNKNOWN'

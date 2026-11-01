@@ -270,13 +270,27 @@
   committet an `afk_stage_push.py` (Skip-Button-Auto-Battle-Loop, T34-Thema).
   Queue-Driver fasst T34/die Datei in diesem Lauf NICHT an (Kollisionsgefahr);
   T34 bleibt offen und wird bearbeitet, sobald die Änderungen committed sind.
-- ⬜ T29: Legend Trial / Arcane Labyrinth / Honor Duel — Flows explorieren.
+- ⏸️ T29: Legend Trial / Arcane Labyrinth / Honor Duel — BLOCKIERT (Entry-
+  Currencies): Legend Trial/Labyrinth verbrauchen Keys ×3 (T29-Update unten),
+  **Honor Duel verbraucht 1 Duel-Ticket pro „Play Now"** (Vermessung 01:2x:
+  Mode-Screen = Total Points (Unranked) 100, 5 Tickets oben rechts, „Play
+  Now" (1032,996) mit x1-Kosten-Badge, „Participate to get Lucky Keys!",
+  Ranking/Records-Buttons rechts oben — NICHT gespielt). Exploration damit
+  abgeschlossen; Freigabe nur durch Sergej (wie T33/T35).
 - ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).
 - ⬜ T31: Mail/Quest-Log-Reminder (nur claimen, wenn Marker-Tag alt) prüfen.
 - ⬜ T32: Skill-Hygiene: SKILL.md >24k chars → Pitfalls in references/ auslagern.
 - ⏸️ T33: Helden-Upgrades (Level-Automatik) — BLOCKIERT auf Sergejs Ressourcen-
   Regel (Vorschlag: nur Team-Helden, Gold < 20 % Bestand, max 10 Level/Lauf).
-- ⬜ T34: Stage-Push --auto + x2-Speed in Scheduler-Idle-Fenster integrieren.
+- ✅ T34: Stage-Push --auto + x2-Speed — bereits implementiert + integriert:
+  `afk_stage_push.py` hat `--auto` (Auto-Battle-Loop mit Skip-Button-Resolve)
+  und tippt SPEED_X2_BTN (1160,855) beim Auto-Start (x4 premium-locked, wird
+  nie angetippt). Der Scheduler (T39, dd4ed3e) ruft es im Daily-Run mit
+  `--auto --auto-minutes 6` auf; das alte „Idle-Fenster"-Konzept ist durch
+  die festen Runs (05:10/17:10) abgelöst. Live 01:2x: DEFEAT-Pfad verifiziert
+  (Wand erreicht → Exit 0, keine Blind-Taps); der x2-Tap war Teil der
+  verifizierten T39-Push-Kette (Stage 218→249). Restliche Integration in den
+  Progress-Run = T40 (P6).
 - ⬜ T35: ×4-Speed: nur falls Sergej Premium kauft (Button gesperrt — Shop-
   Risiko); vorher nicht anfassen.
 

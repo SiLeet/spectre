@@ -466,10 +466,44 @@ Battle-Ende/Synergy-Ende — Cancel-Tap (1014,710) nötig, sonst blockiert der
 Dialog die Navigation. Einmaliges Bestätigen schaltet Auto Battle aus
 (reversibel) und befreit die Navigation — aber stoppt den Progress-Loop.
 
-### ⬜ T43: Review-Fix-Batch MED/LOW für `afk_stage_push.py` (Restbefunde des
-Subagent-Reviews zu T41; Nummer T43 statt T42, weil T42 schon von den Synergy-
-Battle-Notizen belegt ist). Bekannte Punkte: RESULT-Branch in der Auto-Chain-Loop
-(feilt noch), DEFEAT im Single-Battle-Wait-Set, LAUNCHER-Erkennung im Chain-Loop,
-parse_stage-Ankerung (False Positives bei freien Zahlen), wall_report mit
-Screenshot-Pfad/ocr_error-Feld, Idle-Recheck im Auto-Run, Exit-3-Doku im
-Docstring. MED zuerst, danach live verifizieren.
+### ✅ T43: Review-Fix-Batch MED/LOW für `afk_stage_push.py` — erledigt 2026-11-01
+(Commit a3ed421; Nummer T43 statt T42, weil T42 von den Synergy-Battle-Notizen
+belegt ist.) Frisch-Augen-Review der aktuellen Datei ergab 19 Befunde; 16
+eingezogen, 2 bewusst nicht (siehe unten), 1 teilweise:
+1. [MED] RESULT-Branch in der Auto-Chain-Loop: Victory-Karte mid-chain wird
+   geschlossen und Auto Battle neu bewaffnet (inkl. x2-Re-Tap — LOW #13 mit).
+   Vorher spinn die Loop stumm bis zum Timeout; im Night-Mode wäre jeder
+   Retry-Sieg verloren gegangen.
+2. [MED] DEFEAT in den Single-Wait-Sets + expliziter DEFEAT-Stop mit
+   wall_report; PREP nach Battle-Tap = ein Re-Tap statt Fehl-Abbruch (LOW #18).
+3. [MED] LAUNCHER mid-chain → wall_report + Exit 3.
+4. [MED] Idle-Recheck pro Loop-Iteration (Chain + Single) → Exit 5, keine
+   Taps mehr, sobald der PC in Benutzung ist.
+5. [MED] Retry-Verifikation + Cap: nach Retry-Tap wait_for(BATTLE/PREP/
+   LOADING/CONFIRM), CONFIRM wird gecancelt; Cap 200 Retries; wall_report im
+   Night-Mode gedrosselt (1. + jeder 10. Defeat).
+6. [MED] CONFIRM/POPUP-Gates VOR dem bright-card-Branch in classify_battle
+   (Popup zählte vorher als Victory/RESULT → Blind-Tap (960,540) aufs
+   Store-Risiko). WICHTIG: nach dem BATTLE-Check belassen — Nachtkampf-Frames
+   lesen als v.classify POPUP (shots-36248 sp_auto_3/_14) und müssen BATTLE
+   bleiben. Regression über 231 archivierte Frames: nur 2 Diffs, beide sind
+   genau die beabsichtigte Verbesserung (falsch-RESULT → POPUP).
+7. [MED] wait_for/Chain-Loop tolerieren transiente adb-Fehler (Retry statt
+   Traceback-Abbruch); Top-Level-Handler → sauberer Exit.
+8. [MED] Shot-Prune: nur die 30 neuesten PNGs bleiben (Disk-Leak über
+   Nacht-Läufe); lazy TMP-mkdir; power.bin pro Run (Race gefixt).
+9. [LOW] parse_stage geankert ('AFK Stage n' bevorzugt, looser Fallback nur
+   Zeilenende) — Quest-Counter können nicht mehr als Stage lesen; Unit-Tests
+   grün; Defeat-Screen liefert jetzt korrekt None statt Fehlwert.
+10. [LOW] wall_report: png/ocr_ok/ocr_error-Felder in der JSONL, lines immer
+    gesetzt, Write-Fehler landen im Record + in der Print-Zeile.
+11. [LOW] OCR-Timeout 90→15 s; Exit-3-Doku; --battles wird nicht mehr still
+    umgeschrieben (planned-Variable).
+- Bewusst NICHT gefixt: SKIP-Button-Farbprobe (Review #10) — Messung an
+  echten Battle-Frames zeigt, dass (1220,788) sehr variabel ist und echte
+  Nachtkampf-Frames teilweise als POPUP klassifizieren; ein Gate dort würde
+  funktionierendes Skip-Verhalten brechen. BATTLE-Klassifikation (Pause-
+  Probe) bleibt der Schutz.
+- Live-Verifikation (3 Läufe): Auto-Chain → DEFEAT → wall_report → Exit 0;
+  Night-Mode-Retry live (Retry → verifiziert → PREP-Debounce → wall_report
+  mit stage=254 power=74986); Prune aktiv (10 PNGs nach 2-Min-Run).

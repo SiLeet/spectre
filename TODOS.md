@@ -277,9 +277,9 @@
   Now" (1032,996) mit x1-Kosten-Badge, „Participate to get Lucky Keys!",
   Ranking/Records-Buttons rechts oben — NICHT gespielt). Exploration damit
   abgeschlossen; Freigabe nur durch Sergej (wie T33/T35).
-- ⬜ T30: Homestead-Ernte (Felder einsammeln — Kamera-abhängig, Ordnen nötig).
-- ⬜ T31: Mail/Quest-Log-Reminder (nur claimen, wenn Marker-Tag alt) prüfen.
-- ⬜ T32: Skill-Hygiene: SKILL.md >24k chars → Pitfalls in references/ auslagern.
+- ✅ T30: Homestead-Ernte — geschlossen (YAGNI, siehe ✅-Abschnitt unten: nichts zu automatisieren).
+- ✅ T31: Mail/Quest-Reminder — bereits implementiert (Marker-File, siehe ✅-Abschnitt unten).
+- ✅ T32: Skill-Hygiene — erledigt (Auslagerung in references/, siehe ✅-Abschnitt unten).
 - ⏸️ T33: Helden-Upgrades (Level-Automatik) — BLOCKIERT auf Sergejs Ressourcen-
   Regel (Vorschlag: nur Team-Helden, Gold < 20 % Bestand, max 10 Level/Lauf).
 - ✅ T34: Stage-Push --auto + x2-Speed — bereits implementiert + integriert:
@@ -507,3 +507,17 @@ eingezogen, 2 bewusst nicht (siehe unten), 1 teilweise:
 - Live-Verifikation (3 Läufe): Auto-Chain → DEFEAT → wall_report → Exit 0;
   Night-Mode-Retry live (Retry → verifiziert → PREP-Debounce → wall_report
   mit stage=254 power=74986); Prune aktiv (10 PNGs nach 2-Min-Run).
+
+### ⬜ T44: team_power-Offset-Revalidation nach Game-Restart
+Log-Befund (2026-11-01): `memory_preflight` liest nach jedem Game-Restart
+Garbage (2.1e16 → 'stale'), weil sich das Layout IN DER Region verschiebt,
+auch wenn die Heap-Base gleich bleibt (watch.sh löst pid/base korrekt pro
+Lauf auf). Der Memory-Guard ist damit unbefristet offline; nur die Vision-
+Gates schützen. Vorschlag: bei 'stale' den Offset automatisch re-lokalisieren
+— HUD-Power per OCR vom Prep-Screen lesen, dann `spectre search <pid> u64
+<value>`/Range-Scan gegen die frische Heap-Base, Kandidat per Struktur
+verifizieren und in die Run-Config schreiben (Muster: offset-discovery-Loop
+im Skill). Fallback: Guard als 'disabled' loggen statt jedes Mal WARN.
+Scheduler-Nebennotiz: `--retry-defeats` (Night-Mode, cc68503) ist jetzt live
+verifiziert — dem Daily/Progress-Run (05:10/17:10) beigeben, sobald der
+parallele Writer mit afk-night.sh fertig ist (Kollisionsvermeidung).

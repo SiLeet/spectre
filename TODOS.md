@@ -595,3 +595,15 @@ nach dem Push, vor dem 05:00-Reset — der Guide-Tipp). Max Level ist auf
 Rest des Chest-Flows unverändert: Panel (60,1036) → Truhe (975,760) → Claim
 (960,606) → Back. T45c gilt damit als abgedeckt durch den bestehenden Chest-
 Claim (kein separates Feature nötig).
+### ✅ T33-Feature: `scripts/afk_hero_level.py` — Leveling-Driver gebaut (2026-11-01)
+Resonanz-Regeln bestätigt (Research): RL = niedrigste der 5 Hände; Levels in
+höheren Händen kaufen accountweit nichts; Pre-240 RL kostet Gold+EXP+Essence,
+**Gold ist der bindende Faktor bei Stage 254**. Policy umgesetzt: Gold/EXP/
+Essence only, max 2 x10-Taps pro Hand pro Run, Abort bei unreadable/unknown.
+Live: Hand 840 (Lv 84) erkannt + x10 gefeuert; Hand 1100 (Lv 74) erkannt,
+x10 wirkungslos (Ascension/EXP-Limit?); Hände 710/970/1220 Detail-OCR leer
+(Screen-State zu verfeinern). Rest-Punkte: (a) Post-x10-Screen-Wechsel brechen
+den zweiten OCR-Read (Level-Animation/Confirm? — Screenshot-Analyse nötig),
+(b) OCR-Parsing verfeinern (Power-Zahlen können als Level fehlgelesen werden),
+(c) Resonance-Heroes stehen auf 74 trotz RL-80 (Widerspruch zum Rules-Panel —
+aufzuklären). Danach: Push-Loop → neue Wand messen.

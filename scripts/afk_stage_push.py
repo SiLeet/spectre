@@ -27,7 +27,6 @@ BATTLE_BTN = (1280, 1000)
 AUTO_BATTLE_BTN = (780, 1000)
 SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
 SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
-SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
 
 
@@ -52,6 +51,13 @@ def classify_battle(img) -> str:
     if pause < 55:
         return 'BATTLE'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
+        # Cross-check with the calibrated vision classifier: the open world
+        # is bright in the centre too and classified as DEFEAT, which made
+        # every scheduled push silently no-op with "wall reached" when it
+        # started from the world view (found 2026-11-01, shots-48848: the
+        # progress run did chest -> world -> "DEFEAT" without fighting).
+        if v.classify(img) == 'WORLD':
+            return 'WORLD'
         title = v.avg(img, (960, 60))
         return 'DEFEAT' if title[2] > title[0] + 40 else 'RESULT'
     # the AFK panel has the same green Battle button as the prep screen; its
@@ -131,6 +137,13 @@ def main() -> int:
         for _ in range(3):
             if st in ('PREP', 'RESULT'):
                 break
+            if st == 'WORLD':
+                # NO BACK here: in the world view BACK opens the exit confirm.
+                # The bottom-left AFK Progress chip opens the panel directly.
+                v.tap(AFK_PROGRESS, 3.0)
+                st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL'}, 25, 'sp_world')
+                print(f'    after AFK Progress tap: {st}', flush=True)
+                continue
             if st in ('BATTLE', 'LOADING'):
                 st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL'}, args.max_battle_seconds, 'sp_wait')
                 continue

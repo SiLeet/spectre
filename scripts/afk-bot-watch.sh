@@ -15,10 +15,14 @@ OUT="$OUT_DIR/afk-live.generated.yaml"
 
 # --scheduled: only act when the PC has been untouched for a while, so a
 # scheduled run never hijacks the screen while Sergej is playing or working.
+# --scheduled-progress: same idle gate, but the run does ONLY chest (vision
+# driver) + stage push — all once-per-day tasks stay in the 05:10 Daily run.
 MIN_IDLE=0
-if [ "${1:-}" = "--scheduled" ]; then
-  MIN_IDLE="${AFK_MIN_IDLE:-180}"
-fi
+PROGRESS=0
+case "${1:-}" in
+  --scheduled)          MIN_IDLE="${AFK_MIN_IDLE:-180}" ;;
+  --scheduled-progress) MIN_IDLE="${AFK_MIN_IDLE:-180}"; PROGRESS=1 ;;
+esac
 
 mkdir -p "$OUT_DIR"
 
@@ -106,6 +110,19 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     "$PY" scripts/afk_claim_vision.py --pid "$pid" --base "$base" --min-idle "$MIN_IDLE" 2>&1
   } | tee -a "$LOG"
   rc="${PIPESTATUS[0]}"
+  # --scheduled-progress: the 17:10 Progress run = chest (above) + stage push.
+  # Stage push is NOT marker-gated here: each Progress run pushes until the
+  # wall (the script stops itself on DEFEAT). Daily-only tasks are skipped.
+  if [ "$PROGRESS" = "1" ]; then
+    if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) progress stage push"
+        "$PY" scripts/afk_stage_push.py --pid "$pid" --base "$base" --auto --auto-minutes 6 2>&1
+      } | tee -a "$LOG"
+      rc="${PIPESTATUS[0]}"
+    fi
+    exit "$rc"
+  fi
   # --scheduled: once per day, also claim the daily login reward (same gates)
   if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
     today=$(date -u +%Y-%m-%d)

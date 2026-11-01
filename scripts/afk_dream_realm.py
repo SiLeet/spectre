@@ -412,6 +412,11 @@ def run(args) -> int:
                   flush=True)
             return 1
 
+        # fight is running: set 2x speed (same damage per game-second,
+        # half the real wall-clock time; x4 is premium-locked)
+        v.tap((1092, 788), 1.5)
+        print(f'    fight {fight}: 2x speed enabled', flush=True)
+
         end_img = wait_for_fight_end(f'dr_f{fight}', args.wait_fight)
         if end_img is None:
             return 1

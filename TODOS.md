@@ -508,19 +508,37 @@ eingezogen, 2 bewusst nicht (siehe unten), 1 teilweise:
   Night-Mode-Retry live (Retry → verifiziert → PREP-Debounce → wall_report
   mit stage=254 power=74986); Prune aktiv (10 PNGs nach 2-Min-Run).
 
-### ⬜ T44: team_power-Offset-Revalidation nach Game-Restart
-Log-Befund (2026-11-01): `memory_preflight` liest nach jedem Game-Restart
-Garbage (2.1e16 → 'stale'), weil sich das Layout IN DER Region verschiebt,
-auch wenn die Heap-Base gleich bleibt (watch.sh löst pid/base korrekt pro
-Lauf auf). Der Memory-Guard ist damit unbefristet offline; nur die Vision-
-Gates schützen. Vorschlag: bei 'stale' den Offset automatisch re-lokalisieren
-— HUD-Power per OCR vom Prep-Screen lesen, dann `spectre search <pid> u64
-<value>`/Range-Scan gegen die frische Heap-Base, Kandidat per Struktur
-verifizieren und in die Run-Config schreiben (Muster: offset-discovery-Loop
-im Skill). Fallback: Guard als 'disabled' loggen statt jedes Mal WARN.
-Scheduler-Nebennotiz: `--retry-defeats` (Night-Mode, cc68503) ist jetzt live
-verifiziert — dem Daily/Progress-Run (05:10/17:10) beigeben, sobald der
-parallele Writer mit afk-night.sh fertig ist (Kollisionsvermeidung).
+### ✅ T44: team_power-Offset-Revalidation nach Game-Restart — erledigt 2026-11-01
+Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
+- Bei 'stale' werden die ersten 16 MB des Hot-Heaps ZWEIMAL (5 s Abstand) gedumpt
+  und in EINEM Pass nach u32- UND u64-Slots im Anker-Fenster gescannt
+  (`scan_slots`, Prefilter: high bytes == 0 → ~4 M Slots in Sekunden).
+- **Schlüsselfund (Live-Messung):** Nach dem Restart ist Team-Power KEIN u64-Feld
+  mehr, sondern ein **u32 Map-Entry**: `[u32 value][u32 hash][ptr → Heap]` —
+  259850 liegt stabil bei `base+0x2FE8`, 8-aligned, mit Heap-Pointer +8. Der
+  alte u64-Slot (+0xA578) ist weg (0 Treffer im u64-Muster).
+- Filter: Alloc/Metadata-Shapes ausgeschlossen (v ≡ 0/1 mod 4096 — die Top-
+  "Treffer" 2097152/1048576/… sind genau diese Muster), u64 braucht ≥2 Kopien
+  (Display-Copies), u32 braucht 8-aligned + Pointer-Nachbar, Ranking nach
+  Distanz zum Anker, Akzeptanz gedeckelt auf 10 % Drift.
+- State: `.spectre/power-state.json` (offset/width/power/pid/base) — der letzte
+  VERIFIZIERTE Wert ist der Anker für den nächsten Restart; 'ok'-Läufe
+  aktualisieren ihn. Scheitert die Re-Location → Status **'disabled'** (Quiet-
+  Line statt WARN-Spam; Vision-Gates tragen weiter die Sicherheit).
+- **Live verifiziert:** Re-Location 11,7 s → ('ok', 259850) via offset 0x2FE8/
+  width 4; Zweit-Preflight 0,1 s. Der Guard ist damit nach dem 2026-11-01-
+  Restart WIEDER ONLINE.
+- Einschränkung (dokumentiert): HUD-Gegenprobe (Resonating Hall „Power 2xxK")
+  wurde NICHT gezogen — PC in Benutzung (idle 0,05 s) + aktiver paralleler
+  Writer zur Messzeit. Der gefundene Slot ist anker-verifiziert (exakter Wert =
+  letzter verifizierter Memory-Wert, stabile Map-Entry-Struktur); ein falscher
+  Kandidat mit exakt diesem Wert + Pointer-Struktur ist unwahrscheinlich.
+- Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
+  in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
+  (cc68503), Kollisionsfenster vorbei.
+- Achtung Parallel-Writer: cc86652 hat den T44-Zwischenstand blanket-add
+  committet; der finale Algorithmus (u32-Support, Alloc-Filter, Distanz-Ranking,
+  width im State) kam als Folge-Commit.
 ### 🟦 T33-Update (03:1x, OCR-verifiziert): Helden-Leveling — Kosten pro Batch ~47 % des Golds
 Verifizierte OCR-Lese (WinRT, echte Textzeilen) vom Heldendetail (Shemira,
 Hands of Resonance, Lvl. 74): „Level Up"-Button mit Kosten **2395K Gold +
@@ -543,9 +561,9 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
 
 - ✅ T45a: „Push past the cap still pays" — bereits abgedeckt (Stage-Push ohne Cap-Logik).
 - ✅ T45b: Mystic Collection durch Daily-Chest — bereits abgedeckt (Quick Claim täglich).
-- ⬜ T45c: Instant AFK Attempts NACH dem Push claimen (2h Rewards, 7-Tage-Bank).
-  Daily-Quest „Claim Instant AFK Rewards x1" war 0/1 — Go-Button führt zum AFK-Screen;
-  Instant-Claim-Button im Chest-Popup vermessen → Skript-Feature.
+- ✅ T45c: Instant AFK Attempts NACH dem Push claimen — ABGEDECKT (T45c-Update
+  unten, 03:1x): das Chest-Popup hat nur EINEN Claim-Button (960,606), der die
+  Daily „Claim Instant AFK Rewards x1" mit abhakt. Kein separates Feature.
 - ⬜ T45d: Dura's Trials — Retry-bis-Sieg (Fail = Token-Refund, Tokens reset daily).
   Neuer Mode: Turm-Rotation (6 Tage, 2 Klassen/Tag) → class-gear Notes.
 - ⬜ T45e: Arena auf 10 Tickets (5 frei + 5 gekauft = 10/Tag max); Defense-Formation

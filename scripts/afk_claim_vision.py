@@ -76,8 +76,8 @@ def adb_exec_dump(pid: str, addr: str, out_path: Path, size: str = '8') -> subpr
     return p
 
 
-def read_power(pid: str, base_hex: str, offset: int) -> int | None:
-    """Read the i64 at heap_base + offset. None on failure."""
+def read_power(pid: str, base_hex: str, offset: int, width: int = 8) -> int | None:
+    """Read the i32/i64 at heap_base + offset. None on failure."""
     out = TMP / 'power.bin'   # per-run path: concurrent runs raced on the shared file
     out.parent.mkdir(parents=True, exist_ok=True)
     if adb_exec_dump(pid, hex(int(base_hex, 16) + offset), out) is None:
@@ -85,35 +85,62 @@ def read_power(pid: str, base_hex: str, offset: int) -> int | None:
     raw = out.read_bytes()
     if len(raw) < 8:
         return None
-    return struct.unpack('<q', raw[:8])[0]
+    return struct.unpack('<q' if width == 8 else '<i', raw[:width])[0]
 
 
-def scan_i64_range(buf: bytes, lo: int, hi: int) -> dict[int, list[int]]:
-    """All i64 slots (8-byte aligned and +4) whose signed value is in [lo, hi].
+def scan_slots(buf: bytes, lo: int, hi: int) -> tuple[dict[int, list[int]], dict[int, list[int]]]:
+    """One pass over 4-byte steps: u32 AND u64 little-endian slots in [lo, hi].
 
-    Prefilter: for lo >= 100k every in-range value has zero bytes at +5/+6/+7,
-    so the per-slot cost is three byte reads for almost all offsets."""
-    hits: dict[int, list[int]] = {}
+    Prefilter (valid because lo >= 100k): u32 needs byte+3 == 0, u64 needs
+    bytes +5/+6/+7 == 0 and byte+4 <= hi>>32."""
+    u32: dict[int, list[int]] = {}
+    u64: dict[int, list[int]] = {}
     b4_max = hi >> 32
     for off in range(0, len(buf) - 8, 4):
-        if buf[off + 5] or buf[off + 6] or buf[off + 7] or buf[off + 4] > b4_max:
-            continue
-        v = int.from_bytes(buf[off:off + 8], 'little', signed=True)
-        if lo <= v <= hi:
-            hits.setdefault(v, []).append(off)
-    return hits
+        if buf[off + 3] == 0:
+            v = int.from_bytes(buf[off:off + 4], 'little', signed=True)
+            if lo <= v <= hi:
+                u32.setdefault(v, []).append(off)
+        if not (buf[off + 5] or buf[off + 6] or buf[off + 7] or buf[off + 4] > b4_max):
+            v = int.from_bytes(buf[off:off + 8], 'little', signed=True)
+            if lo <= v <= hi:
+                u64.setdefault(v, []).append(off)
+    return u32, u64
 
 
-def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[int, int] | None:
+def _ptr_after(buf: bytes, off: int) -> bool:
+    """True if a userspace heap pointer (0x7xxx...) sits within +8..+20 bytes."""
+    for dd in (8, 12, 16, 20):
+        pv = int.from_bytes(buf[off + dd:off + dd + 8], 'little')
+        if 0x7000_0000_0000 <= pv <= 0x7FFF_FFFF_FFFF:
+            return True
+    return False
+
+
+def _alloc_shape(v: int) -> bool:
+    """Allocator/metadata shapes: multiples of 4096 and size|flag bit-0 values."""
+    return v % 4096 in (0, 1)
+
+
+def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[int, int, int] | None:
     """Re-locate the team_power slot after a game restart.
 
-    Dumps the first 16 MB of the hot heap twice (5 s apart) and keeps values
-    that (a) sit in the anchored window, (b) are identical in both dumps and
-    (c) exist at >= 2 addresses (display copies + authoritative slot). Returns
-    (offset, value) or None.
+    Dumps the first 16 MB of the hot heap twice (5 s apart). A fresh process
+    holds only server-synced state, so the last VERIFIED value (or a slowly
+    drifted version of it) must exist somewhere. Two slot shapes are accepted
+    (live-measured 2026-11-01):
+      u32 map entry — [u32 value][u32 hash][ptr][ptr][ptr], single copy,
+      u64 field     — display copies + authoritative slot, >= 2 copies.
+    Alloc/metadata shapes (4096-multiples, size|flag) are excluded, candidates
+    ranked by distance to the anchor, acceptance capped at 10 % drift (the
+    restart itself changes nothing; larger drift has no anchor and stays
+    disabled — the vision gates still protect the taps). Returns
+    (offset, width, value) or None.
     """
-    lo = max(GUARD_LO, int(last_power * 0.98))
-    hi = min(GUARD_HI, int(last_power * 5) + 1_000_000)
+    anchor = int(last_power)
+    tol = max(2000, int(anchor * 0.10))
+    lo = max(GUARD_LO, anchor - tol)
+    hi = min(GUARD_HI, int(anchor * 5) + 1_000_000)
     dumps: list[bytes] = []
     try:
         for i in (1, 2):
@@ -133,17 +160,36 @@ def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[i
                 (TMP / f'power_scan_{i}.bin').unlink()
             except OSError:
                 pass
-    h1 = scan_i64_range(dumps[0], lo, hi)
-    h2 = scan_i64_range(dumps[1], lo, hi)
-    best: tuple[int, int, int] | None = None   # (copies, value, offset)
-    for val, offs in h1.items():
-        if len(offs) < 2 or val not in h2:
-            continue
-        if best is None or len(offs) > best[0]:
-            best = (len(offs), val, offs[0])
-    if best is None:
+    u32a, u64a = scan_slots(dumps[0], lo, hi)
+    u32b, u64b = scan_slots(dumps[1], lo, hi)
+
+    def best_of(hits_a: dict, hits_b: dict, width: int):
+        cand = None   # (dist, copies, off, value)
+        for val, offs in hits_a.items():
+            if val not in hits_b or _alloc_shape(val):
+                continue
+            if width == 8:
+                if len(offs) < 2:          # display copies + authoritative slot
+                    continue
+            else:
+                # u32 map entries are single-copy by design: 8-aligned slot
+                # followed by a heap pointer (measured map-entry shape)
+                offs = [o for o in offs if o % 8 == 0 and _ptr_after(dumps[0], o)]
+                if not offs:
+                    continue
+            dist = abs(val - anchor)
+            if dist > tol:
+                continue
+            if cand is None or dist < cand[0] or (dist == cand[0] and len(offs) > cand[1]):
+                cand = (dist, len(offs), offs[0], val)
+        return cand
+
+    u64c = best_of(u64a, u64b, 8)
+    u32c = best_of(u32a, u32b, 4)
+    pick = u64c if u64c and (not u32c or u64c[0] <= u32c[0]) else u32c
+    if pick is None:
         return None
-    return best[2], best[1]
+    return pick[2], (8 if pick is u64c else 4), pick[3]
 
 
 def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
@@ -160,20 +206,23 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     """
     st = load_power_state()
     offset = int(st.get('offset', DEFAULT_POWER_OFFSET))
-    power = read_power(pid, base_hex, offset)
+    width = int(st.get('width', 8))
+    power = read_power(pid, base_hex, offset, width)
     if power is None:
         return 'fail', None
     if GUARD_LO < power < GUARD_HI:
-        save_power_state({'offset': offset, 'power': power, 'pid': pid, 'base': base_hex})
+        st.update({'offset': offset, 'width': width, 'power': power,
+                   'pid': pid, 'base': base_hex})
+        save_power_state(st)
         return 'ok', power
     # stale: try to re-locate from the last verified value
     last = st.get('power')
     if last:
         found = revalidate_power_offset(pid, int(base_hex, 16), int(last))
         if found:
-            new_off, val = found
-            save_power_state({'offset': new_off, 'power': val, 'pid': pid,
-                              'base': base_hex, 'revalidated': True})
+            new_off, new_w, val = found
+            save_power_state({'offset': new_off, 'width': new_w, 'power': val,
+                              'pid': pid, 'base': base_hex, 'revalidated': True})
             return 'ok', val
     return 'disabled', power
 

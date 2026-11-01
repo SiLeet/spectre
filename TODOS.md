@@ -446,3 +446,15 @@ aber Progress (1/2). Cancelt (X 1014,710).
 Noch offen für die Wand: Helden-Leveling über Resonanz-Panel — Exploration
 scheiterte bisher an Auto-Battle-Interleaving (navigiert mit Verifikation bei
 jedem Schritt nötig, nicht blind).
+### 🟢 T42-Meilenstein (02:24): Stage 249 → 252 — die „Wand" wandert
+Messung über ~2 h Auto-Battle-Retries: 249 → 250 → 251 → 252. Der „Defeat" ist
+kein harter Stopp — das Auto-Battle retried denselben Stage und gewinnt
+irgendwann (Resonanz-/Power-Drift durch passive Income?). Die Stage-Push-Logs
+(T34, 1×/Tag) sind damit effektiver als angenommen: --auto bis zur DEFEAT-Karte,
+dann retryt das Spiel weiter.
+Feature-Idee daraus: Push-Loop nachts über mehrere Stunden (idle) = freier
+Stage-Fortschritt ohne Eingriff. Hero-Level-Boost beschleunigt zusätzlich.
+Dialog-Gotcha: „Turn off Auto Battle mode?" erscheint nach jedem
+Battle-Ende/Synergy-Ende — Cancel-Tap (1014,710) nötig, sonst blockiert der
+Dialog die Navigation. Einmaliges Bestätigen schaltet Auto Battle aus
+(reversibel) und befreit die Navigation — aber stoppt den Progress-Loop.

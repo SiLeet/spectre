@@ -598,6 +598,10 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
 - ⬜ T45j: Season-End-Arbitrage (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim;
   Season-Mats 24h vor Ende dumpen). Braucht Season-Kalender → sobald Season-Nähe
   erkennbar (Banner-Timer), Scheduler-Task.
+  🟨 Queue-Driver 20:50 CET: live verifiziert blockiert — BlueStacks/HD-Player
+  läuft nicht, ADB-Verbindung zu 127.0.0.1:5555 wird verweigert (10061), kein
+  Device. PC-Idle 0 s; aus Sicherheitsgründen weder Emulator gestartet noch
+  Spiel angetippt. Season-Banner/Timer damit nicht prüfbar; T45j bleibt offen.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`

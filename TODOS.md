@@ -615,6 +615,7 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   fehlt. Kein Emulatorstart und keine Game-Taps; Season-Banner/Timer bleibt
   ungeprüft. T45j bleibt offen.
   🟨 Queue-Driver 22:04 CET: erneut live blockiert — PC-Idle 211,547 s (>180-s-Gate), Lock fehlt, aber BlueStacks/HD-Player läuft nicht; `adb connect 127.0.0.1:5555` verweigert die Verbindung (10061), kein Device. Gemäß Emulator-Prerequisite nicht gestartet; keine Game-Taps. Season-Banner/Timer ungeprüft; T45j bleibt offen.
+  🟨 Queue-Driver 22:21 CET: erneut live blockiert — PC-Idle 117,641 s (<180-s-Gate), Lock fehlt; `adb connect 127.0.0.1:5555` verweigert die Verbindung (10061), `adb devices -l` meldet kein Device und `HD-Player.exe` läuft nicht. Kein Emulatorstart oder Game-Taps; Season-Banner/Timer bleibt ungeprüft, T45j bleibt offen.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`

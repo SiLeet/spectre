@@ -291,8 +291,10 @@
   (Wand erreicht → Exit 0, keine Blind-Taps); der x2-Tap war Teil der
   verifizierten T39-Push-Kette (Stage 218→249). Restliche Integration in den
   Progress-Run = T40 (P6).
-- ⬜ T35: ×4-Speed: nur falls Sergej Premium kauft (Button gesperrt — Shop-
+- ⏸️ T35: ×4-Speed: nur falls Sergej Premium kauft (Button gesperrt — Shop-
   Risiko); vorher nicht anfassen.
+  ⏸️ Queue-Driver 21:08 CET: Policy-Blocker bestätigt — Premium-Kauf ist
+  nicht freigegeben; den gesperrten ×4-Button deshalb nicht antippen.
 
 ### 🟦 T27 (Teilstand): Arena-Flow kartiert — Skript folgt
 Verifizierte Koordinaten/Sequenz (19:0x Uhr, 2 Kämpfe live):
@@ -602,6 +604,9 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   läuft nicht, ADB-Verbindung zu 127.0.0.1:5555 wird verweigert (10061), kein
   Device. PC-Idle 0 s; aus Sicherheitsgründen weder Emulator gestartet noch
   Spiel angetippt. Season-Banner/Timer damit nicht prüfbar; T45j bleibt offen.
+  🟨 Queue-Driver 21:08 CET: erneut live blockiert — Lock fehlt, aber PC-Idle
+  nur 0,016 s (<180-s-Gate); ADB 10061 / kein Device. Kein Emulatorstart und
+  keine Game-Taps; Season-Banner/Timer weiterhin nicht prüfbar.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`

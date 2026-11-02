@@ -579,8 +579,10 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device).
   Die zusätzlichen 5 Versuche benötigen Käufe/Spielwährung; nichts gekauft oder
   angetippt. Defense-Formation und Champion-Linie deshalb ebenfalls unvermessen.
-- ⬜ T45f: Legend Trial alle 4 Türme am SONNTAG (Rotation: Light Mo/Fri/Sun,
+- 🟨 T45f: Legend Trial alle 4 Türme am SONNTAG (Rotation: Light Mo/Fri/Sun,
   Nature Wed/Sat/Sun, Eternity Thu/Sat/Sun, Will Tue/Fri/Sun) — Key-Release nötig (T29).
+  🟨 Queue-Driver 20:32 CET: Policy-Blocker T29 — würde Legend-Trial-Keys
+  verbrauchen; keine Freigabe, daher nicht angetippt.
 - 🟨 T45g: Primal Lord (Event): Max-Damage-Run FIRST (Eternal Inscription zahlt
   alle späteren Claims zum Peak); ungenutzte Challenges werden claimbar (nicht verloren).
   🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device),
@@ -589,8 +591,10 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   vor Sonntag, Homestead-Assists. Freie Chests + Build-Speed.
   🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device),
   Favor-Zähler/claimbare Chests und Guild/Homestead-States nicht verifizierbar.
-- ⬜ T45i: Honor Duel: Rounds 1–2 unterbesetzen (Badges farmen), r8+ höchste Payouts.
+- 🟨 T45i: Honor Duel: Rounds 1–2 unterbesetzen (Badges farmen), r8+ höchste Payouts.
   1 Duel-Ticket/Play (wie T29 — Policy).
+  🟨 Queue-Driver 20:32 CET: Policy-Blocker T29 — jeder „Play Now“-Kampf kostet
+  ein Duel-Ticket; keine Freigabe, daher nicht angetippt.
 - ⬜ T45j: Season-End-Arbitrage (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim;
   Season-Mats 24h vor Ende dumpen). Braucht Season-Kalender → sobald Season-Nähe
   erkennbar (Banner-Timer), Scheduler-Task.

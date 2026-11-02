@@ -571,14 +571,24 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   Input-Bursts (idle nie > 60 s; Input alle 1–3 Min = aktive Nutzung). Idle-Gate
   (180 s) schlägt an → keine Game-Taps. Exploration (wo ist Dura's Trials im
   Menü, Token-Counter, Retry-Flow) im nächsten freien Fenster.
-- ⬜ T45e: Arena auf 10 Tickets (5 frei + 5 gekauft = 10/Tag max); Defense-Formation
+  🟨 Queue-Driver 20:32 CET: erneut env-blockiert. Idle-Probe = 0,016 s, VM/Spiel
+  nicht gestartet (ADB 127.0.0.1:5555 ohne Device); daher keine Taps/Boot-Aktion.
+  Dura-Menü, Token-Counter und Retry-Flow bleiben live unvermessen.
+- 🟨 T45e: Arena auf 10 Tickets (5 frei + 5 gekauft = 10/Tag max); Defense-Formation
   setzen; über der Last-100-Champion-Linie bleiben (Wochenend-Demotion-Gamble).
+  🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device).
+  Die zusätzlichen 5 Versuche benötigen Käufe/Spielwährung; nichts gekauft oder
+  angetippt. Defense-Formation und Champion-Linie deshalb ebenfalls unvermessen.
 - ⬜ T45f: Legend Trial alle 4 Türme am SONNTAG (Rotation: Light Mo/Fri/Sun,
   Nature Wed/Sat/Sun, Eternity Thu/Sat/Sun, Will Tue/Fri/Sun) — Key-Release nötig (T29).
-- ⬜ T45g: Primal Lord (Event): Max-Damage-Run FIRST (Eternal Inscription zahlt
+- 🟨 T45g: Primal Lord (Event): Max-Damage-Run FIRST (Eternal Inscription zahlt
   alle späteren Claims zum Peak); ungenutzte Challenges werden claimbar (nicht verloren).
-- ⬜ T45h: Friend Favors (10/Tag → 1 Chest, Progress carry-over), Guild Activeness
+  🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device),
+  Event-Status und Challenge-Verfügbarkeit nicht verifizierbar, keine Taps erfolgt.
+- 🟨 T45h: Friend Favors (10/Tag → 1 Chest, Progress carry-over), Guild Activeness
   vor Sonntag, Homestead-Assists. Freie Chests + Build-Speed.
+  🟨 Queue-Driver 20:32 CET: live blockiert (Idle 0,016 s; kein ADB-Device),
+  Favor-Zähler/claimbare Chests und Guild/Homestead-States nicht verifizierbar.
 - ⬜ T45i: Honor Duel: Rounds 1–2 unterbesetzen (Badges farmen), r8+ höchste Payouts.
   1 Duel-Ticket/Play (wie T29 — Policy).
 - ⬜ T45j: Season-End-Arbitrage (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim;

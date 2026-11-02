@@ -24,7 +24,15 @@ case "${1:-}" in
   --scheduled-progress) MIN_IDLE="${AFK_MIN_IDLE:-180}"; PROGRESS=1 ;;
 esac
 
-mkdir -p "$OUT_DIR"
+if ! mkdir -p "$OUT_DIR" "$OUT_DIR/logs"; then
+  echo "afk-bot-watch: cannot create the log directory; refusing to continue" >&2
+  exit 1
+fi
+LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
+if ! printf '=== %s watch start (mode=%s shell_pid=%s)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${1:-manual}" "$$" >> "$LOG"; then
+  echo "afk-bot-watch: cannot write the daily log; refusing to continue" >&2
+  exit 1
+fi
 
 # Serialize runs: the scheduled task and manual invocations must never tap at
 # the same time. The stale threshold must exceed the worst-case runtime (a
@@ -35,7 +43,7 @@ LOCK_STALE="${AFK_LOCK_STALE:-1200}"
 if [ -e "$LOCK" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || echo 0) ))
   if [ "$age" -lt "$LOCK_STALE" ]; then
-    echo "afk-bot-watch: another run in progress (lock age ${age}s)" >&2
+    echo "afk-bot-watch: another run in progress (lock age ${age}s)" | tee -a "$LOG" >&2
     exit 6
   fi
   rm -f "$LOCK"
@@ -45,13 +53,13 @@ trap 'rm -f "$LOCK"' EXIT
 
 pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
 if [ -z "${pid:-}" ]; then
-  echo "afk-bot-watch: game process not found (is BlueStacks running and the game open?)" >&2
+  echo "afk-bot-watch: game process not found (is BlueStacks running and the game open?)" | tee -a "$LOG" >&2
   exit 2
 fi
 
 base_tmp="$OUT_DIR/regions.json"
 if ! "$SPECTRE" regions "$pid" --adb --json > "$base_tmp" 2>/dev/null; then
-  echo "afk-bot-watch: 'regions' failed for pid $pid" >&2
+  echo "afk-bot-watch: 'regions' failed for pid $pid" | tee -a "$LOG" >&2
   exit 3
 fi
 base=$(python - "$base_tmp" <<'PY'
@@ -74,7 +82,7 @@ print(f"0x{best[0]:X}" if best else "")
 PY
 )
 if [ -z "${base:-}" ]; then
-  echo "afk-bot-watch: could not resolve the hot-heap base for pid $pid" >&2
+  echo "afk-bot-watch: could not resolve the hot-heap base for pid $pid" | tee -a "$LOG" >&2
   exit 3
 fi
 
@@ -88,9 +96,6 @@ if [ "${1:-}" = "--dry-run" ]; then
   exit $?
 fi
 
-mkdir -p "$OUT_DIR/logs"
-LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
-
 # Resolve the interpreter explicitly: under Task Scheduler the PATH can differ,
 # and silently falling back to the un-gated CLI tap sequence is exactly the
 # dangerous mode these scripts exist to avoid. Fail loudly instead.
@@ -101,7 +106,7 @@ elif command -v python >/dev/null 2>&1 && python -c 'import PIL' >/dev/null 2>&1
 elif [ -x "$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe" ]; then
   PY="$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe"
 else
-  echo "afk-bot-watch: no python with PIL available (set AFK_PYTHON) — refusing to fall back to blind taps" >&2
+  echo "afk-bot-watch: no python with PIL available (set AFK_PYTHON) — refusing to fall back to blind taps" | tee -a "$LOG" >&2
   exit 7
 fi
 if "$PY" -c 'import PIL' >/dev/null 2>&1; then
@@ -180,5 +185,5 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
   exit "$rc"
 fi
 
-echo "afk-bot-watch: vision driver unavailable — refusing the blind CLI fallback" >&2
+echo "afk-bot-watch: vision driver unavailable — refusing the blind CLI fallback" | tee -a "$LOG" >&2
 exit 7

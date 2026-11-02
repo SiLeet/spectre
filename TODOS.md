@@ -610,6 +610,10 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   🟨 Queue-Driver 21:25 CET: erneut live blockiert — PC-Idle 0 s (<180-s-Gate);
   ADB `get-state` meldet `device '127.0.0.1:5555' not found`. Kein Emulatorstart
   und keine Game-Taps; Season-Banner/Timer nicht prüfbar. T45j bleibt offen.
+  🟨 Queue-Driver 21:46 CET: erneut live blockiert — PC-Idle 0,328 s (<180-s-Gate);
+  ADB `get-state` meldet `device '127.0.0.1:5555' not found`; `.spectre/afk-bot.lock`
+  fehlt. Kein Emulatorstart und keine Game-Taps; Season-Banner/Timer bleibt
+  ungeprüft. T45j bleibt offen.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`

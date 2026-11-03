@@ -383,6 +383,45 @@ class F26ClaimVisionPlumbing(unittest.TestCase):
         self.assertFalse(target.with_suffix('.tmp').exists())
 
 
+class TGuardDriftGate(unittest.TestCase):
+    """Drift gate in memory_preflight (2026-11-03 live fund): a heap-base
+    change put garbage (108449240) at the anchored offset; the plain-read
+    'ok' branch accepted it and overwrote the verified 259850 anchor."""
+
+    STATE = {'offset': 1824824, 'width': 4, 'power': 259850,
+             'pid': '1', 'base': '0x7964E0000000', 'revalidated': True}
+
+    def pref(self, read_value, base='0x796590000000', relocate=None):
+        target = Path(__file__).resolve().parent / '.artifacts' / 'power-state-drift.json'
+        target.parent.mkdir(exist_ok=True)
+        target.unlink(missing_ok=True)
+        with mock.patch.object(v, 'POWER_STATE', target):
+            v.save_power_state(dict(self.STATE))
+            with mock.patch.object(v, 'read_power', return_value=read_value), \
+                 mock.patch.object(v, 'revalidate_power_offset', return_value=relocate):
+                status, val = v.memory_preflight('1', base)
+            st = v.load_power_state()
+        return status, val, st
+
+    def test_garbage_in_range_is_not_accepted(self):
+        status, val, st = self.pref(108449240, relocate=None)
+        self.assertEqual((status, val), ('disabled', 108449240))
+        self.assertEqual(st['power'], 259850)
+        self.assertEqual(st['base'], '0x7964E0000000')
+
+    def test_in_tolerance_read_updates_anchor(self):
+        status, val, st = self.pref(265000, base='0x7964E0000000')
+        self.assertEqual((status, val), ('ok', 265000))
+        self.assertEqual(st['power'], 265000)
+        self.assertEqual(st['base'], '0x7964E0000000')
+
+    def test_relocation_result_is_stored(self):
+        status, val, st = self.pref(108449240, relocate=(999, 4, 260100))
+        self.assertEqual((status, val), ('ok', 260100))
+        self.assertEqual((st['offset'], st['width'], st['power'], st['base']),
+                         (999, 4, 260100, '0x796590000000'))
+
+
 
 class F27NoBlindBackAfterPopup(unittest.TestCase):
     def test_popup_closed_onto_world_goes_straight_to_afk(self):

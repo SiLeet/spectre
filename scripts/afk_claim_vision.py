@@ -217,13 +217,20 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     power = read_power(pid, base_hex, offset, width)
     if power is None:
         return 'fail', None
-    if GUARD_LO < power < GUARD_HI:
+    # Drift gate (2026-11-03 live fund): the plain read is only trusted when it
+    # is consistent with the last VERIFIED anchor. A heap-base change (watch.sh
+    # picks the biggest rw heap; the game reallocates without a restart) puts a
+    # different slot at the same offset — 108449240 read in-range here and
+    # silently overwrote the verified 259850 anchor. Out-of-tolerance values go
+    # to re-location instead (structure-checked, anchor-windowed).
+    last = st.get('power')
+    if GUARD_LO < power < GUARD_HI and (
+            not last or abs(power - int(last)) <= max(2000, int(int(last) * 0.10))):
         st.update({'offset': offset, 'width': width, 'power': power,
                    'pid': pid, 'base': base_hex})
         save_power_state(st)
         return 'ok', power
     # stale: try to re-locate from the last verified value
-    last = st.get('power')
     if last:
         found = revalidate_power_offset(pid, int(base_hex, 16), int(last))
         if found:

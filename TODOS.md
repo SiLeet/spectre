@@ -1000,6 +1000,38 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Recherche-Notiz, afk_arena nutzt BACK nicht im Fight-Chain).
 
 
+- 🟢 **17:10-Progress-Run (erster Post-Fix-Livebeleg) + Guard-Korruptions-Fund & Fix
+  (Queue-Driver, 17:12–17:16 CET):**
+  Der Progress-Run lief sauber: Chest-Claim verifiziert (Popup zu, Panel zurück),
+  Stage-Push WORLD→AFK_PANEL→PREP→BATTLE, x2 enabled, DEFEAT nach 28 s → Night-
+  Retry → „wall reached: 2 fights skipped in 41s" (wall_report stage=254
+  power=74986), Task-Scheduler Last Result 0, Lock sauber entfernt. Beobachtung:
+  das Spiel blieb auf der Stage-PREP-Seite stehen (Endzustand des Pushs; nächste
+  Flows klassifizieren PREP und navigieren selbst zurück — kein Blocker).
+  **🔴 Guard-Fund (HIGH): team_power-Anker um 17:10:18 korruptiert.** watch.sh
+  pickt den GRÖSSTEN anonymen rw-Heap (0x7-space) — ein neuer 256-MB-Heap
+  (0x796590000000) verdrängte den alten 194-MB-Heap (0x7964E0000000) ohne
+  Game-Restart (PID 5176 unverändert). Der Preflight-'ok'-Branch prüfte nur die
+  globale Plausibility-Range (GUARD_HI = 1e10) und akzeptierte den Garbage-Read
+  108449240 am selben Offset im neuen Heap → Anker still überschrieben.
+  Evidenz: alter Slot (0x7964E0000000+0x1BD838) liest WEITERHIN exakt 259850 mit
+  intakter Map-Entry-Struktur ([u32 value][u32 hash][ptr]); neuer-Heap-Slot
+  (0x796590000000+0x1BD838) liest 108449240 mit NUR Nullen dahinter (keine
+  Map-Entry-Struktur) und passt zu keinem bekannten Power-Wert (12:47-OCR: 259K).
+  **Fix (Commit in diesem Lauf): Drift-Gate im 'ok'-Branch** — gelesener Wert
+  muss zum letzten verifizierten Anker passen (±max(2000, 10 %)), sonst Stale-
+  Pfad (Re-Location mit Struktur-Checks + Anker-Fenster) statt stiller
+  Anker-Korruption. 3 neue Tests (TGuardDriftGate); Gesamtsuite 249 OK
+  (22 skipped). Anker-Datei restauriert + Live-Gegenprobe: Preflight am neuen
+  Base Re-Location → **('ok', 259270)** via u64-Kandidat Offset 0xA7594
+  (≥2 Kopien, Δ 580 = 0,2 % zum Alt-Anker — plausibler Drift durch heutige
+  Level-Ups; zwei unabhängige Strukturen [alter Map-Entry 259850, neue u64-
+  Kopien 259270] bestätigen sich gegenseitig), Zweit-Preflight 0,1 s 'ok',
+  Werte über 8 s stabil. Guard damit wieder scharf UND gegenüber Heap-Base-
+  Wechseln robust. Rest R15 unverändert (F1-Gegenprobe window-abhängig; Stage
+  launcher/loading + adb-down Exit 2 + summary-close brauchen entsprechende
+  Übergangs-Frames, die dieser Run nicht produzierte).
+
 ### ✅ Race-Fund-Fix (a): Tap-Lock in den Skripten — 2026-11-03 16:0x CET, Queue-Driver
 - Neues `scripts/_bot_lock.py`: PID-guarded Acquire/Release auf `.spectre/afk-bot.lock`
   mit denselben Semantiken wie die Wrapper (R7): Fresh-Lock (< AFK_LOCK_STALE,

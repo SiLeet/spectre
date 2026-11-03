@@ -61,16 +61,21 @@ def load_power_state() -> dict:
 def save_power_state(state: dict) -> None:
     try:
         state['updated'] = time.strftime('%Y-%m-%dT%H:%M:%S')
-        POWER_STATE.write_text(json.dumps(state))
+        tmp = POWER_STATE.with_suffix('.tmp')       # atomic: concurrent runs must not
+        tmp.write_text(json.dumps(state))          # leave a half-written state file
+        os.replace(tmp, POWER_STATE)
     except Exception:
         pass   # the guard is best-effort; never break a run over the state file
 
 
 def adb_exec_dump(pid: str, addr: str, out_path: Path, size: str = '8') -> subprocess.CompletedProcess | None:
     """spectre dump <addr> as raw bytes. None on failure."""
-    p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, size,
-                        '--adb', '--format', 'raw', '--output', str(out_path)],
-                       cwd=REPO, capture_output=True, timeout=300)
+    try:
+        p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, size,
+                            '--adb', '--format', 'raw', '--output', str(out_path)],
+                           cwd=REPO, capture_output=True, timeout=300)
+    except subprocess.TimeoutExpired:      # a hung dump must not crash the run
+        return None
     if p.returncode != 0 or not Path(out_path).exists():
         return None
     return p
@@ -298,7 +303,9 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
 
 
 def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:
-    adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
+    p = adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
+    if p.returncode != 0:                  # same contract as tap()
+        raise RuntimeError(f'adb swipe failed {(x1, y1)}->{(x2, y2)}: {p.stderr[:120]!r}')
     time.sleep(wait)
 
 

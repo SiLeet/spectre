@@ -357,5 +357,28 @@ class F20HeroPurchaseDialog(HeroCase):
         self.assertIn('purchase/confirm dialog after x10', dev.out.getvalue())
 
 
+
+class F26ClaimVisionPlumbing(unittest.TestCase):
+    def test_swipe_rc_raises(self):
+        failed = __import__('subprocess').CompletedProcess([], 1, b'', b'device offline')
+        with mock.patch.object(v, 'adb', return_value=failed), mock.patch('time.sleep'):
+            with self.assertRaises(RuntimeError):
+                v.swipe(400, 700, 0, 700)
+
+    def test_dump_timeout_is_none(self):
+        import subprocess
+        with mock.patch.object(v.subprocess, 'run', side_effect=subprocess.TimeoutExpired('spectre', 300)):
+            self.assertIsNone(v.adb_exec_dump('1', '0x0', Path('x.bin')))
+
+    def test_save_power_state_atomic(self):
+        target = Path(__file__).resolve().parent / '.artifacts' / 'power-state.json'
+        target.parent.mkdir(exist_ok=True)
+        target.unlink(missing_ok=True)
+        with mock.patch.object(v, 'POWER_STATE', target):
+            v.save_power_state({'power': 259850})
+            self.assertEqual(v.load_power_state()['power'], 259850)
+        self.assertFalse(target.with_suffix('.tmp').exists())
+
+
 if __name__ == '__main__':
     unittest.main()

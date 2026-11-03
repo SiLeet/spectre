@@ -414,5 +414,17 @@ class F28DailiesDismiss(unittest.TestCase):
         self.assertIn('still dimmed', dev.out.getvalue())
 
 
+
+class F29GiftSwipesOnScreen(unittest.TestCase):
+    def test_pan_endpoints_clamped(self):
+        dev = FakeDevice(self, ['WORLD'] * 9)
+        self.assertFalse(gift.find_login_button())
+        swipes = [t[1:] for t in dev.taps if t[0] == 'swipe']
+        self.assertEqual(len(swipes), 8)
+        for x1, y1, x2, y2, *_ in swipes:
+            self.assertEqual((x1, y1), (400, 700))
+            self.assertTrue(0 <= x2 <= 1919 and 0 <= y2 <= 1079, (x2, y2))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -23,9 +23,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402  (tap/shot/avg/lum/idle_seconds helpers)
 
-REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
-
 LOGIN_REWARDS = (1804, 662)
 ROW_X = 890
 ROW_YS = [260, 360, 480, 580, 710, 780, 880]
@@ -98,7 +95,9 @@ def find_login_button(max_tries: int = 8) -> bool:
         # alternate pan directions with growing distance
         dx, dy = [(700, 0), (-700, 0), (0, 350), (0, -350),
                   (1300, 0), (-1300, 0), (0, 700), (0, -700)][i]
-        v.swipe(400, 700, 400 - dx, 700 - dy, 500, 1.2)
+        # keep the end point on screen (dx up to 1300 sent x to -900); the
+        # origin stays on the verified open-grass spot (400,700)
+        v.swipe(400, 700, min(max(400 - dx, 0), 1919), min(max(700 - dy, 0), 1079), 500, 1.2)
     return login_btn_visible(v.shot('dg_cam_final'))
 
 
@@ -117,7 +116,6 @@ def main() -> int:
         print(f'    idle check ok ({idle:.0f}s)' if idle is not None else '    idle unknown', flush=True)
 
     if args.pid and args.base:
-        import struct
         status, power = v.memory_preflight(args.pid, args.base)
         if status == 'fail':
             print('    ERROR: team_power preflight failed', flush=True)

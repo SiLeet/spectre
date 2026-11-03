@@ -4,7 +4,7 @@
 #   --check    nur Status: 0 = ok (läuft + adb verbunden), 1 = nicht ok
 #   --force    Idle-Gate ignorieren (z. B. manueller Aufruf)
 #   --min-idle Mindest-Idle in s, wenn NICHT --force (Default 180)
-# Exit: 0 ok · 2 Start fehlgeschlagen · 3 Boot-Timeout · 4 Idle-Gate blockiert · 5 adb fehlt
+# Exit: 0 ok · 2 Start fehlgeschlagen · 3 Boot-Timeout · 4 Idle-Gate blockiert · 5 adb fehlt · 64 unbekanntes Argument
 set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -12,7 +12,8 @@ LOG="$REPO/.spectre/logs/bluestacks-ensure.log"
 mkdir -p "$(dirname "$LOG")"
 log(){ echo "$(date '+%F %T') [ensure] $*" | tee -a "$LOG"; }
 
-ADB="${ADB:-$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe}"
+LOCAL="${LOCALAPPDATA:-}"
+ADB="${ADB:-$LOCAL/Android/Sdk/platform-tools/adb.exe}"
 [ -x "$ADB" ] || ADB="$HOME/platform-tools/adb.exe"
 [ -x "$ADB" ] || ADB="/c/Program Files/BlueStacks_nxt/HD-Adb.exe"
 [ -x "$ADB" ] || { log "FEHLER: kein adb gefunden"; exit 5; }
@@ -32,11 +33,20 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+case "$MIN_IDLE" in ''|*[!0-9]*) MIN_IDLE=180;; esac
 
 vm_running(){ tasklist 2>/dev/null | grep -qi "HD-Player.exe"; }
 connected(){ "$ADB" -s "$SERIAL" get-state 2>/dev/null | grep -q "device"; }
 idle_seconds(){
-  python3 - 2>/dev/null <<'PY' || echo 999
+  local py=""
+  command -v python3 >/dev/null 2>&1 && py="python3"
+  [ -n "$py" ] || { command -v python >/dev/null 2>&1 && py="python"; }
+  if [ -z "$py" ]; then
+    echo "$(date '+%F %T') [ensure] WARN: kein python gefunden — Idle-Gate offen" >> "$LOG"
+    echo 999
+    return
+  fi
+  "$py" - 2>/dev/null <<'PY' || { echo "$(date '+%F %T') [ensure] WARN: idle-check fehlgeschlagen — Gate offen" >> "$LOG"; echo 999; }
 import ctypes
 class LII(ctypes.Structure):
     _fields_ = [("cbSize", ctypes.c_uint32), ("dwTime", ctypes.c_uint32)]
@@ -66,7 +76,8 @@ if ! vm_running; then
     fi
   fi
   log "starte BlueStacks ($INSTANCE, idle ok)..."
-  cmd //c start '""' "$(cygpath -w "$BS")" --instance "$INSTANCE" >/dev/null 2>&1 \
+  # MSYS2_ARG_CONV_EXCL='*': cmd muss /c unkonvertiert sehen (Hermes-Bash konvertiert sonst).
+  MSYS2_ARG_CONV_EXCL='*' cmd /c start '""' "$(cygpath -w "$BS")" --instance "$INSTANCE" >/dev/null 2>&1 \
     || { log "FEHLER: BlueStacks-Start fehlgeschlagen ($BS)"; exit 2; }
   sleep 5
 else

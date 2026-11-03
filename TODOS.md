@@ -579,6 +579,17 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850** —
   Anker gültig, 17:10-Progress geht weiter über den 'ok'-Pfad. Keine neuen
   Scheduler-Logblöcke seit dem 05:10-Daily (Log-Stand 05:23).
+  **Re-Check 13:53 CET (Queue-Driver, rein read-only):** identisches Bild —
+  Device reachable, Spiel-PID 5176 via `pidof` bestätigt, Direkt-Read am
+  Anker (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850**;
+  HD-Player.exe läuft (Windows-PID 82600, im Bot-Kontext irrelevant — Anker
+  ist pro Android-Prozess gültig). Kein Lock, keine neuen Logblöcke
+  (Stand 13:04). Hinweis für künftige Läufe: `tasklist //FI` (MSYS
+  double-slash) verfälscht den Filter → meldet fälschlich „NOT running";
+  `/FI` (im Bash-Kontext als `/FI` oder `'/FI'` quoted) nutzen oder den
+  Android-seitigen `pidof` als Prozessnachweis nehmen. Keine Taps, kein
+  Code-Change; nächster Meilenstein bleibt der 17:10-Progress-Lauf mit
+  R15/A8-Live-Checks + Frame-Manifest-Regen (R13).
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

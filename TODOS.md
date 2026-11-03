@@ -917,3 +917,32 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   R13-Manifest-Regen (Teil 2 von R15): plain Rebuild → 28 Frames (vorher
   19), Frame-Regression `checked=28 skipped=0`, Gesamtsuite 230 Tests OK
   (22 skipped). Manifest committet.
+- 🔴 A8-Live-Fund #2 (15:35 CET, HIGH): **is_boss_page false-positive auf
+  dem Helden-Detail** — der vollbreite grüne „Level Up"-Balken trifft beide
+  Green-Probes ((960,1040) + (1280,1010)) → is_boss_page=True → run() liest
+  das Detail als „already inside Dream Realm" und start_fight feuert
+  BOSS_TAP (960,1020) 4× AUF DEN LEVEL-UP-BUTTON (kein Chance-Verbrauch,
+  Fight startete nie; Exit 1 „did not start after 4 battle taps"; chances
+  „unreadable" — auf dem Detail gibt es keinen Counter). Beleg:
+  .spectre/shots-62080/dr_f1_pre3.png (Cecia Lv 84, Level-Up-Balken) +
+  dr_f1_after3_5.png (Lv 85). Fix-Kandidat für den nächsten Fix-Batch
+  (nicht inline): Helden-Detail-Negativ-Probe (Lv.-Badge (474,916) /
+  Ascend-Badge (620,992)) ODER OCR-Gate „Level Up"+Hero-Header; zusätzlich
+  run()-Entry-Verifikation schärfen (is_ready allein reicht nicht).
+- 🔴 Op-Fund Race (15:31–15:35 CET, HIGH): **Direkte Script-Läufe nehmen
+  den afk-bot.lock NICHT** — der Lock schützt nur watch.sh-Wrappers. Live
+  kollidierte der Dream-Lauf (shots-62080, 15:31:5x) mit der aktiven
+  Wave-4-Leveling-Livecheck-Session (.spectre/livecheck/: aftertap.png
+  15:31:59, detail710/cecia2, after_charge 15:28:59, after_confirm
+  15:32:54; weitere zz_probe-/hl_entry-Shots bis 15:34:53) — beide tippten
+  auf denselben Helden-Detail-Screen. **Policy-Notiz für Sergej:** im
+  Kollisionsfenster gingen Level-Up-Taps aufs Cecia-Detail (Lv 84→85
+  sichtbar; Zuordnung Queue-Driver-Taps vs. Livecheck-Session nicht
+  rekonstruierbar) — das kann zusätzliche x1-Level-Ups neben der T67-
+  1-Charge-Regel bedeutet haben; keine Käufe/Keys/×4, nur freigegebenes
+  Gold/EXP-Leveling. Fix-Kandidaten: (a) Lock-Acquisition IN den Skripten
+  (afk_dream_realm/afk_hero_level/afk_claim_vision-Flows), (b) Driver-
+  Regel: vor jedem Tap-Fenster auf frische fremde shots-Dirs (<2 min)
+  prüfen und abwarten. Dream-Retry ÜBERSPRUNGEN, solange der Livecheck-
+  Writer aktiv ist (Idle 0 s, hl_entry 15:34:53) — Chances 4/7
+  unverbraucht, Boss-Page „King Croaker" steht weiter bereit.

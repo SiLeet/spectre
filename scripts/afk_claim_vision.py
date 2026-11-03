@@ -552,7 +552,9 @@ def main() -> int:
     ap.add_argument('--base', default=None, help='hot-heap base hex (memory preflight)')
     ap.add_argument('--min-idle', type=float, default=0,
                     help='skip unless the PC has been idle this many seconds (scheduled runs)')
-    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--dry-run', action='store_true',
+                    help='no chest/claim tap; a popup on screen is still closed '
+                         '(BACK, or the login-popup claim)')
     args = ap.parse_args()
 
     if args.min_idle > 0 and not args.dry_run:

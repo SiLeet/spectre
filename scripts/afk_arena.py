@@ -112,7 +112,8 @@ def main() -> int:
                     help='fights per run; the verified path is 1 — call the script N times for N attempts')
     ap.add_argument('--wait-fight', type=float, default=80,
                     help='seconds to wait for one arena fight to resolve')
-    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--dry-run', action='store_true',
+                    help='no arena fight; reaching Battle Modes still taps (BACK/GROUND/menu)')
     ap.add_argument('--min-idle', type=float, default=0,
                     help='skip when the PC has been in use for less than this many seconds')
     args = ap.parse_args()

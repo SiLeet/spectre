@@ -22,9 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 
-REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
-
 MENU = (1880, 1030)
 QUESTS_ICON = (1140, 610)
 MAIL_ICON = (840, 750)
@@ -37,8 +34,17 @@ GROWTH_TAB = (1010, 1034)
 DISMISS = (480, 300)
 
 
-def dismiss_popup() -> None:
-    v.tap(DISMISS, 2.0)
+def is_dimmed(img) -> bool:
+    return v.lum(v.avg(img, (200, 270))) < 25    # dimmed "Rewards Obtained" card
+
+
+def dismiss_popup(tag: str) -> None:
+    """Close the dimmed rewards card: tap, verify it is gone, one retry."""
+    for i in range(2):
+        v.tap(DISMISS, 2.0)
+        if not is_dimmed(v.shot(f'{tag}_dismiss{i}')):
+            return
+    print(f'    WARN: [{tag}] rewards card still dimmed after 2 dismiss taps', flush=True)
 
 
 def open_menu() -> bool:
@@ -90,10 +96,10 @@ def quick_claim_tab(name: str) -> bool | None:
         return None
     v.tap(QUICK_CLAIM, 3.0)
     img = v.shot(f'dl_qc_{name}')
-    got = v.lum(v.avg(img, (200, 270))) < 25   # dimmed "Rewards Obtained"
+    got = is_dimmed(img)
     if got:
         print(f'    [{name}] rewards claimed', flush=True)
-        dismiss_popup()
+        dismiss_popup(f'dl_qc_{name}')
     else:
         print(f'    [{name}] nothing claimable', flush=True)
     return got
@@ -139,7 +145,7 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
     # 2. Quests: menu -> Quests -> each tab -> Quick Claim
     print('--- Quests', flush=True)
     img = v.shot('dl_pre_quests')
-    if v.lum(v.avg(img, (200, 270))) < 25:  # leftover dim popup
+    if is_dimmed(img):                      # leftover dim popup
         v.tap(DISMISS, 2.0)
     v.tap(v.BACK, 1.2)                      # make sure we are on the world view
     if not open_menu():
@@ -166,9 +172,9 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
         return 1
     v.tap(READ_ALL, 4.0)
     img = v.shot('dl_readall')
-    if v.lum(v.avg(img, (200, 270))) < 25:
+    if is_dimmed(img):
         print('    [mail] rewards claimed', flush=True)
-        dismiss_popup()
+        dismiss_popup('dl_mail')
     else:
         print('    [mail] nothing new', flush=True)
     v.tap(v.BACK, 1.5)

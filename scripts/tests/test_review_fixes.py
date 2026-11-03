@@ -395,5 +395,24 @@ class F27NoBlindBackAfterPopup(unittest.TestCase):
         self.assertNotIn(v.AFK_PROGRESS, dev.taps)
 
 
+
+class F28DailiesDismiss(unittest.TestCase):
+    def dimmed(self):
+        img = frame('QUESTS')
+        img.paste((5, 5, 5), (180, 250, 220, 290))
+        return img
+
+    def test_dismiss_verified(self):
+        dev = FakeDevice(self, ['QUESTS'])
+        dl.dismiss_popup('t')
+        self.assertEqual(dev.taps, [dl.DISMISS])
+
+    def test_dismiss_retried_once_then_warns(self):
+        dev = FakeDevice(self, [self.dimmed(), self.dimmed()])
+        dl.dismiss_popup('t')
+        self.assertEqual(dev.taps, [dl.DISMISS, dl.DISMISS])
+        self.assertIn('still dimmed', dev.out.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

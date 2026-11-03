@@ -16,7 +16,8 @@
 1. **Offline only.** Kein Task startet BlueStacks/apps, tippt live oder ruft
    echte adb-Befehle. Alles läuft über Dateien/Tests.
 2. **`.spectre/` ist read-only Input** (gitignored Runtime-Daten: Screenshots,
-   Logs). Neue Artefakte schreibt nur `scripts/tests/.artifacts/`.
+   Logs) — Ausnahme: `.spectre/logs/` (dort schreibt `bluestacks-ensure.sh` sein Log).
+   Neue Artefakte schreibt nur `scripts/tests/.artifacts/`.
 3. **Keine neuen Dependencies.** Nur Python-Stdlib + vorhandenes `PIL`
    (Interpreter: `python` in dieser Shell, 3.14.9, PIL vorhanden).
    Kein pytest — **stdlib `unittest`**.

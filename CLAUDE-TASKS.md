@@ -14,10 +14,10 @@
 ## ⚙️ Gemeinsamer Kontext (in JEDEN Prompt einfügen)
 
 ```
-WORKSPACE: C:\Users\Sigi\spectre  (Rust workspace, edition 2024, 8 Crates)
+WORKSPACE: C:\Users\Sigi\spectre  (Rust workspace, edition 2024, 10 Crates)
 CRATES: spectre-core (types/traits/scanner), spectre-adb, spectre-native,
         spectre-game (YAML offsets), spectre-bot (engine), spectre-lua,
-        spectre-cli, spectre (umbrella)
+        spectre-cli, spectre-web (dashboard), spectre-mcp (MCP), spectre (umbrella)
 
 TOOLCHAIN (WICHTIG — auf diesem PC ist MSVC defekt):
   MSVC-Linker fehlt. IMMER die GNU-Toolchain verwenden:
@@ -840,6 +840,10 @@ TOOLS v1 (Argumente NICHT erfinden — aus docs/cli-reference.md + `--help` able
   hot(pid, hex, base?, limit?) / hunt(pid, min, max, type) / search(pid, type, value|min|max)
   chain(pid, base, offsets) / offsets(game?)
   adb_tap(x, y) / adb_key(name) / adb_screencap(out_png)
+  Soll-Kommandos (nicht in cli-reference): adb_tap -> `adb -s <SERIAL> shell input tap x y`;
+    adb_key -> `... input keyevent KEYCODE_<NAME>` (nur A-Z/0-9/_, sonst Fehler);
+    adb_screencap -> `... exec-out screencap -p > <out>`. dump -> {sha1}: SHA-1 selbst
+    implementieren + Testvektoren (std hat kein sha1).
 
 KONFIG (env, Defaults): SPECTRE_BIN=target/release/spectre.exe,
 ADB_BIN=%LOCALAPPDATA%/Android/Sdk/platform-tools/adb.exe, SERIAL=127.0.0.1:5555,

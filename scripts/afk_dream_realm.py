@@ -168,6 +168,27 @@ def is_ready(img) -> bool:
     return is_boss_page(img) or is_prep(img)
 
 
+FRAME_PROBES = ((960, 540), (480, 300), (1440, 300), (960, 100), BACK_ARROW)
+
+
+def is_uniform_dark(img) -> bool:
+    """Black/near-black transition frame (shots-33128: uniform (29,29,29))."""
+    return all(v.lum(v.avg(img, p)) < 40 for p in FRAME_PROBES)
+
+
+def is_fight(img) -> bool:
+    """Positive in-fight marker (runtime review A8a-1, profile from
+    shots-1752/dr_f1_w*): the bottom-centre (960,1040) is neither the white
+    SKIP nor a green Battle button and the prep-Battle spot (1280,1010) is
+    dark (~(22,32,72)). Uniform-dark transitions match that too, so they are
+    excluded explicitly; ready/end screens never count."""
+    centre = v.avg(img, BATTLE_BTN_BOSS)
+    if v.lum(centre) > 200 or _green(centre) or v.lum(v.avg(img, BATTLE_BTN_PREP)) >= 120:
+        return False
+    return not (is_uniform_dark(img) or is_ready(img) or is_battle_ended(img)
+                or is_hero_card(img))
+
+
 def is_world(img) -> bool:
     return v.classify(img) == "WORLD"
 
@@ -296,9 +317,10 @@ def reach_world(tag: str) -> bool:
 def start_fight(fight: int, attempts_max: int = 4) -> bool:
     """Tap Battle on the boss page / prep screen until the fight is underway.
 
-    Never re-taps while the same ready screen still stands (T38 #6): after
-    every Battle tap the driver waits until the screen leaves that exact
-    ready state, so no tap can land inside the fight-start transition.
+    Never re-taps while the same ready screen still stands (T38 #6). "Underway"
+    needs positive evidence (A8a-1): the in-fight marker or an end state.
+    Black/undecided transition frames keep polling — accepting them left the
+    driver on the pre-fight screen for 153 s (shots-33128).
     """
     for attempt in range(attempts_max):
         img = v.shot(f'dr_f{fight}_pre{attempt}')
@@ -312,27 +334,23 @@ def start_fight(fight: int, attempts_max: int = 4) -> bool:
         btn = PREP_TAP if cls == 'prep' else BOSS_TAP
         print(f'    fight {fight}: {cls} screen -> Battle', flush=True)
         v.tap(btn, 4.0)
-        left = False
-        for k in range(6):
+        same = 0
+        for k in range(10):
             img = v.shot(f'dr_f{fight}_after{attempt}_{k}')
-            if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+            if is_fight(img) or is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
                 return True
             now = 'prep' if is_prep(img) else 'boss' if is_boss_page(img) else None
-            if now != cls:
-                left = True
-                break
-            time.sleep(2.5)
-        if not left:
-            print(f'    fight {fight}: {cls} screen unchanged after tap, '
-                  're-tapping', flush=True)
-            continue
-        # The state left the tapped ready screen. Navigating boss <-> prep is
-        # fine (the next attempt taps the right button); anything else means
-        # the fight (or its loading transition) is underway.
-        img = v.shot(f'dr_f{fight}_changed{attempt}')
-        if is_prep(img) or is_boss_page(img):
-            continue
-        return True
+            if now is not None and now != cls:
+                break                       # boss <-> prep: next attempt taps the right button
+            if now == cls:
+                same += 1
+                if same >= 6:
+                    print(f'    fight {fight}: {cls} screen unchanged after tap, '
+                          're-tapping', flush=True)
+                    break
+            time.sleep(2.5)                 # dark / undecided transition: keep polling
+        else:
+            print(f'    fight {fight}: no fight marker after the tap', flush=True)
     return False
 
 

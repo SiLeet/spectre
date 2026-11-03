@@ -14,22 +14,55 @@ STATE = os.path.join(ROOT, ".spectre", "afk-state.json")
 JSONL = os.path.join(ROOT, ".spectre", "wall-report.log")
 
 
+def load_events(path):
+    """Parse the wall-report JSONL. Returns (events, bad_lines).
+
+    Only JSON objects are events; unparsable lines and JSON that is not an
+    object ('null', '123', '[1,2]') are collected as bad lines instead of being
+    swallowed (or crashing the render later). Blank lines are ignored."""
+    evs, bad = [], []
+    if not os.path.exists(path):
+        return evs, bad
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                obj = None
+            if isinstance(obj, dict):
+                evs.append(obj)
+            else:
+                bad.append(line.rstrip("\r\n"))
+    return evs, bad
+
+
 def load():
-    """Return (current, events) from the local wall report files."""
+    """Return (current, events, bad_lines) from the local wall report files."""
     cur = {}
     if os.path.exists(STATE):
         try:
-            cur = json.load(open(STATE, encoding="utf-8"))
-        except Exception:
+            with open(STATE, encoding="utf-8") as fh:
+                cur = json.load(fh)
+        except (OSError, ValueError):
             pass
-    evs = []
-    if os.path.exists(JSONL):
-        for line in open(JSONL, encoding="utf-8"):
-            try:
-                evs.append(json.loads(line))
-            except Exception:
-                continue
-    return cur, evs
+    if not isinstance(cur, dict):
+        cur = {}
+    evs, bad = load_events(JSONL)
+    return cur, evs, bad
+
+
+def or_dash(v):
+    return "—" if v is None else v
+
+
+def fmt_int(v):
+    """'74,986' for anything int-like (int, '74986', 74986.0); '—' otherwise."""
+    try:
+        return f"{int(v):,}"
+    except (TypeError, ValueError):
+        return "—"
 
 
 def esc(s):
@@ -37,6 +70,8 @@ def esc(s):
 
 
 def human_ts(ts):
+    if ts is None:
+        return "—"
     try:
         return datetime.datetime.fromtimestamp(ts).strftime("%d.%m %H:%M")
     except Exception:
@@ -44,19 +79,20 @@ def human_ts(ts):
 
 
 def main():
-    cur, evs = load()
+    cur, evs, bad = load()
     if not cur:
         cur = {"stage": 0, "power": 0}
-    if not evs:
-        sys.exit(0)  # no data yet — don't write an empty widget
+    if not evs:   # no data yet — don't write an empty widget
+        print(f"no events, skipped {len(bad)} bad lines — widget not written")
+        return
 
     last = evs[-1]
     defeated = sum(1 for e in evs if e.get("reason") == "defeat")
     progress = sum(1 for e in evs if e.get("reason") == "progress")
     rows = "".join(
         f"<tr><td>{human_ts(e.get('ts', 0))}</td>"
-        f"<td>{esc(e.get('stage', '—'))}</td>"
-        f"<td>{esc('{:,}'.format(e['power']) if e.get('power') else '—')}</td>"
+        f"<td>{esc(or_dash(e.get('stage')))}</td>"
+        f"<td>{fmt_int(e.get('power'))}</td>"
         f"<td>{esc(e.get('reason', '?'))}</td></tr>"
         for e in reversed(evs[-30:])
     )
@@ -70,8 +106,8 @@ def main():
     <span class="ts">{now}</span>
   </div>
   <div class="stats">
-    <div><div class="v">{cur.get('stage', '?')}</div><div class="l">Stage</div></div>
-    <div><div class="v">{cur.get('power', 0):,}</div><div class="l">Power</div></div>
+    <div><div class="v">{esc(or_dash(cur.get('stage')))}</div><div class="l">Stage</div></div>
+    <div><div class="v">{fmt_int(cur.get('power'))}</div><div class="l">Power</div></div>
     <div><div class="v">{len(evs)}</div><div class="l">Reports</div></div>
     <div><div class="v">{defeated}</div><div class="l">Walls</div></div>
     <div><div class="v">{progress}</div><div class="l">Progress</div></div>
@@ -110,8 +146,11 @@ def main():
   td:nth-child(4) {{ color: var(--mut); }}
 </style>
 """
-    open(OUT, "w", encoding="utf-8").write(html)
-    print(f"wrote {OUT} ({len(evs)} events)")
+    with open(OUT, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    for ln in bad[:3]:
+        print(f"bad line: {ln[:120]}", file=sys.stderr)
+    print(f"wrote {OUT} ({len(evs)} events, skipped {len(bad)} bad lines)")
 
 
 if __name__ == "__main__":

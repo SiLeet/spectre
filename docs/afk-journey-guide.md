@@ -163,9 +163,12 @@ Runs between the Daily phases so a phase that ends on an unknown screen (live
 case: a camera pan tapped into the Arcane Labyrinth card) cannot poison the
 next one. Up to 4 steps: classify → WORLD/PANEL ends the run (exit 0); a POPUP
 the login-popup resolver recognises is claimed; anything else gets one BACK
-(474,1010). A
-final classify decides exit 0/1. The wrapper logs the result but does not
-gate on it.
+(474,1010). A final classify decides exit 0/1. The wrapper captures the result,
+reports a failed normalization as a nonzero Daily task result, and aborts the
+remaining gameplay phases rather than starting them on an unknown screen. Other
+Daily phase failures also reach Task Scheduler; exit 3 from the Journey's Gift
+driver remains a warning-only result because the missing entry can mean it was
+already claimed or the event ended.
 
 ### Login-popup resolver (`afk_claim_vision.resolve_startup_popup`)
 

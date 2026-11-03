@@ -21,9 +21,7 @@ def bash_path(path: Path | str) -> str:
 
 class NightWrapperExitCode(unittest.TestCase):
     def test_stage_push_failure_is_returned_to_task_launcher(self):
-        scratch = Path("C:/Users/Sigi/AppData/Local/hermes/cache/scratch")
-        scratch.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix="afk-night-wrapper-", dir=scratch) as temp:
+        with tempfile.TemporaryDirectory(prefix="afk-night-wrapper-") as temp:
             root = Path(temp)
             (root / "scripts").mkdir()
             (root / "target" / "release").mkdir(parents=True)

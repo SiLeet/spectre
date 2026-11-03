@@ -35,7 +35,8 @@ class DailyCharge(unittest.TestCase):
             last.write_text(str(last_hand), encoding='utf-8')
         dev = FakeDevice(self, frames or self.FRAMES, ocr={'hl_entry': HALL,
                                                           'hl_scan_hall_840': HALL,
-                                                          'hl_daily_hall': HALL, **ocr})
+                                                          'hl_daily_hall0': HALL,
+                                                          'hl_daily_hall1': HALL, **ocr})
         for patch in (mock.patch.object(hl, 'key', lambda code, wait=1.5: dev.taps.append(('key', code))),
                       mock.patch.object(hl, 'HAND_XS', [710, 840]),
                       mock.patch.object(hl, 'LAST_HAND', last),
@@ -46,45 +47,55 @@ class DailyCharge(unittest.TestCase):
 
     def test_exactly_one_charge_on_the_lowest_hand(self):
         dev, rc, last = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
-                                        'hl_daily_pre': detail(78), 'hl_daily_post': ['Lvl. 79']})
+                                        'hl_daily_pre0': detail(78), 'hl_daily_post0': ['Lvl. 79']})
         self.assertEqual(rc, 0)
-        self.assertEqual(dev.taps.count(hl.LEVEL_X1), 1)
+        self.assertEqual(dev.taps.count(hl.LEVEL_X1), 2)          # preview panel + confirm
         self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), ('key', 4), (840, hl.HANDS_Y),
-                                    ('key', 4), (840, hl.HANDS_Y), hl.LEVEL_X1, ('key', 4)])
+                                    ('key', 4), (840, hl.HANDS_Y), hl.LEVEL_X1, hl.LEVEL_X1, ('key', 4)])
         self.assertIn('charged: hand 840 level 78 -> 79', dev.out.getvalue())
         self.assertEqual(last.read_text(encoding='utf-8'), '840')
 
+    def test_blocked_hand_is_skipped_for_the_next(self):
+        blocked = 'Hands of Resonance must be within 10 levels of each other.'
+        dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
+                                     'hl_daily_pre0': detail(78) + [blocked],
+                                     'hl_daily_pre1': detail(80), 'hl_daily_post1': ['Lvl. 81']},
+                                    frames=['UNKNOWN'] * 9)
+        self.assertEqual(rc, 0)
+        self.assertIn('blocked', dev.out.getvalue())
+        self.assertIn('charged: hand 710 level 80 -> 81', dev.out.getvalue())
+
     def test_gate_resources_short_no_charge(self):
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
-                                     'hl_daily_pre': detail(78, '120K/2780K')},
+                                     'hl_daily_pre0': detail(78, '120K/2780K')},
                                     frames=['UNKNOWN'] * 6)
         self.assertEqual(rc, 4)
         self.assertNotIn(hl.LEVEL_X1, dev.taps)
 
     def test_no_effect_is_soft_skip(self):
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
-                                     'hl_daily_pre': detail(78), 'hl_daily_post': ['Lvl. 78']})
+                                     'hl_daily_pre0': detail(78), 'hl_daily_post0': ['Lvl. 78']})
         self.assertEqual(rc, 4)
         self.assertIn('no effect', dev.out.getvalue())
 
     def test_purchase_dialog_cancelled(self):
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
-                                     'hl_daily_pre': detail(78)},
+                                     'hl_daily_pre0': detail(78)},
                                     frames=['UNKNOWN'] * 6 + ['DIALOG'])
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps[-3:], [hl.LEVEL_X1, v.CONFIRM_CANCEL, ('key', 4)])
 
     def test_scan_fails_uses_last_known_hand(self):
-        dev, rc, _ = self.run_level({'hl_daily_pre': detail(90), 'hl_daily_post': ['Lvl. 91']},
+        dev, rc, _ = self.run_level({'hl_daily_pre0': detail(90), 'hl_daily_post0': ['Lvl. 91']},
                                     last_hand=1100)
         self.assertEqual(rc, 0)
         self.assertIn('LIVE: hand scan read no level — using last known hand 1100', dev.out.getvalue())
         self.assertIn((1100, hl.HANDS_Y), dev.taps)
 
-    def test_unreadable_detail_fails_without_charge(self):
+    def test_unreadable_detail_soft_skips_without_charge(self):
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78)},
-                                    frames=['UNKNOWN'] * 6)
-        self.assertEqual(rc, 1)
+                                    frames=['UNKNOWN'] * 8)
+        self.assertEqual(rc, 4)
         self.assertNotIn(hl.LEVEL_X1, dev.taps)
 
 

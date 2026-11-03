@@ -28,15 +28,18 @@ import sys
 import time
 from pathlib import Path
 
+from PIL import Image
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402  (shared adb/tap/shot/OCR helpers)
 
 HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
 HAND_XS = [710, 840, 970, 1100, 1220]
-LEVEL_X10 = (1460, 1065)           # Level Up x10 button on the hero detail
+LEVEL_X10 = (1100, 985)            # same button; x10 assumed via badge (LIVE)
 TARGET_DEFAULT = 95                # stage-253 level cap (rises with stages)
 MAX_X10_PER_HAND = 2               # 10 levels per hand per run
-HALL_BTN = (972, 1034)             # bottom-nav Resonating Hall
+HALL_BTN = (990, 1010)             # bottom-nav Resonating Hall (verified live 2026-11-03)
+LEVEL_NUM_BOX = (1240, 810, 1560, 930)   # big 'Level NN' bottom-right (LIVE 2026-11-03)
 LEVEL_MAX = 300                    # plausibility cap for an OCR'd level
 
 
@@ -76,6 +79,26 @@ def read_level(lines):
             n = int(digits[:3]) if int(digits[:3]) <= LEVEL_MAX else int(digits[:2])
         if 1 <= n <= LEVEL_MAX:
             return n
+    return None
+
+
+def slot_level(name):
+    """The hero's slot level (big 'Level NN' bottom-right) from a saved shot.
+
+    The full-frame OCR merges the big number with the layout; a region crop
+    isolates it (live-verified 2026-11-03: read 80 -> 81 after one charge)."""
+    p = v.TMP / f"{name}.png"
+    try:
+        c = Image.open(p).crop(LEVEL_NUM_BOX)
+        cp = v.TMP / f"{name}_r.png"
+        c.save(cp)
+        lines = v.ocr_png(cp)
+    except (OSError, ValueError):
+        return None
+    for ln in lines:
+        m = re.fullmatch(r"(\d{1,3})", ln.strip())
+        if m and 1 <= int(m.group(1)) <= LEVEL_MAX:
+            return int(m.group(1))
     return None
 
 
@@ -184,7 +207,7 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
 
 
 # --- T67: daily leveling - exactly ONE level charge per day (rule T33, approved) ---
-LEVEL_X1 = (1460, 1065)            # LIVE: single 'Level Up' tap (assumes the x10 mode is off)
+LEVEL_X1 = (1100, 985)             # 'Level Up' button center (verified live 2026-11-03; x1 badge active)
 LAST_HAND = v.REPO / ".spectre" / "level-last-hand.txt"   # last scanned lowest hand (fallback)
 _RES_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([KkMm]?)\s*/\s*(\d+(?:[.,]\d+)?)\s*([KkMm]?)")
 
@@ -218,7 +241,7 @@ def scan_hands():
             break
         v.tap((x, HANDS_Y), 3.0)
         lines = snap(f"hl_scan_{x}")
-        lvl = read_level(lines) if is_detail(lines) else None
+        lvl = (slot_level(f"hl_scan_{x}") or read_level(lines)) if is_detail(lines) else None
         if lvl is not None:
             levels[x] = lvl
         print(f"    scan hand {x}: level {lvl}", flush=True)
@@ -227,57 +250,67 @@ def scan_hands():
 
 
 def daily_charge() -> int:
-    """One x1 level charge on the lowest hand. Exit: 0 charged (read-back +1),
-    4 skipped for today (resources short / no effect / purchase dialog),
-    1 failed (screen not as expected). Never spends diamonds."""
+    """One x1 level charge on the lowest slot-level hand. Exit: 0 charged
+    (read-back +1), 4 skipped for today (blocked / resources / no effect),
+    1 failed (screen not as expected). Never spends diamonds. Up to 3 lowest
+    hands are tried; blocked ones ('within 10 levels') are skipped."""
     levels = scan_hands()
-    if levels:
-        x = min(levels, key=levels.get)
-        try:
-            LAST_HAND.parent.mkdir(parents=True, exist_ok=True)
-            LAST_HAND.write_text(str(x), encoding="utf-8")
-        except OSError:
-            pass
-        print(f"    lowest hand: {x} (level {levels[x]})", flush=True)
-    else:
+    ordered = sorted(levels, key=levels.get) if levels else []
+    if not ordered:
         try:
             x = int(LAST_HAND.read_text(encoding="utf-8").strip())
         except (OSError, ValueError):
             x = HAND_XS[0]
         print(f"    LIVE: hand scan read no level — using last known hand {x}", flush=True)
-    if not in_hall("hl_daily_hall"):
-        print("    ERROR: lost the Resonating Hall before the charge", flush=True)
-        return 1
-    v.tap((x, HANDS_Y), 3.0)
-    lines = snap("hl_daily_pre")
-    before = read_level(lines) if is_detail(lines) else None
-    if before is None:
-        print("    ERROR: hero detail / level not readable — no charge", flush=True)
+        ordered = [x]
+    else:
+        print(f"    lowest hands: {[(x, levels[x]) for x in ordered[:3]]}", flush=True)
+    for attempt, x in enumerate(ordered[:3]):
+        if not in_hall(f"hl_daily_hall{attempt}"):
+            print("    ERROR: lost the Resonating Hall before the charge", flush=True)
+            return 1
+        try:
+            LAST_HAND.parent.mkdir(parents=True, exist_ok=True)
+            LAST_HAND.write_text(str(x), encoding="utf-8")
+        except OSError:
+            pass
+        v.tap((x, HANDS_Y), 3.0)
+        lines = snap(f"hl_daily_pre{attempt}")
+        if "within 10" in " ".join(lines):
+            print(f"    SKIP hand {x}: blocked (hands must be within 10 levels)", flush=True)
+            key(4)
+            continue
+        before = slot_level(f"hl_daily_pre{attempt}") or (read_level(lines) if is_detail(lines) else None)
+        if before is None:
+            print(f"    SKIP hand {x}: level not readable", flush=True)
+            key(4)
+            continue
+        res = resources_ok(lines)
+        if res is False:
+            print(f"    SKIP: resources short for hand {x} (level {before}) — no charge today", flush=True)
+            key(4)
+            return 4
+        if res is None:
+            print("    LIVE: cost lines not read — charging, read-back decides", flush=True)
+        v.tap(LEVEL_X1, 2.5)                  # 1st tap: opens the upgrade preview panel
+        v.tap(LEVEL_X1, 3.0)                  # 2nd tap: confirms inside the panel (same spot)
+        if v.is_confirm_dialog(v.shot(f"hl_daily_post{attempt}")):
+            v.tap(v.CONFIRM_CANCEL, 1.5)      # a 'use diamonds?' prompt: never confirm
+            print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)
+            key(4)
+            return 4
+        after = slot_level(f"hl_daily_post{attempt}") or read_level(v.ocr_lines(f"hl_daily_post{attempt}"))
         key(4)
-        return 1
-    res = resources_ok(lines)
-    if res is False:
-        print(f"    SKIP: resources short for hand {x} (level {before}) — no charge today", flush=True)
-        key(4)
-        return 4
-    if res is None:
-        print("    LIVE: cost lines not read — charging, read-back decides", flush=True)
-    v.tap(LEVEL_X1, 3.0)
-    if v.is_confirm_dialog(v.shot("hl_daily_post")):
-        v.tap(v.CONFIRM_CANCEL, 1.5)          # a 'use diamonds?' prompt: never confirm
-        print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)
-        key(4)
-        return 4
-    after = read_level(v.ocr_lines("hl_daily_post"))
-    key(4)
-    if after == before + 1:
-        print(f"    charged: hand {x} level {before} -> {after}", flush=True)
-        return 0
-    if after == before:
-        print(f"    SKIP: charge had no effect (level {before}) — resources out", flush=True)
-        return 4
-    print(f"    WARN: unexpected read-back {before} -> {after} (LIVE: x1 vs x10 mode?)", flush=True)
-    return 0 if after is not None and after > before else 1
+        if after is not None and after == before + 1:
+            print(f"    charged: hand {x} level {before} -> {after}", flush=True)
+            return 0
+        if after == before:
+            print(f"    SKIP: charge had no effect on hand {x} (level {before})", flush=True)
+            return 4
+        print(f"    WARN: unexpected read-back {before} -> {after} (LIVE: x1 vs x10 mode?)", flush=True)
+        return 0 if after is not None and after > before else 1
+    print("    SKIP: no chargeable hand today", flush=True)
+    return 4
 
 
 def main():

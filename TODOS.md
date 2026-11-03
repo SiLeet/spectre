@@ -993,3 +993,13 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   shots-74688), Idle 71 s → Dream-Retry (Chances 4/7, Boss-Page King Croaker)
   weiter ausgesetzt. Read-only-Dry-Run las den aktuellen Screen als POPUP
   (Livecheck-Nachwehen); keine Taps.
+- ✅ R19 [2026-11-03]: Wave-4-Review (Fresh-Eyes): KEIN FAIL — 25/33 Reversionen
+  gefangen, Merges/Sentinel/Suite sauber. 4 CONCERNs = reine Test-Lücken (klein,
+  offen): dream cycles-Pin, arena In-Chain-Dialog-Return, ensure-timeout-Pin,
+  duras Sweep/Challenge/No-Token-Gates, daily 2-Lauf-Gate.
+- ✅ D2-LIVE-VERIFIKATION [2026-11-03]: Leveling-Pfad live durchverifiziert und
+  gefixt: HALL_BTN (990,1010 — gemessen), LEVEL_X1/Z10 (1100,985), Zwei-Tap-
+  Sequenz (Tap1 oeffnet Preview-Panel 'Level N » N+1', Tap2 bestaetigt),
+  slot_level() per Region-Crop (rechte Zahl; live 80->81 bestaetigt), blocked-
+  Skip ('within 10 levels' -> naechste Hand). E2E-Lauf: 'charged: hand 1220
+  level 80 -> 81'. Manuell+auto heute 2 Level verbraucht (Cecia 81, Slot 1220 81).

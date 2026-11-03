@@ -167,20 +167,25 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     # arena: use ALL daily attempts (4) — one invocation per attempt is the
     # verified path; a rejected purchase dialog stops the loop early
     if [ "$(cat "$OUT_DIR/arena-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      first_ok=0
       for i in 1 2 3 4; do
         {
           echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) arena attempt $i/4"
-          "$PY" scripts/afk_arena.py --fights 1 2>&1
+          "$PY" scripts/afk_arena.py --fights 1 --min-idle "$MIN_IDLE" 2>&1
         } | tee -a "$LOG"
         rc_a="${PIPESTATUS[0]}"
+        [ "$i" = "1" ] && [ "$rc_a" = "0" ] && first_ok=1
         [ "$rc_a" != "0" ] && break
       done
-      date -u +%Y-%m-%d > "$OUT_DIR/arena-last.txt"
+      # a failed arena day should not burn the marker: a later manual run can retry
+      [ "$first_ok" = "1" ] && date -u +%Y-%m-%d > "$OUT_DIR/arena-last.txt"
     fi
     run_daily_task "dream realm (all chances)" "dream-last.txt" \
-      "$PY" scripts/afk_dream_realm.py --fights 7
+      "$PY" scripts/afk_dream_realm.py --fights 7 --pid "$pid" --base "$base" \
+      --min-idle "$MIN_IDLE"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
-      "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats
+      "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \
+      --pid "$pid" --base "$base" --min-idle "$MIN_IDLE"
   fi
   exit "$rc"
 fi

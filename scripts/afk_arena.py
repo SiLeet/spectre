@@ -153,7 +153,15 @@ def main() -> int:
     ap.add_argument('--wait-fight', type=float, default=80,
                     help='seconds to wait for one arena fight to resolve')
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--min-idle', type=float, default=0,
+                    help='skip when the PC has been in use for less than this many seconds')
     args = ap.parse_args()
+
+    if args.min_idle > 0:
+        idle = v.idle_seconds()
+        if idle is not None and idle < args.min_idle:
+            print(f'    SKIP: PC is in use (idle {idle:.0f}s)', flush=True)
+            return 5
 
     if not v.open_battle_modes():
         print('    ERROR: Battle Modes did not open', flush=True)

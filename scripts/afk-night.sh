@@ -12,7 +12,8 @@ cd "$(dirname "$0")/.."
 SPECTRE="./target/release/spectre.exe"
 OUT_DIR=".spectre"
 
-mkdir -p "$OUT_DIR"
+mkdir -p "$OUT_DIR" "$OUT_DIR/logs"
+LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 
 # lock: shared with the scheduled task
 LOCK="$OUT_DIR/afk-bot.lock"
@@ -20,7 +21,7 @@ LOCK_STALE="${AFK_LOCK_STALE:-1200}"
 if [ -e "$LOCK" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || echo 0) ))
   if [ "$age" -lt "$LOCK_STALE" ]; then
-    echo "afk-night: another run in progress (lock age ${age}s)" >&2
+    echo "afk-night: another run in progress (lock age ${age}s)" | tee -a "$LOG" >&2
     exit 6
   fi
   rm -f "$LOCK"
@@ -30,7 +31,7 @@ trap 'rm -f "$LOCK"' EXIT
 
 pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
 if [ -z "${pid:-}" ]; then
-  echo "afk-night: game process not found" >&2
+  echo "afk-night: game process not found (is BlueStacks running and the game open?)" | tee -a "$LOG" >&2
   exit 2
 fi
 
@@ -63,10 +64,8 @@ if [ -z "${base:-}" ]; then
 fi
 
 echo "afk-night: pid=$pid heap_base=$base"
-mkdir -p "$OUT_DIR/logs"
-LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 {
   echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) NIGHT STAGE PUSH pid=$pid heap_base=$base"
   python scripts/afk_stage_push.py --auto --auto-minutes 240 --retry-defeats \
-    --pid "$pid" --base "$base" 2>&1
+    --pid "$pid" --base "$base" --min-idle "${AFK_MIN_IDLE:-180}" 2>&1
 } | tee -a "$LOG"

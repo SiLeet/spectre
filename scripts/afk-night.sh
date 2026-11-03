@@ -36,7 +36,22 @@ trap cleanup EXIT
 ( while [ -e "$LOCK" ]; do sleep 240; touch "$LOCK" 2>/dev/null || true; done ) &
 LOCK_KEEPER=$!
 
-pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
+find_pid() { "$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}'; }
+pid=$(find_pid)
+# T68 step 0: game/emulator not reachable -> one bounded device-ensure
+# (BlueStacks + game start, title/login popups only; idle-gated like this
+# run). Any failure is only a warning: the normal check below decides.
+if [ -z "${pid:-}" ] && [ "${AFK_DEVICE_ENSURE:-1}" = "1" ]; then
+  echo "afk-night: game not reachable — device-ensure (--min-idle ${AFK_MIN_IDLE:-180})" | tee -a "$LOG"
+  timeout "${AFK_ENSURE_TIMEOUT:-600}" bash scripts/device-ensure.sh --min-idle "${AFK_MIN_IDLE:-180}" 2>&1 | tee -a "$LOG"
+  ens_rc="${PIPESTATUS[0]}"
+  case "$ens_rc" in
+    0) echo "afk-night: device-ensure ok" | tee -a "$LOG" ;;
+    4) echo "afk-night: device-ensure skipped (idle gate: PC in use)" | tee -a "$LOG" ;;
+    *) echo "afk-night: WARN device-ensure rc=$ens_rc — continuing with the normal checks" | tee -a "$LOG" ;;
+  esac
+  pid=$(find_pid)
+fi
 if [ -z "${pid:-}" ]; then
   echo "afk-night: game process not found (is BlueStacks running and the game open?)" | tee -a "$LOG" >&2
   exit 2

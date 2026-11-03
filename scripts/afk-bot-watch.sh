@@ -39,7 +39,7 @@ fi
 # dailies round runs claim + quests + mail, several minutes), otherwise an
 # overlapping run deletes the lock and taps concurrently.
 LOCK="$OUT_DIR/afk-bot.lock"
-LOCK_STALE="${AFK_LOCK_STALE:-1200}"
+LOCK_STALE="${AFK_LOCK_STALE:-3600}"
 if [ -e "$LOCK" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || echo 0) ))
   if [ "$age" -lt "$LOCK_STALE" ]; then
@@ -49,7 +49,17 @@ if [ -e "$LOCK" ]; then
   rm -f "$LOCK"
 fi
 echo $$ > "$LOCK"
-trap 'rm -f "$LOCK"' EXIT
+LOCK_KEEPER=""
+cleanup() {
+  [ -n "$LOCK_KEEPER" ] && kill "$LOCK_KEEPER" 2>/dev/null
+  rm -f "$LOCK"
+}
+trap cleanup EXIT
+# keep the lock mtime fresh during long runs (a full daily round exceeds
+# 30 min; without this a second run would consider the lock stale and tap
+# concurrently - live risk with the 05:10 Daily vs. the 02:00 Night push)
+( while [ -e "$LOCK" ]; do sleep 240; touch "$LOCK" 2>/dev/null || true; done ) &
+LOCK_KEEPER=$!
 
 pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
 if [ -z "${pid:-}" ]; then

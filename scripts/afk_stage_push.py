@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -32,9 +31,7 @@ AUTO_BATTLE_BTN = (780, 1000)
 SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
 SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
-OCR_PS1 = REPO / "templates" / "ocr.ps1"
 WALL_LOG = REPO / ".spectre" / "wall-report.log"
-POWERSHELL = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 
 
 def classify_battle(img) -> str:
@@ -48,6 +45,11 @@ def classify_battle(img) -> str:
     # are very bright (L~238). The arena colour alone is unreliable — stages use
     # different day/night themes.
     pause = v.lum(v.avg(img, (549, 846)))
+    # The confirm dialog ('Turn off Auto Battle mode?', 'Spend diamonds ...')
+    # outranks everything: its dimmed backdrop reads as BATTLE (pause L~8-13
+    # on every captured dialog), which made the auto loop tap Skip into it.
+    if v.is_confirm_dialog(img):
+        return 'CONFIRM'
     # The AFK panel's orange Claim chip outranks everything below: the panel
     # sits on a dark blurred backdrop that (a) v.classify() itself reads as
     # WORLD and (b) the LOADING gate matched, which starved the push loop
@@ -75,19 +77,13 @@ def classify_battle(img) -> str:
         return 'LOADING'
     if pause < 55:
         return 'BATTLE'
-    # CONFIRM + POPUP before the bright-card branch: a reward popup or an
-    # undimmed dialog over a bright backdrop otherwise read as RESULT/DEFEAT
-    # (single mode counted a popup as a victory; the RESULT path then taps
-    # (960,540) blind, which can land on a store tile — review finding).
-    # CONFIRM first: its probes are specific (bright X + green check), a real
-    # result card (gold/red title band) does not match both.
+    # POPUP before the bright-card branch: a reward popup over a bright
+    # backdrop otherwise read as RESULT/DEFEAT (single mode counted a popup
+    # as a victory; the RESULT path then taps (960,540) blind, which can land
+    # on a store tile — review finding).
     # NOTE: keep this AFTER the BATTLE check — night battle frames read as
     # v.classify POPUP (verified on shots-36248 sp_auto_3/_14) and must
     # still classify as BATTLE.
-    xbtn = v.avg(img, (1014, 710))
-    okbtn = v.avg(img, (1155, 710))
-    if v.lum(xbtn) > 200 and okbtn[1] > okbtn[0] + 30 and okbtn[1] > 90:
-        return 'CONFIRM'
     if v.classify(img) == 'POPUP':
         return 'POPUP'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
@@ -110,18 +106,7 @@ def classify_battle(img) -> str:
 
 def ocr_text(png: Path) -> list[str]:
     """Run templates/ocr.ps1 (Windows.Media.Ocr) on a screenshot PNG."""
-    png = Path(png).resolve()          # ocr.ps1 needs absolute native paths
-    try:
-        p = subprocess.run(
-            [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
-             "-File", str(OCR_PS1), "-Path", str(png)],
-            capture_output=True, timeout=15, text=True, encoding="utf-8",
-            errors="replace")
-        if p.returncode != 0:
-            return []
-        return [ln.strip() for ln in p.stdout.splitlines() if ln.strip()]
-    except (subprocess.SubprocessError, OSError):
-        return []
+    return v.ocr_png(png, timeout=15, check_rc=True)
 
 
 def parse_stage(lines: list[str]) -> int | None:
@@ -173,6 +158,9 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
     """Screenshot -> OCR -> JSONL line in .spectre/wall-report.log.
 
     Never raises: a failed report must not break the push run.
+    Reason vocabulary (afk-wall-dash.reason_family groups it): walls =
+    '*defeat*' + 'auto_prep_stop_*'; progress = 'single_push_complete_*';
+    everything else (timeouts, aborts, 'battle_N_no_victory_*') is 'other'.
     """
     rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "reason": reason, "stage": None, "power": None,
@@ -219,7 +207,7 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
             if last == 'STATS':
                 v.tap(v.BACK, 1.5)
             elif last == 'CONFIRM':
-                v.tap((1014, 710), 1.5)   # cancel, never confirm
+                v.tap(v.CONFIRM_CANCEL, 1.5)   # cancel, never confirm
         except Exception as exc:
             print(f'    WARN: tap failed ({exc})', flush=True)
         if last in states:
@@ -306,7 +294,7 @@ def main() -> int:
                 print(f'    stats overlay dismissed: {st}', flush=True)
                 continue
             if st == 'CONFIRM':
-                v.tap((1014, 710), 2.0)         # cancel, never confirm
+                v.tap(v.CONFIRM_CANCEL, 2.0)         # cancel, never confirm
                 st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT', 'AFK_PANEL', 'BATTLE'},
                                  15, 'sp_confirm')
                 print(f'    confirm dialog cancelled: {st}', flush=True)
@@ -438,7 +426,7 @@ def main() -> int:
                     skipped += 1
                     unknowns = 0
                 elif st == 'CONFIRM':
-                    v.tap((1014, 710), 1.5)   # cancel "turn off auto battle?"
+                    v.tap(v.CONFIRM_CANCEL, 1.5)   # cancel "turn off auto battle?"
                     unknowns = 0
                 elif st == 'STATS':
                     v.tap(v.BACK, 1.5)
@@ -458,7 +446,7 @@ def main() -> int:
                         # verify the retry engaged; a dialog may own the screen
                         st2, _ = wait_for({'BATTLE', 'PREP', 'LOADING', 'CONFIRM'}, 12, 'sp_retry')
                         if st2 == 'CONFIRM':
-                            v.tap((1014, 710), 1.5)   # cancel, never confirm
+                            v.tap(v.CONFIRM_CANCEL, 1.5)   # cancel, never confirm
                         continue
                     print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                           '— stage wall reached', flush=True)
@@ -483,7 +471,7 @@ def main() -> int:
                             st3, _ = wait_for({'BATTLE', 'PREP', 'LOADING', 'CONFIRM'},
                                               12, 'sp_retry2')
                             if st3 == 'CONFIRM':
-                                v.tap((1014, 710), 1.5)   # cancel, never confirm
+                                v.tap(v.CONFIRM_CANCEL, 1.5)   # cancel, never confirm
                             continue
                         print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                               '— stage wall reached', flush=True)
@@ -508,7 +496,7 @@ def main() -> int:
                 img = v.shot('sp_auto_end')
                 end_st = classify_battle(img)
                 if end_st == 'CONFIRM':
-                    v.tap((1014, 710), 2.0)
+                    v.tap(v.CONFIRM_CANCEL, 2.0)
                     end_st = classify_battle(v.shot('sp_auto_end2'))
                 elif end_st in ('UNKNOWN', 'POPUP') and is_auto_complete(ocr_text(v.TMP / 'sp_auto_end.png')):
                     v.tap((960, 1000), 2.5)

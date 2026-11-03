@@ -15,10 +15,11 @@ NOTE: the single-fight path is the verified one (3 live runs). Chaining several
 fights in one run needs the victory-card dismissal to line up, which is flaky —
 the scheduler calls this script once per attempt instead.
 
-Verification: every step takes a screenshot into .spectre/shots/ and classifies
-it via afk_stage_push.classify_battle where reliable; the arena screens have
-their own look, so the script additionally checks that the screen CHANGED
-between fight start and fight end before counting an attempt.
+Verification: every step takes a screenshot and classifies it with
+arena_state() / the shared purchase-dialog detector (v.is_confirm_dialog);
+the arena screens have their own look, so the script additionally checks
+that the screen CHANGED between fight start and fight end before counting
+an attempt. Reaching Battle Modes is v.open_battle_modes (classify-gated).
 
 Usage: python scripts/afk_arena.py [--fights 4] [--dry-run]
 Exit codes: 0 = all attempts done, 1 = stuck / unknown, 2 = adb error.
@@ -26,21 +27,15 @@ Exit codes: 0 = all attempts done, 1 = stuck / unknown, 2 = adb error.
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import time
 from pathlib import Path
 
 from PIL import Image
 
-import afk_claim_vision as v
-from afk_claim_vision import classify  # verified WORLD check (back-arrow probes)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import afk_claim_vision as v  # noqa: E402
 
-REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
-TMP.mkdir(parents=True, exist_ok=True)
-ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
-SERIAL = '127.0.0.1:5555'
 
 # verified T27 coordinates (TODOS.md, 2026-10-31)
 BACK = (474, 1010)          # back arrow, bottom-left (most screens)
@@ -52,26 +47,16 @@ OPPONENT_LEFT = (750, 500)  # left opponent card (weakest of the 3)
 ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 
-sys.path.insert(0, str(REPO / 'scripts'))
-
-
-def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
-    return subprocess.run([str(ADB), '-s', SERIAL, *args], capture_output=True, timeout=timeout)
-
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
-    adb('shell', 'input', 'tap', str(xy[0]), str(xy[1]))
-    time.sleep(wait)
-
-
-def shot(name: str) -> Image.Image:
-    path = TMP / f'{name}.png'
-    with open(path, 'wb') as fh:
-        p = subprocess.run([str(ADB), '-s', SERIAL, 'exec-out', 'screencap', '-p'],
-                           stdout=fh, timeout=60)
-    if p.returncode != 0:
-        raise RuntimeError('screencap failed')
-    return Image.open(path).convert('RGB')
+    """v.tap (raises on an adb failure) with one retry. The old copy ignored
+    the return code: a missed Challenge tap spun the advance loop to STUCK."""
+    try:
+        v.tap(xy, wait)
+    except RuntimeError as exc:
+        print(f'    WARN: {exc} — retrying once', flush=True)
+        time.sleep(1.0)
+        v.tap(xy, wait)
 
 
 def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, int]:
@@ -83,34 +68,6 @@ def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, in
 def dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     return sum(abs(x - y) for x, y in zip(a, b))
 
-
-def at_world(img: Image.Image) -> bool:
-    """Verified world-view check via the back-arrow probes from afk_claim_vision."""
-    return classify(img) == 'WORLD'
-
-
-def reach_world(max_steps: int = 6) -> Image.Image:
-    """Navigate out of any nested panel back to the world view."""
-    img = shot('arena_0_initial')
-    for i in range(max_steps):
-        if at_world(img):
-            return img
-        tap(BACK, 1.5)
-        img = shot(f'arena_0_back{i}')
-    tap(GROUND, 0.8)          # dismiss an interact menu
-    tap(BACK, 1.0)
-    return shot('arena_0_final')
-
-
-
-def confirm_dialog(img: Image.Image) -> bool:
-    """The 'Spend <diamonds> to purchase ...?' confirmation (e.g. extra arena
-    attempts) — bright X at (1014,784), green check at (1140,784). It appears
-    when the daily attempts are exhausted; it must always be CANCELLED, and the
-    run must stop: continuing would spend real currency."""
-    x_btn = avg(img, (1014, 784))
-    ok_btn = avg(img, (1140, 784))
-    return sum(x_btn) / 3 > 180 and ok_btn[1] > ok_btn[0] + 30 and ok_btn[1] > 90
 
 def screen_signature(img: Image.Image) -> tuple[int, int, int]:
     """Cheap fingerprint of the centre of the screen to detect state changes."""
@@ -133,7 +90,10 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
     """Drive the arena chain to a running fight: dismiss results, pick the left
     (lowest-power) opponent, press Battle on the prep screen."""
     for i in range(steps):
-        img = shot(f'{tag}_step{i}')
+        img = v.shot(f'{tag}_step{i}')
+        if v.is_confirm_dialog(img):
+            tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
+            return 'DIALOG'
         st = arena_state(img)
         print(f'    [{tag}] step {i}: {st}', flush=True)
         if st == 'RESULT':
@@ -152,7 +112,8 @@ def main() -> int:
                     help='fights per run; the verified path is 1 — call the script N times for N attempts')
     ap.add_argument('--wait-fight', type=float, default=80,
                     help='seconds to wait for one arena fight to resolve')
-    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--dry-run', action='store_true',
+                    help='no arena fight; reaching Battle Modes still taps (BACK/GROUND/menu)')
     ap.add_argument('--min-idle', type=float, default=0,
                     help='skip when the PC has been in use for less than this many seconds')
     args = ap.parse_args()
@@ -172,40 +133,48 @@ def main() -> int:
 
     print('--- Arena card -> lobby', flush=True)
     tap(ARENA_CARD, 4.0)
-    img = shot('arena_1_lobby')
+    img = v.shot('arena_1_lobby')
     lobby = v.lum(v.avg(img, (1080, 1004))) > 150 and v.lum(v.avg(img, (480, 270))) < 200
     if not lobby:
         print('    ERROR: arena lobby did not open', flush=True)
         return 1
 
     tap(CHALLENGE, 4.0)
-    img = shot('arena_2_select')
+    img = v.shot('arena_2_select')
     print(f'    select-opponent signature: {screen_signature(img)}', flush=True)
 
     wins = 0
+    failed = False
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
-        if confirm_dialog(shot(f'arena_p{fight}_pre')):
-            tap((1014, 784), 1.5)   # CANCEL — never confirm a purchase
+        if v.is_confirm_dialog(v.shot(f'arena_p{fight}_pre')):
+            tap(v.CONFIRM_CANCEL, 1.5)   # CANCEL — never confirm a purchase
             print('    STOP: daily arena attempts exhausted (purchase dialog cancelled)', flush=True)
             return 0
         st = advance_to_fight(f'arena_f{fight}')
+        if st == 'DIALOG':
+            print('    STOP: purchase dialog during the fight chain (cancelled)', flush=True)
+            return 0
         if st != 'PREP':
             print(f'    ERROR: could not reach a fight ({st}) — aborting', flush=True)
+            failed = True
             break
-        sig_before = screen_signature(shot(f'arena_{fight}_start'))
+        sig_before = screen_signature(v.shot(f'arena_{fight}_start'))
         time.sleep(args.wait_fight)
-        img = shot(f'arena_{fight}_after')
+        img = v.shot(f'arena_{fight}_after')
         sig_after = screen_signature(img)
         changed = sum(dist(a, b) for a, b in zip(sig_before, sig_after)) > 40
         print(f'    changed={changed} {sig_before} -> {sig_after}', flush=True)
         if not changed:
             print('    WARN: screen unchanged after the fight — aborting', flush=True)
+            failed = True
             break
         wins += 1
 
     print(f'done: {wins} arena fights driven', flush=True)
-    return 0
+    # exit 1 when nothing was fought: afk-bot-watch.sh writes the once-per-day
+    # arena marker on exit 0, so a failed run must not burn the day
+    return 1 if failed and wins == 0 else 0
 
 
 if __name__ == '__main__':

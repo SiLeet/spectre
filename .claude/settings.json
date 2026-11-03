@@ -1,0 +1,6 @@
+{
+  "model": "opus",
+  "permissions": {
+    "allow": ["mcp__spectre"]
+  }
+}

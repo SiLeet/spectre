@@ -9,7 +9,9 @@ Every tap is gated on the previous screenshot, so a mis-tap cannot cascade.
 Run via scripts/afk-bot-watch.sh --daily or directly:
     python scripts/afk-daily-gift.py --pid 7529 --base 0x...
 Exit codes: 0 claimed or nothing to claim, 1 could not reach the panel,
-2 memory preflight failed, 5 skipped (PC in use).
+2 memory preflight failed, 3 WARN: Login Rewards entry not found (already
+claimed today, event gone, or the camera pan missed it - not marked done),
+5 skipped (PC in use).
 """
 from __future__ import annotations
 
@@ -20,9 +22,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402  (tap/shot/avg/lum/idle_seconds helpers)
-
-REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
 
 LOGIN_REWARDS = (1804, 662)
 ROW_X = 890
@@ -46,6 +45,17 @@ def is_dimmed(img) -> bool:
     return v.lum(v.avg(img, (200, 270))) < 25
 
 
+def claim_signal(img) -> str | None:
+    """Which tell says 'Rewards Obtained' is up, or None. The single dim probe
+    (L<25) was never seen true on a capture and neighbours sit at L 59-60,
+    so the classifier's POPUP verdict backs it up."""
+    if is_dimmed(img):
+        return 'dimmed'
+    if v.classify(img) == 'POPUP':
+        return 'classify POPUP'
+    return None
+
+
 def is_events_tooltip(img) -> bool:
     """An item-info tooltip covers the title area while the bottom tab bar and
     the panel edges stay visible."""
@@ -65,6 +75,16 @@ def login_btn_visible(img) -> bool:
     return c[0] > 200 and c[2] < 120 and c[0] - c[2] > 80
 
 
+def wait_events_panel(tag: str, tries: int = 3):
+    """The panel animates open: up to `tries` shots ~1 s apart. Frame or None."""
+    for i in range(tries):
+        img = v.shot(f'{tag}_{i}' if i else tag)
+        if is_events_panel(img):
+            return img
+        time.sleep(1.0)
+    return None
+
+
 def find_login_button(max_tries: int = 8) -> bool:
     """Pan the camera until the Login Rewards entry is on screen. Swipes start
     on open grass so they never select a building (which opens an Interact
@@ -75,7 +95,9 @@ def find_login_button(max_tries: int = 8) -> bool:
         # alternate pan directions with growing distance
         dx, dy = [(700, 0), (-700, 0), (0, 350), (0, -350),
                   (1300, 0), (-1300, 0), (0, 700), (0, -700)][i]
-        v.swipe(400, 700, 400 - dx, 700 - dy, 500, 1.2)
+        # keep the end point on screen (dx up to 1300 sent x to -900); the
+        # origin stays on the verified open-grass spot (400,700)
+        v.swipe(400, 700, min(max(400 - dx, 0), 1919), min(max(700 - dy, 0), 1079), 500, 1.2)
     return login_btn_visible(v.shot('dg_cam_final'))
 
 
@@ -94,7 +116,6 @@ def main() -> int:
         print(f'    idle check ok ({idle:.0f}s)' if idle is not None else '    idle unknown', flush=True)
 
     if args.pid and args.base:
-        import struct
         status, power = v.memory_preflight(args.pid, args.base)
         if status == 'fail':
             print('    ERROR: team_power preflight failed', flush=True)
@@ -128,11 +149,18 @@ def main() -> int:
         # The Login Rewards entry only floats in the world while a claim is
         # available; once the daily reward is taken it disappears (verified:
         # same camera position, button gone after the Day-3 claim).
-        print('    no Login Rewards entry — already claimed today (or event gone)', flush=True)
-        return 0
+        # Not 0: watch.sh marks the day done on 0, which masked a missed pan.
+        print('    WARN: no Login Rewards entry — already claimed today, event gone, '
+              'or the pan missed it', flush=True)
+        return 3
     v.tap(LOGIN_REWARDS, 3.5)
-    img = v.shot('dg_panel')
-    if not is_events_panel(img):
+    img = wait_events_panel('dg_panel')
+    if img is None and login_btn_visible(v.shot('dg_entry_retry')):
+        # live 10-31: the entry tap opened nothing (dg_panel was the world)
+        print('    panel did not open — re-tapping the entry once', flush=True)
+        v.tap(LOGIN_REWARDS, 3.5)
+        img = wait_events_panel('dg_panel_retry')
+    if img is None:
         print('    ERROR: Login Rewards panel did not open', flush=True)
         return 1
     print('    events panel open', flush=True)
@@ -154,8 +182,13 @@ def main() -> int:
             continue
         v.tap((ROW_X, y), 1.6)
         img = v.shot(f'dg_after_{y}')
-        if is_dimmed(img):
-            print(f'    claimed row y={y} (Rewards Obtained)', flush=True)
+        sig = claim_signal(img)
+        if sig is None and not is_events_tooltip(img):
+            time.sleep(1.0)                  # popup animation: one re-shot before judging
+            img = v.shot(f'dg_after_{y}b')
+            sig = claim_signal(img)
+        if sig:
+            print(f'    claimed row y={y} (Rewards Obtained, {sig})', flush=True)
             claimed.append(y)
             v.tap((700, 500), 2.0)          # dismiss the reward popup
             img = v.shot(f'dg_dismiss_{y}')
@@ -167,7 +200,10 @@ def main() -> int:
             v.tap((1500, 600), 1.2)
             print(f'    row y={y}: item info (already claimed), dismissed', flush=True)
             continue
-        v.tap((1500, 600), 1.2)              # make sure no overlay is left open
+        if not is_events_panel(img):
+            # unknown overlay: BACK instead of a blind (1500,600) tap; the
+            # next row check re-verifies the panel and stops if it is gone
+            v.tap(v.BACK, 1.2)
 
     v.tap(v.BACK, 1.5)
     img = v.shot('dg_back')

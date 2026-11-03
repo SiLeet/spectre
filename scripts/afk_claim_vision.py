@@ -61,16 +61,21 @@ def load_power_state() -> dict:
 def save_power_state(state: dict) -> None:
     try:
         state['updated'] = time.strftime('%Y-%m-%dT%H:%M:%S')
-        POWER_STATE.write_text(json.dumps(state))
+        tmp = POWER_STATE.with_suffix('.tmp')       # atomic: concurrent runs must not
+        tmp.write_text(json.dumps(state))          # leave a half-written state file
+        os.replace(tmp, POWER_STATE)
     except Exception:
         pass   # the guard is best-effort; never break a run over the state file
 
 
 def adb_exec_dump(pid: str, addr: str, out_path: Path, size: str = '8') -> subprocess.CompletedProcess | None:
     """spectre dump <addr> as raw bytes. None on failure."""
-    p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, size,
-                        '--adb', '--format', 'raw', '--output', str(out_path)],
-                       cwd=REPO, capture_output=True, timeout=300)
+    try:
+        p = subprocess.run([str(REPO / 'target' / 'release' / 'spectre.exe'), 'dump', pid, addr, size,
+                            '--adb', '--format', 'raw', '--output', str(out_path)],
+                           cwd=REPO, capture_output=True, timeout=300)
+    except subprocess.TimeoutExpired:      # a hung dump must not crash the run
+        return None
     if p.returncode != 0 or not Path(out_path).exists():
         return None
     return p
@@ -236,19 +241,30 @@ POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
 
 
+def ocr_png(png: Path, timeout: int = 20, check_rc: bool = False) -> list[str]:
+    """WinRT OCR (templates/ocr.ps1, offline) on a PNG; [] on any failure.
+
+    check_rc=True also treats a non-zero exit as failure (afk_stage_push's
+    historical semantics); ocr_lines keeps its stdout-only behaviour."""
+    png = Path(png).resolve()          # ocr.ps1 needs absolute native paths
+    try:
+        pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                             '-File', str(OCR_PS1), '-Path', str(png)],
+                            capture_output=True, timeout=timeout, text=True,
+                            encoding='utf-8', errors='replace')
+        if check_rc and pr.returncode != 0:
+            return []
+        return [ln.strip() for ln in pr.stdout.splitlines() if ln.strip()]
+    except (subprocess.SubprocessError, OSError):
+        return []
+
+
 def ocr_lines(name: str) -> list[str]:
     """WinRT OCR on a screenshot already saved by shot() (offline, real text)."""
     png = TMP / f'{name}.png'
     if not png.exists():
         return []
-    try:
-        pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
-                             '-File', str(OCR_PS1), '-Path', str(png)],
-                            capture_output=True, timeout=20, text=True,
-                            encoding='utf-8', errors='replace')
-        return [ln.strip() for ln in pr.stdout.splitlines() if ln.strip()]
-    except (subprocess.SubprocessError, OSError):
-        return []
+    return ocr_png(png)
 
 
 def resolve_startup_popup(tag: str) -> bool:
@@ -287,7 +303,9 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
 
 
 def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:
-    adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
+    p = adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
+    if p.returncode != 0:                  # same contract as tap()
+        raise RuntimeError(f'adb swipe failed {(x1, y1)}->{(x2, y2)}: {p.stderr[:120]!r}')
     time.sleep(wait)
 
 
@@ -322,13 +340,41 @@ def lum(c: tuple[int, int, int]) -> float:
     return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
 
 
+CONFIRM_CANCEL = (1014, 710)     # inside the X circle for both button rows below
+CONFIRM_ROWS = (710, 729)        # the dialog's button row sits at either y (measured)
+
+
+def is_confirm_dialog(img: Image.Image) -> bool:
+    """Cream-band confirm dialog: X = cancel, green check = confirm.
+
+    One layout for 'Spend <diamonds> to purchase ...?' (arena attempts,
+    screens/arena_debug1.png) and 'Turn off Auto Battle mode?' (stage push).
+    Must always be CANCELLED (CONFIRM_CANCEL), never confirmed. The full-width
+    cream band is required: the arena Select Opponent screen matched a bare
+    X/check probe pair (white card + green swords button, shots/arena_p1_pre)."""
+    if not all(lum(avg(img, p)) > 200 for p in ((200, 550), (1720, 550), (960, 450))):
+        return False
+    for y in CONFIRM_ROWS:
+        ok = avg(img, (1142, y))
+        if lum(avg(img, (1014, y))) > 140 and ok[1] > ok[0] + 20 and ok[1] > ok[2] + 20:
+            return True
+    return False
+
+
 BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
 
 
 def is_battle_modes(img: Image.Image) -> bool:
-    """Battle Modes menu open: bright cream body + bright tab bar."""
+    """Battle Modes menu open: bright cream body + bright tab bar, plus the
+    menu's own tab icons — orange Routines (500,920) ~(173,85,46) and the dark
+    Events icon (1160,940) L~102. Body + tab bar alone also matched the main
+    menu, Victory/Defeat/Battle-Ended cards and loading tips (review F6; 25 of
+    25 captured menu frames carry both icons, no other frame does)."""
+    routines = avg(img, (500, 920))
     return (lum(avg(img, (480, 270))) > 200
-            and lum(avg(img, (890, 934))) > 200)
+            and lum(avg(img, (890, 934))) > 200
+            and routines[0] > routines[2] + 80
+            and lum(avg(img, (1160, 940))) < 150)
 
 
 def reach_world(max_steps: int = 6) -> bool:
@@ -372,9 +418,49 @@ def idle_seconds() -> float | None:
         lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
         if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
             return None
-        return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
+        get_tick = ctypes.windll.kernel32.GetTickCount
+        get_tick.restype = ctypes.c_uint32   # default c_long goes negative after ~24.8 d uptime
+        return tick_delta(get_tick(), lii.dwTime) / 1000.0
     except Exception:
         return None
+
+
+def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30) -> int:
+    """Move all but the newest `keep` shots-<pid> dirs into <root>/trash/.
+
+    Every run writes a per-pid dir and nothing cleaned them up (1.3 GB in 104
+    dirs by 2026-11-03). Moved, not deleted (owner's call, 2026-11-03): the
+    trash dir is emptied by hand. This run's own dir is never touched.
+    Returns the number of dirs moved."""
+    trash = root / 'trash'
+    try:
+        dirs = sorted((d for d in root.glob('shots-*') if d.is_dir() and d != TMP),
+                      key=lambda d: d.stat().st_mtime, reverse=True)
+        old = dirs[keep:]
+        if old:
+            trash.mkdir(exist_ok=True)
+    except OSError:
+        return 0
+    moved = 0
+    for d in old:
+        dest = trash / d.name
+        n = 1
+        while dest.exists():               # pids repeat across reboots
+            dest = trash / f'{d.name}.{n}'
+            n += 1
+        try:
+            d.rename(dest)
+            moved += 1
+        except OSError:
+            pass                           # in use / locked: try again next run
+    return moved
+
+
+def tick_delta(tick: int, last: int) -> int:
+    """Milliseconds from `last` to `tick` on the 32-bit tick counter, wrap-safe
+    (the counter wraps every ~49.7 days; a negative idle used to SKIP every
+    scheduled run as 'PC in use' until reboot)."""
+    return (tick - last) & 0xFFFFFFFF
 
 
 def classify(img: Image.Image) -> str:
@@ -394,13 +480,99 @@ def classify(img: Image.Image) -> str:
     # sequence into a live popup.
     if lb < 100 and (lbar > 172 or lb - lg < -8):
         return 'POPUP'
-    if lb < 100 and abs(lb - lg) < 8:
+    # WORLD also needs the world-only tell: the lit AFK Progress chip
+    # (60,1036), L 103-174 on all 51 captured world frames (day + night).
+    # The back-arrow probes alone said WORLD on 110 non-world frames —
+    # battles, Battle Modes, a store bundle popup, a 'Use Diamond' dialog —
+    # and on dimmed popups one luminance point from the POPUP cliff (review
+    # F7). Without the chip the frame stays UNKNOWN: no taps.
+    if lb < 100 and abs(lb - lg) < 8 and lum(avg(img, AFK_PROGRESS)) > 100:
         return 'WORLD'
     chip = avg(img, (1390, 704))
     # only trust the chip fallback when the back arrow is clearly NOT dimmed
     if lb > 140 and chip[0] > 200 and chip[1] > 150 and chip[2] < 120:
         return 'PANEL'
     return 'UNKNOWN'
+
+
+def claim_round(tag: str, dry_run: bool = False) -> int:
+    """One verified AFK-chest claim from wherever the game is: world -> AFK
+    panel -> chest popup -> Claim -> panel (BACK). Shared by main() and
+    afk_dailies. Returns main()'s exit codes: 0 claim verified (or dry-run
+    reached its stop), 1 unreachable/unknown screen, 4 nothing claimable."""
+    state = classify(shot(f'{tag}_0_initial'))
+    print(f'    initial state: {state}', flush=True)
+
+    if state == 'WORLD':
+        if dry_run:
+            print('    [dry-run] would tap AFK progress', flush=True)
+            return 0
+        tap(GROUND, 0.8)
+        tap(AFK_PROGRESS, 3.0)
+        state = classify(shot(f'{tag}_1_panel'))
+        print(f'    after AFK tap: {state}', flush=True)
+    if state == 'POPUP':
+        # known login popup (free monthly/daily rewards) gets claimed,
+        # anything else is closed and retried from the panel
+        if resolve_startup_popup(f'{tag}_1a_popup'):
+            state = classify(shot(f'{tag}_1b_recover'))
+        else:
+            tap(BACK, 1.5)
+            state = classify(shot(f'{tag}_1b_recover'))
+        print(f'    after close: {state}', flush=True)
+    if state == 'UNKNOWN':
+        # never fire the recovery taps on an unidentified screen: that is
+        # how a blind tap ends up on a store/purchase dialog
+        print('    ERROR: unknown screen — refusing to tap blind', flush=True)
+        return 1
+    if state != 'PANEL':
+        # classify-gated way back (BACK on the world view opens the exit
+        # confirm, a second blind BACK can punch through two layers)
+        if not reach_world():
+            print('    ERROR: could not get back to the world view', flush=True)
+            return 1
+        tap(GROUND, 0.8)
+        tap(AFK_PROGRESS, 3.0)
+        state = classify(shot(f'{tag}_2_retry'))
+        print(f'    retry state: {state}', flush=True)
+    if state != 'PANEL':
+        print('    ERROR: could not reach the AFK panel', flush=True)
+        return 1
+    if dry_run:
+        print('    [dry-run] panel reached, would open chest + claim', flush=True)
+        return 0
+
+    tap(CHEST, 2.2)
+    state = classify(shot(f'{tag}_3_chest'))
+    print(f'    after chest tap: {state}', flush=True)
+    if state != 'POPUP':
+        # The game does not open the info popup when almost nothing has
+        # accrued (< ~2 min). One retry, then report "nothing claimable"
+        # instead of a hard error — nothing was tapped wrongly.
+        tap(CHEST, 2.5)
+        state = classify(shot(f'{tag}_3b_chest_retry'))
+        print(f'    chest retry: {state}', flush=True)
+    if state != 'POPUP':
+        print('    SKIP: nothing claimable yet (chest accrual too small)', flush=True)
+        return 4
+
+    tap(CLAIM, 2.5)
+    state = classify(shot(f'{tag}_4_after'))
+    print(f'    after claim: {state}', flush=True)
+    if state == 'POPUP':
+        # the claim popup can persist past the tap (T38 #8): retry once,
+        # then fail loudly instead of reporting a claim that never landed
+        print('    claim popup still open, retrying claim', flush=True)
+        tap(CLAIM, 2.5)
+        state = classify(shot(f'{tag}_4b_retry'))
+        print(f'    after claim retry: {state}', flush=True)
+    if state == 'PANEL':
+        tap(BACK, 1.0)
+        print('    claim verified (popup closed, panel back)', flush=True)
+    else:
+        print(f'    ERROR: unexpected state after claim: {state}', flush=True)
+        return 1
+    return 0
 
 
 def main() -> int:
@@ -411,8 +583,15 @@ def main() -> int:
     ap.add_argument('--base', default=None, help='hot-heap base hex (memory preflight)')
     ap.add_argument('--min-idle', type=float, default=0,
                     help='skip unless the PC has been idle this many seconds (scheduled runs)')
-    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--dry-run', action='store_true',
+                    help='no chest/claim tap; a popup on screen is still closed '
+                         '(BACK, or the login-popup claim)')
     args = ap.parse_args()
+
+    if not args.dry_run:
+        moved = prune_shot_dirs()
+        if moved:
+            print(f'    moved {moved} old shot dirs to .spectre/trash/', flush=True)
 
     if args.min_idle > 0 and not args.dry_run:
         idle = idle_seconds()
@@ -437,76 +616,9 @@ def main() -> int:
 
     for rnd in range(1, args.rounds + 1):
         print(f'--- round {rnd}/{args.rounds} {time.strftime("%H:%M:%S")}', flush=True)
-        state = classify(shot(f'r{rnd}_0_initial'))
-        print(f'    initial state: {state}', flush=True)
-
-        if state == 'WORLD':
-            if args.dry_run:
-                print('    [dry-run] would tap AFK progress', flush=True)
-                continue
-            tap(GROUND, 0.8)
-            tap(AFK_PROGRESS, 3.0)
-            state = classify(shot(f'r{rnd}_1_panel'))
-            print(f'    after AFK tap: {state}', flush=True)
-        if state == 'POPUP':
-            # known login popup (free monthly/daily rewards) gets claimed,
-            # anything else is closed and retried from the panel
-            if resolve_startup_popup(f'r{rnd}_1a_popup'):
-                state = classify(shot(f'r{rnd}_1b_recover'))
-            else:
-                tap(BACK, 1.5)
-                state = classify(shot(f'r{rnd}_1b_recover'))
-            print(f'    after close: {state}', flush=True)
-        if state == 'UNKNOWN':
-            # never fire the recovery taps on an unidentified screen: that is
-            # how a blind tap ends up on a store/purchase dialog
-            print('    ERROR: unknown screen — refusing to tap blind', flush=True)
-            return 1
-        if state != 'PANEL':
-            tap(BACK, 1.0)
-            tap(BACK, 1.0)
-            tap(GROUND, 0.8)
-            tap(AFK_PROGRESS, 3.0)
-            state = classify(shot(f'r{rnd}_2_retry'))
-            print(f'    retry state: {state}', flush=True)
-        if state != 'PANEL':
-            print('    ERROR: could not reach the AFK panel', flush=True)
-            return 1
-        if args.dry_run:
-            print('    [dry-run] panel reached, would open chest + claim', flush=True)
-            continue
-
-        tap(CHEST, 2.2)
-        state = classify(shot(f'r{rnd}_3_chest'))
-        print(f'    after chest tap: {state}', flush=True)
-        if state != 'POPUP':
-            # The game does not open the info popup when almost nothing has
-            # accrued (< ~2 min). One retry, then report "nothing claimable"
-            # instead of a hard error — nothing was tapped wrongly.
-            tap(CHEST, 2.5)
-            state = classify(shot(f'r{rnd}_3b_chest_retry'))
-            print(f'    chest retry: {state}', flush=True)
-        if state != 'POPUP':
-            print('    SKIP: nothing claimable yet (chest accrual too small)', flush=True)
-            return 4
-
-        tap(CLAIM, 2.5)
-        state = classify(shot(f'r{rnd}_4_after'))
-        print(f'    after claim: {state}', flush=True)
-        if state == 'POPUP':
-            # the claim popup can persist past the tap (T38 #8): retry once,
-            # then fail loudly instead of reporting a claim that never landed
-            print('    claim popup still open, retrying claim', flush=True)
-            tap(CLAIM, 2.5)
-            state = classify(shot(f'r{rnd}_4b_retry'))
-            print(f'    after claim retry: {state}', flush=True)
-        if state == 'PANEL':
-            tap(BACK, 1.0)
-            print('    claim verified (popup closed, panel back)', flush=True)
-        else:
-            print(f'    ERROR: unexpected state after claim: {state}', flush=True)
-            return 1
-
+        rc = claim_round(f'r{rnd}', args.dry_run)
+        if rc:
+            return rc
         if rnd < args.rounds and args.pause:
             time.sleep(args.pause)
     print('done', flush=True)

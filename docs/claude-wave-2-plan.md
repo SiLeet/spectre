@@ -184,6 +184,37 @@ dismiss-Taps classify-gaten, per-pid shot-Dirs auch in hero_level/gift,
 off-screen-Swipes clampen, `_level_hands` löschen (→ A4), tote Imports/Branches
 entfernen (arena reach_world/at_world, dailies TMP, gift struct).
 
+### A8 / T59 — Runtime-Fix-Batch (Review afk_stage_push + afk_dream_realm)
+> **Voller Report: `docs/reviews/2026-11-03-runtime-review.md`** (artefakt-
+> verifiziert inkl. reproduziertem Pre-Fight-Timeout; Frames + Messwerte als
+> Beweise). Ebenfalls nach A1, 1 Finding = 1 Commit, Branch `feature/T59-runtime-fixes`.
+
+**A8a — HIGH:**
+1. `afk_dream_realm.start_fight` akzeptiert uniform-schwarze Übergangs-Frames
+   als „Kampf läuft" → 153 s Pre-Fight-Stand, Timeout, Chance verloren
+   (shots-33128 vs. shots-1752). Fix: positiver Fight-Marker (Profil aus
+   shots-1752: (960,1040) weder weiß noch grün; lum((1280,1010))<120) —
+   dunkle Frames weiter pollen, nie „läuft" annehmen.
+2. `wait_for_fight_end`: kein Ready-Screen-Re-Arm → nach ≥3 is_ready-Frames
+   ohne Fight-Marker einmal PREP/BOSS re-tappen und weiter pollen.
+
+**A8b — MED:** stage_push LAUNCHER/LOADING-Kreuzklassifikation (Live-Fights →
+„game crashed" exit 3; dunkle Nacht-Fights → LOADING/unknown-strike; Gate
+verschärfen bzw. nach BATTLE prüfen, LOADING = „keine Info"); dream
+`_dim_probes` matcht Transitionen → falsches „fight ended" (Debounce/
+lum<40-Ausschluss); `back_to_ready` 4-Unknown-Toleranz vs. 90-s-Fight;
+2x-Tap auf Fight-Marker gaten; Chance-Bookkeeping per OCR („Chances: N/7",
+Fight nur bei Marker zählen); globaler Prune (dream realmt nie; tote Dirs;
+Call in beiden mains + im Loop); stage_push stale-RESULT-Phantom-Win;
+PREP-Debounce nur bei „st2 immer noch PREP" als Wand werten; einheitliches
+try_shot (kein FATAL mid-chain, Backoff, adb-Exit 2 nach ~5 Fails);
+Popup-Fallback (OCR 'Level/Perk/Tap to close' → Close (960,540), Strike-Reset).
+
+**A8c — LOW:** reach_world-Unknown-Poll; HERO_PROBE-Marge (171 vs 170 → ≥180
+oder Punkt verschieben); toter doppelter POPUP-Check; Summary-Close (960,1000)
+→ (960,540); parse_power aufwärts + Anchor `^Battle\b`; wall_report-Fehler
+erhalten (log_error) + OCR-Erstaufruf-Warmup (30 s).
+
 ---
 
 ## 2. Wave B — Recon (Hermes) → Code (Claude) → Live-Verify (Hermes)

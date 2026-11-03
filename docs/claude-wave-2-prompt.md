@@ -8,13 +8,14 @@
 WORKSPACE: C:\Users\Sigi\spectre
 
 LIES ZUERST (in dieser Reihenfolge, komplett):
-  1. docs/claude-wave-2-plan.md      — Spielregeln (§0), Fallback-Tabelle, Briefs A1–A7, B1–B6
+  1. docs/claude-wave-2-plan.md      — Spielregeln (§0), Fallback-Tabelle, Briefs A1–A8, B1–B6
   2. docs/reviews/2026-11-03-scripts-review.md — voller Review-Report mit Frame-Beweisen (für A7)
+  3. docs/reviews/2026-11-03-runtime-review.md — zweiter Report (für A8)
 
 AUFTRAG: Arbeite Wave A KOMPLETT ab, genau in dieser Reihenfolge:
   A1 (T46 Test-Harness) → A2 (T47 Parser-Tests) → A3 (T51 Mock-ADB-Tests)
   → A4 (T48 Dedup + _level_hands löschen) → A5 (T49 wall-dash) → A6 (T50 Doku)
-  → A7a (HIGH-Fixes) → A7b (MED) → A7c (LOW).
+  → A7a (HIGH-Fixes) → A7b (MED) → A7c (LOW) → A8a → A8b → A8c.
 
 REGELN PRO TASK:
   - Neuer Branch (feature/T{NN}-slug laut Plan), Commit(s) lokal, dann nächster Task.

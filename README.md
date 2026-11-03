@@ -150,6 +150,7 @@ spectre/
 ├── spectre-bot/          # Bot execution engine & scheduler
 ├── spectre-lua/          # Lua scripting bindings
 ├── spectre-cli/          # CLI binary (user entry point)
+├── spectre-mcp/          # MCP server (stdio) for agents: spectre + adb as tools
 ├── games/                # Game offset YAML files
 ├── docs/                 # Documentation
 └── examples/             # Example configs & scripts
@@ -324,6 +325,7 @@ spectre/
 ├── spectre-bot/          # Bot-Ausführungs-Engine & Scheduler
 ├── spectre-lua/          # Lua-Skript-Bindungen
 ├── spectre-cli/          # CLI-Binär (Benutzereinstiegspunkt)
+├── spectre-mcp/          # MCP-Server (stdio) für Agenten: spectre + adb als Tools
 ├── games/                # Spiel-Offset-YAML-Dateien
 ├── docs/                 # Dokumentation
 └── examples/             # Beispielkonfigurationen & -skripte

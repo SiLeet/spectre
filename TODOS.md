@@ -1165,5 +1165,18 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   05:10, Night 04.11. 02:00. 17:10-Progress: sauber (Chest verified, wall
   reached stage=254 power=74986); „preflight 108449240“ in der Logzeile =
   Vor-Fix-Stand, Drift-Gate 80b8b43 fängt den Fall seit 18:08 ab (Anker
-  259270 revalidiert). R15-Rest unverändert: Stage LAUNCHER/LOADING +
+  259270 revalidiert).  R15-Rest unverändert: Stage LAUNCHER/LOADING +
   Summary-Close-Frames sind frame-abhängig offen.
+- 🟢 Drift-Gate erster Natural-Drift-Beleg (2026-11-03 20:17 CET, Queue-Driver,
+  rein read-only): Idle 14616 s, Lock frei, PID 5176; neuer-Heap-Anker
+  (0x796590000000+0xA73D14, u64) liest **259176** (Δ 94 zum Anker 259270 —
+  legitimer Power-Drift, Map-Entry-Struktur intakt; alter Slot liest weiter
+  259850). `memory_preflight('5176','0x796590000000')` → **('ok', 259176)**
+  — der 'ok'-Branch akzeptiert den Drift innerhalb ±max(2000,10 %) und
+  aktualisiert den Anker (State-File updated 20:17:37). Damit ist der
+  Drift-Gate-80b8b43-Pfad (akzeptieren) UND der Stale-Pfad (Re-Location,
+  18:08-Live-Test) live belegt. Quirk dokumentiert: ein einzelner
+  `dd bs=1`-Read am Anker kam transient als 00 00 00 00 zurück (Wiederholung
+  las sauber) — Preflight-Guards decken das ab (Range + Struktur), keine
+  Code-Änderung. Suite 252 OK (22 skipped). Keine Game-Taps. Nächste
+  Post-Fix-Evidenz: Night 04.11. 02:00, Daily 04.11. 05:10.

@@ -579,6 +579,16 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850** —
   Anker gültig, 17:10-Progress geht weiter über den 'ok'-Pfad. Keine neuen
   Scheduler-Logblöcke seit dem 05:10-Daily (Log-Stand 05:23).
+  **Re-Check 14:10 CET (Queue-Driver, rein read-only):** identisches Bild —
+  Device reachable, `pidof` bestätigt Spiel-PID 5176, Direkt-Read am Anker
+  (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850** — Anker
+  gültig, 17:10-Progress geht weiter über den 'ok'-Pfad. Kein Lock, keine neuen
+  Logblöcke (Log-Stand 05:23). Task-Scheduler: Progress `Ready`, nächster Lauf
+  heute 17:10 (Last Result weiterhin 0x800710E0 vom 02.11.); Daily → 04.11.
+  05:10 (Result 0), Night → 04.11. 02:00. Repo-Suche nach `tasklist //FI`
+  bestätigt: KEIN Repo-Skript nutzt den Filter (alle greppen die volle
+  tasklist-Ausgabe) — das 13:53-Quirk betraf nur Ad-hoc-Diagnosen, die
+  TODOS-Notiz deckt es ab; kein Code-Change nötig.
   **Re-Check 13:53 CET (Queue-Driver, rein read-only):** identisches Bild —
   Device reachable, Spiel-PID 5176 via `pidof` bestätigt, Direkt-Read am
   Anker (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850**;

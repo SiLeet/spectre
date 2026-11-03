@@ -674,3 +674,31 @@ Claims liefern 123K EXP + 41K Gold pro Claim ~5 h).
 Wand-Stand: Stage 254, Level-Cap 95, Resonanz 80. Die „Wand" bei 250 löst
 sich durch Auto-Battle-Retries (249→252 gemessen) + Leveling. Der
 Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
+
+## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
+> Anlass: 2 Tage BlueStacks-Ausfall; off-game Review der Scheduler-/Wrapper-Schicht.
+> Alle HIGH/MED-Funde eingezogen (commits cde8ecd + 584ea2f).
+
+- ✅ R1 [HIGH]: „Spectre AFK Night"-Task + Launcher existierten nicht, obwohl
+  afk-night.sh geschrieben/dokumentiert war → .cmd/.vbs erstellt, Task
+  registriert (02:00), E2E getestet (Exit-Code 2 propagiert, Lock-Cleanup ok).
+- ✅ R2 [HIGH]: afk-night.sh behauptete „idle gate applies", uebergab aber kein
+  --min-idle → Nachts-Push tippte bei PC-Nutzung. Verdrahtet.
+- ✅ R3 [MED]: Daily-Phasen (dream realm, stage push) ohne --min-idle/--pid/
+  --base → Mid-Run-Uebernahme wurde ignoriert. Verdrahtet.
+- ✅ R4 [MED]: Arena-Tagesmarker wurde auch bei Fehlschlag gesetzt → kaputter
+  Arena-Tag verbrauchte den Marker ohne Fortschritt. Jetzt nur bei Versuch-1-
+  Erfolg (exhausted-Pfad returned 0 = Erfolg, korrekt).
+- ✅ R5 [MED]: afk_arena.py hatte kein --min-idle → ergaenzt (Exit 5).
+- ✅ R6 [LOW]: night.sh-Frühfehler gingen nur auf die versteckte Konsole →
+  jetzt Tages-Log (wie watch.sh).
+- ✅ R7 [HIGH, Deep-Think]: LOCK_STALE 1200 unterbietet die reale Worst-Case-
+  Runtime (Daily-Runde >30 min, Night 2h+). Ein später Start hätte den Lock
+  als „stale" geloescht und PARALLEL getippt. → Lock-Keeper (touch alle 240 s)
+  in beiden Wrappern, LOCK_STALE 3600, Night auf 135 min gekuerzt (Ende vor
+  dem 05:10-Daily).
+- ⬜ R8 [MED, offen]: Login-Popup („Esperia Monthly / Daily Rewards", freie
+  Gems) blockiert als POPUP den Bot bei jedem frischen Login → Startup-
+  Handler bauen (Claim-Button) statt manuell (heute manuell geclaimt).
+- ⬜ R9 [LOW, offen]: scripts/_level_hands.py ist redundant zu afk_hero_level.py
+  (Explorations-Skript) → entfernen oder als Demo behalten (entschieden im R-Batch).

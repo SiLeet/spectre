@@ -27,7 +27,6 @@ Exit codes: 0 = all attempts done, 1 = stuck / unknown, 2 = adb error.
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -37,11 +36,6 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 
-REPO = Path(__file__).resolve().parent.parent
-TMP = REPO / '.spectre' / 'shots'
-TMP.mkdir(parents=True, exist_ok=True)
-ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
-SERIAL = '127.0.0.1:5555'
 
 # verified T27 coordinates (TODOS.md, 2026-10-31)
 BACK = (474, 1010)          # back arrow, bottom-left (most screens)
@@ -54,10 +48,6 @@ ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 
 
-def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
-    return subprocess.run([str(ADB), '-s', SERIAL, *args], capture_output=True, timeout=timeout)
-
-
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
     """v.tap (raises on an adb failure) with one retry. The old copy ignored
     the return code: a missed Challenge tap spun the advance loop to STUCK."""
@@ -67,16 +57,6 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
         print(f'    WARN: {exc} — retrying once', flush=True)
         time.sleep(1.0)
         v.tap(xy, wait)
-
-
-def shot(name: str) -> Image.Image:
-    path = TMP / f'{name}.png'
-    with open(path, 'wb') as fh:
-        p = subprocess.run([str(ADB), '-s', SERIAL, 'exec-out', 'screencap', '-p'],
-                           stdout=fh, timeout=60)
-    if p.returncode != 0:
-        raise RuntimeError('screencap failed')
-    return Image.open(path).convert('RGB')
 
 
 def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, int]:
@@ -110,7 +90,7 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
     """Drive the arena chain to a running fight: dismiss results, pick the left
     (lowest-power) opponent, press Battle on the prep screen."""
     for i in range(steps):
-        img = shot(f'{tag}_step{i}')
+        img = v.shot(f'{tag}_step{i}')
         if v.is_confirm_dialog(img):
             tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
             return 'DIALOG'
@@ -152,21 +132,21 @@ def main() -> int:
 
     print('--- Arena card -> lobby', flush=True)
     tap(ARENA_CARD, 4.0)
-    img = shot('arena_1_lobby')
+    img = v.shot('arena_1_lobby')
     lobby = v.lum(v.avg(img, (1080, 1004))) > 150 and v.lum(v.avg(img, (480, 270))) < 200
     if not lobby:
         print('    ERROR: arena lobby did not open', flush=True)
         return 1
 
     tap(CHALLENGE, 4.0)
-    img = shot('arena_2_select')
+    img = v.shot('arena_2_select')
     print(f'    select-opponent signature: {screen_signature(img)}', flush=True)
 
     wins = 0
     failed = False
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
-        if v.is_confirm_dialog(shot(f'arena_p{fight}_pre')):
+        if v.is_confirm_dialog(v.shot(f'arena_p{fight}_pre')):
             tap(v.CONFIRM_CANCEL, 1.5)   # CANCEL — never confirm a purchase
             print('    STOP: daily arena attempts exhausted (purchase dialog cancelled)', flush=True)
             return 0
@@ -178,9 +158,9 @@ def main() -> int:
             print(f'    ERROR: could not reach a fight ({st}) — aborting', flush=True)
             failed = True
             break
-        sig_before = screen_signature(shot(f'arena_{fight}_start'))
+        sig_before = screen_signature(v.shot(f'arena_{fight}_start'))
         time.sleep(args.wait_fight)
-        img = shot(f'arena_{fight}_after')
+        img = v.shot(f'arena_{fight}_after')
         sig_after = screen_signature(img)
         changed = sum(dist(a, b) for a, b in zip(sig_before, sig_after)) > 40
         print(f'    changed={changed} {sig_before} -> {sig_after}', flush=True)

@@ -168,6 +168,19 @@ def is_auto_complete(lines: list[str]) -> bool:
     return "auto battle complete" in joined
 
 
+STATIC_DIFF = 3.0       # LIVE: mean abs grey diff of two shots 3 s apart; a fight
+                        # animates (~53 per the runtime review), a still screen ~2-3
+
+
+def is_static(a, b) -> bool:
+    """Two frames practically identical -> nothing animates -> no running fight."""
+    from PIL import ImageChops, ImageStat
+    small = (96, 54)
+    ga = a.convert('L').resize(small)
+    gb = b.convert('L').resize(small)
+    return ImageStat.Stat(ImageChops.difference(ga, gb)).mean[0] < STATIC_DIFF
+
+
 def is_closable_popup(lines: list[str]) -> bool:
     """Routine post-fight popups (level-up / perk / reward card) that the
     victory-card close point dismisses (runtime review R12)."""
@@ -307,6 +320,26 @@ def _run() -> int:
     img = try_shot('sp_0_initial')
     st = classify_battle(img)
     print(f'    initial battle screen state: {st}', flush=True)
+
+    if st == 'BATTLE':
+        # Zombie start (T66, night log 2026-11-03: 'initial battle screen state:
+        # BATTLE' -> 'not on a battle screen'): a real fight animates. A still
+        # 'BATTLE' screen gets one dismiss retry (BACK + card centre, the R12
+        # recovery) before the normal flow; still static -> bounded abort.
+        time.sleep(3)
+        if is_static(img, try_shot('sp_0_static')):
+            print('    initial BATTLE is a still screen (no fight animation) — '
+                  'one dismiss retry (BACK + centre)', flush=True)
+            v.tap(v.BACK, 1.5)
+            v.tap(CARD_CLOSE, 2.0)
+            img = try_shot('sp_0_retry')
+            st = classify_battle(img)
+            print(f'    after dismiss retry: {st}', flush=True)
+            if st == 'BATTLE':
+                time.sleep(3)
+                if is_static(img, try_shot('sp_0_retry_static')):
+                    print('    ERROR: still a still BATTLE screen — aborting (no blind taps)', flush=True)
+                    return 1
 
     if st in ('UNKNOWN', 'POPUP'):
         if is_auto_complete(ocr_text(v.TMP / 'sp_0_initial.png')):

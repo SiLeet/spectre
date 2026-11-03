@@ -94,16 +94,43 @@ def _mark_battle_tap() -> None:
     _battle_tap_t = time.monotonic()
 
 
+STAGNANT_STEPS = 2      # LIVE: unchanged steps before the zombie recovery
+STAGNANT_DIST = 40      # LIVE: screen_signature distance below which a step "did nothing"
+CARD_DISMISS = (480, 300)
+
+
 def advance_to_fight(tag: str, steps: int = 6) -> str:
     """Drive the arena chain to a running fight: dismiss results, pick the left
-    (lowest-power) opponent, press Battle on the prep screen."""
+    (lowest-power) opponent, press Battle on the prep screen.
+
+    Zombie guard (T66, night log 2026-11-03: 'steps 0=SELECT, 1..5=RESULT ->
+    could not reach a fight (STUCK)'): after STAGNANT_STEPS steps whose state
+    and screen did not change, one card dismiss + a fresh select attempt; a
+    second stagnation ends the chain as STUCK at once (bounded)."""
+    prev = None
+    stagnant = 0
+    recovered = False
     for i in range(steps):
         img = v.shot(f'{tag}_step{i}')
         if v.is_confirm_dialog(img):
             tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
             return 'DIALOG'
         st = arena_state(img)
-        print(f'    [{tag}] step {i}: {st}', flush=True)
+        sig = screen_signature(img)
+        same = prev is not None and prev[0] == st and \
+            sum(dist(a, b) for a, b in zip(prev[1], sig)) < STAGNANT_DIST
+        stagnant = stagnant + 1 if same else 0
+        prev = (st, sig)
+        print(f'    [{tag}] step {i}: {st}' + (f' (stagnant {stagnant})' if stagnant else ''), flush=True)
+        if stagnant >= STAGNANT_STEPS:
+            if recovered:
+                print(f'    [{tag}] still stagnant after the recovery — giving up', flush=True)
+                return 'STUCK'
+            print(f'    [{tag}] zombie: {stagnant} steps without progress -> card dismiss + re-select',
+                  flush=True)
+            tap(CARD_DISMISS, 1.5)
+            recovered, stagnant, prev = True, 0, None
+            continue                        # next step re-reads; SELECT taps the opponent again
         if st == 'RESULT':
             tap((480, 300), 1.5)            # dismiss the result card
         elif st == 'PREP':

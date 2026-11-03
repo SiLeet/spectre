@@ -733,11 +733,13 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 - ⬜ R9 [LOW, offen → als Task A4/T48 im Wave-2-Plan]: scripts/_level_hands.py
   ist redundant zu afk_hero_level.py → wird im Dedup-Batch gelöscht
   (docs/claude-wave-2-plan.md, A4).
-- 📌 R12 [LOW, aus Night-Live-Test 2026-11-03]: afk-night.sh schluckt den
-  Exit-Code (Pipe auf tee → Script-exit = tee-rc = 0, auch wenn der Push mit
-  SKIP=5 endet; TaskResult zeigt fälschlich 0). Fix: rc nach dem tee capturen
-  und propagieren. Night feuerte 02:00 korrekt, skippte sauber (PC idle 0 s —
-  Sergej aktiv) → beim nächsten idle-Fenster nachfeuerbar.
+- ✅ R12 [LOW, 2026-11-03]: `afk-night.sh` now captures both `PIPESTATUS` values
+  after `tee`, propagating the stage-push result (including idle SKIP=5) and
+  surfacing a `tee` error when the push succeeds. Regression test
+  `scripts/tests/test_afk_night_exit_code.py` was RED before the fix (fake push
+  rc 7 became wrapper rc 0) and GREEN after (wrapper rc 7). No post-fix live
+  Night run was forced; Task Scheduler result will verify on the next scheduled
+  run.
 - 📌 R13 [MED, 2026-11-03]: .spectre beim Worktree-Teardown über die Junction
   geleert (779 Frames/1,3 GB, Logs, wall-report — alles Runtime, regeneriert
   sich; Frame-Manifest skippt bis zur Neugenerierung). Teardown-Anleitung in
@@ -769,3 +771,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   DIESEM Batch geschlossen: R16 OCR-gated Fallback-Tap, R12 Stuck-Close-WARN +
   Recovery (jeder 10.), Dream-Prune pro Fight, Trash-Auto-Age (14 Tage),
   Start-Tap zählt ins Budget. 150 Tests grün. Live-Checks bleiben (R15).
+- ✅ R18 [2026-11-03]: Wave-3-Starter-Review (Fresh-Eyes): KEIN FAIL — Merges
+  sauber (keine Konflikte/Verluste), 36 neue Tests scharf (5 Reversionen alle
+  gefangen), C2-C5 korrekt & sicher, Tests schreiben nichts nach .spectre.
+  CONCERNs abgeräumt: C2 set_fps ersetzt jetzt ALLE Dup-Vorkommen (+2 Tests),
+  .bak-Semantik dokumentiert. C5-Titel-Tap bleibt Live-Check (bounded, harmlos).

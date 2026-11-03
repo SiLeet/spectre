@@ -103,5 +103,20 @@ class FpsTool(unittest.TestCase):
             self.assertEqual(bf.find_conf(), root / 'BlueStacks_msi5' / 'bluestacks.conf')
 
 
+class SetFpsDupKeys(unittest.TestCase):
+    def test_all_occurrences_replaced(self):
+        nl = bytes([13, 10])                       # CRLF, no escape ambiguity
+        raw = (b'bst.instance.Pie64.max_fps="60"' + nl + b'other=1' + nl
+               + b'bst.instance.Pie64.max_fps="30"' + nl)
+        out = bf.set_fps(raw, 'Pie64', 120)
+        self.assertEqual(out.count(b'max_fps="120"'), 2)
+        self.assertNotIn(b'max_fps="60"', out)
+        self.assertNotIn(b'max_fps="30"', out)
+
+    def test_missing_key_raises(self):
+        with self.assertRaises(KeyError):
+            bf.set_fps(b'nothing=1', 'Pie64', 120)
+
+
 if __name__ == '__main__':
     unittest.main()

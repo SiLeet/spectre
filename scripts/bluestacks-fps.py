@@ -54,9 +54,12 @@ def get(raw: bytes, instance: str, key: str) -> str | None:
 
 
 def set_fps(raw: bytes, instance: str, fps: int) -> bytes:
-    """raw with only the instance's max_fps value replaced (bytes, line endings kept)."""
-    new, n = key_re(instance, 'max_fps').subn(lambda m: m.group(1) + str(fps).encode() + m.group(3), raw, count=1)
-    if n != 1:
+    """raw with the instance's max_fps value replaced on EVERY occurrence.
+
+    BlueStacks has been seen with duplicated keys; replacing only the first
+    would leave a later (effective) one untouched (reviewer nit 2026-11-03)."""
+    new, n = key_re(instance, 'max_fps').subn(lambda m: m.group(1) + str(fps).encode() + m.group(3), raw, count=0)
+    if n < 1:
         raise KeyError(f'bst.instance.{instance}.max_fps not found')
     return new
 
@@ -126,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         print('WARN: BlueStacks is running - it may overwrite the conf on exit; '
               'stop the instance, then --set again if the value reverts')
     if not bak.is_file():                    # keep the ORIGINAL across repeated --set
+                                             # (--restore returns to the pre-first-set
+                                             # state; later external edits are reverted)
         shutil.copy2(conf, bak)
         print(f'backup: {bak.name}')
     write_atomic(conf, new)

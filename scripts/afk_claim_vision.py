@@ -27,6 +27,7 @@ import struct
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image
@@ -464,6 +465,45 @@ def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30,
         except OSError:
             pass                           # in use / locked: try again next run
     return moved
+
+
+METRICS = REPO / '.spectre' / 'metrics' / 'battles.jsonl'
+
+
+def append_metric(rec: dict, path: Path | None = None) -> bool:
+    """Append one JSON line to the metrics log (default METRICS).
+
+    One os.write() on an O_APPEND descriptor: concurrent runs never interleave
+    partial lines. 'ts' (UTC ISO) is added when missing. Never raises — a
+    metric must not break a run; returns False when the write failed."""
+    path = Path(path or METRICS)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rec = {'ts': datetime.now(timezone.utc).isoformat(timespec='seconds'), **rec}
+        line = (json.dumps(rec, ensure_ascii=False) + '\n').encode('utf-8')
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, 'O_BINARY', 0), 0o644)
+        try:
+            os.write(fd, line)
+        finally:
+            os.close(fd)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def battle_metric(mode: str, result: str, wall_s: float, stage: int | None = None) -> str:
+    """Record one battle {mode, stage, result, wall_s}; returns 'wall=NN.Ns'
+    for the driver's log line (T61: wall-time baseline for speed experiments)."""
+    append_metric({'mode': mode, 'stage': stage, 'result': result, 'wall_s': round(wall_s, 1)})
+    return f'wall={wall_s:.1f}s'
+
+
+def wall_summary(mode: str, walls: list[float]) -> str:
+    """One-line per-run summary of the recorded battle wall times."""
+    if not walls:
+        return f'    metrics[{mode}]: no timed battles'
+    return (f'    metrics[{mode}]: {len(walls)} battle(s), wall mean '
+            f'{sum(walls) / len(walls):.1f}s (min {min(walls):.1f}s, max {max(walls):.1f}s)')
 
 
 def tick_delta(tick: int, last: int) -> int:

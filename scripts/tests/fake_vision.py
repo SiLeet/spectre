@@ -98,10 +98,14 @@ class FakeDevice:
                     p = mock.patch.object(mod, name, fake)
                     p.start()
                     test.addCleanup(p.stop)
-        # disk side effect on the real .spectre/ (main() prunes shot dirs): never in tests
-        p = mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: 0)
-        p.start()
-        test.addCleanup(p.stop)
+        # disk side effects on the real .spectre/ (shot-dir prune, battle metrics): never in tests
+        self.metrics = Path(__file__).resolve().parent / '.artifacts' / 'battles.test.jsonl'
+        self.metrics.parent.mkdir(exist_ok=True)
+        self.metrics.unlink(missing_ok=True)
+        for p in (mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: 0),
+                  mock.patch.object(v, 'METRICS', self.metrics)):
+            p.start()
+            test.addCleanup(p.stop)
         self.out = io.StringIO()   # driver prints, kept off the test runner output
         for p in (mock.patch('time.sleep'), mock.patch.object(sys, 'stdout', self.out)):
             p.start()

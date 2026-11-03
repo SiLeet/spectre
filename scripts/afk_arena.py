@@ -86,6 +86,14 @@ def arena_state(img: Image.Image) -> str:
     return 'SELECT'
 
 
+_battle_tap_t = 0.0
+
+
+def _mark_battle_tap() -> None:
+    global _battle_tap_t
+    _battle_tap_t = time.monotonic()
+
+
 def advance_to_fight(tag: str, steps: int = 6) -> str:
     """Drive the arena chain to a running fight: dismiss results, pick the left
     (lowest-power) opponent, press Battle on the prep screen."""
@@ -99,6 +107,7 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
         if st == 'RESULT':
             tap((480, 300), 1.5)            # dismiss the result card
         elif st == 'PREP':
+            _mark_battle_tap()              # T61: wall time starts at the Battle tap
             tap(ARENA_BATTLE, 3.0)
             return 'PREP'
         else:
@@ -145,6 +154,7 @@ def main() -> int:
 
     wins = 0
     failed = False
+    walls: list[float] = []
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
         if v.is_confirm_dialog(v.shot(f'arena_p{fight}_pre')):
@@ -164,13 +174,18 @@ def main() -> int:
         img = v.shot(f'arena_{fight}_after')
         sig_after = screen_signature(img)
         changed = sum(dist(a, b) for a, b in zip(sig_before, sig_after)) > 40
-        print(f'    changed={changed} {sig_before} -> {sig_after}', flush=True)
+        # no end detection here: the wall time is ~the --wait-fight sleep
+        wall = time.monotonic() - _battle_tap_t
+        walls.append(wall)
+        wall_f = v.battle_metric('arena', 'changed' if changed else 'unchanged', wall)
+        print(f'    changed={changed} {sig_before} -> {sig_after} {wall_f}', flush=True)
         if not changed:
             print('    WARN: screen unchanged after the fight — aborting', flush=True)
             failed = True
             break
         wins += 1
 
+    print(v.wall_summary('arena', walls), flush=True)
     print(f'done: {wins} arena fights driven', flush=True)
     # exit 1 when nothing was fought: afk-bot-watch.sh writes the once-per-day
     # arena marker on exit 0, so a failed run must not burn the day

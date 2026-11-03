@@ -600,12 +600,14 @@ def _run() -> int:
                       flush=True)
             return 0
 
+    walls: list[float] = []
     for i in range(1, planned + 1):
         if args.min_idle > 0:
             idle = v.idle_seconds()
             if idle is not None and idle < args.min_idle:
                 print('    SKIP: PC is in use — aborting the run', flush=True)
                 return 5
+        t_tap = time.monotonic()            # T61: wall time starts at the Battle tap
         v.tap(BATTLE_BTN, 3.0)
         st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}')
         print(f'    battle {i}: started ({st})', flush=True)
@@ -613,12 +615,18 @@ def _run() -> int:
             # PREP: the Battle tap was swallowed by a transition frame;
             # RESULT: the previous card is still up (stale). One re-tap
             # before judging (review finding / runtime review R9).
+            t_tap = time.monotonic()        # the confirmed tap is this one
             v.tap(BATTLE_BTN, 3.0)
             st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}b')
             print(f'    battle {i}: restarted ({st})', flush=True)
         fought = st in ('BATTLE', 'LOADING')
+        wall_f = ''
         if fought:
             st, _ = wait_for({'RESULT', 'PREP', 'DEFEAT'}, args.max_battle_seconds, f'sp_end_{i}')
+            wall = time.monotonic() - t_tap
+            walls.append(wall)
+            wall_f = ' ' + v.battle_metric(
+                'push', {'RESULT': 'victory', 'DEFEAT': 'defeat'}.get(st, 'stall'), wall)
         if st == 'RESULT' and not fought:
             # a result card without any battle phase is the old card, not a win
             wall_report(f'battle_{i}_stale_result')
@@ -627,18 +635,19 @@ def _run() -> int:
             break
         if st == 'RESULT':
             wins += 1
-            print(f'    battle {i}: VICTORY (AFK progress +1)', flush=True)
+            print(f'    battle {i}: VICTORY (AFK progress +1){wall_f}', flush=True)
         elif st == 'DEFEAT':
             wall_report(f'battle_{i}_defeat')
-            print(f'    battle {i}: DEFEAT — stage wall reached, stopping', flush=True)
+            print(f'    battle {i}: DEFEAT — stage wall reached, stopping{wall_f}', flush=True)
             break
         else:
             # neither result card nor prep after a battle: likely stall
             wall_report(f'battle_{i}_no_victory_{st.lower()}')
-            print(f'    battle {i}: no victory screen ({st}) — stopping', flush=True)
+            print(f'    battle {i}: no victory screen ({st}) — stopping{wall_f}', flush=True)
             break
         time.sleep(1.5)
 
+    print(v.wall_summary('push', walls), flush=True)
     if wins:
         wall_report(f'single_push_complete_{wins}of{planned}')
     print(f'    pushed {wins}/{planned} stage(s); game left on the result screen', flush=True)

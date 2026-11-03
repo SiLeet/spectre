@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate the AFK Journey wall dashboard widget (spectre-walls.html).
 
-Reads the wall report JSONL (written by afk_stage_push.py / afk-bot-watch.sh)
-and the current stage snapshot, then renders a self-contained HTML widget for
+Reads the wall report JSONL (written by afk_stage_push.py / afk-bot-watch.sh),
+takes the current stage/power from its newest events and renders a self-contained HTML widget for
 the Hermes chat. The "Refresh" button sends a prompt back to the agent, which
 re-runs this script after the next bot check.
 """
@@ -10,7 +10,6 @@ import json, os, sys, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "spectre-walls.html")
-STATE = os.path.join(ROOT, ".spectre", "afk-state.json")
 JSONL = os.path.join(ROOT, ".spectre", "wall-report.log")
 
 
@@ -38,19 +37,16 @@ def load_events(path):
     return evs, bad
 
 
-def load():
-    """Return (current, events, bad_lines) from the local wall report files."""
-    cur = {}
-    if os.path.exists(STATE):
-        try:
-            with open(STATE, encoding="utf-8") as fh:
-                cur = json.load(fh)
-        except (OSError, ValueError):
-            pass
-    if not isinstance(cur, dict):
-        cur = {}
-    evs, bad = load_events(JSONL)
-    return cur, evs, bad
+def current(evs):
+    """Latest known stage/power from the events themselves (the old
+    .spectre/afk-state.json source is written by nothing): newest non-null
+    value per field."""
+    cur = {"stage": None, "power": None}
+    for e in reversed(evs):
+        for k in cur:
+            if cur[k] is None and e.get(k) is not None:
+                cur[k] = e[k]
+    return cur
 
 
 def or_dash(v):
@@ -85,28 +81,32 @@ def esc(s):
 
 
 def human_ts(ts):
+    """Local 'dd.mm HH:MM' for the producer's ISO strings (or epoch numbers)."""
     if ts is None:
         return "—"
     try:
-        return datetime.datetime.fromtimestamp(ts).strftime("%d.%m %H:%M")
-    except Exception:
+        if isinstance(ts, str):
+            dt = datetime.datetime.fromisoformat(ts)
+            dt = dt.astimezone() if dt.tzinfo else dt
+        else:
+            dt = datetime.datetime.fromtimestamp(ts)
+        return dt.strftime("%d.%m %H:%M")
+    except (TypeError, ValueError, OverflowError, OSError):
         return str(ts)
 
 
 def main():
-    cur, evs, bad = load()
-    if not cur:
-        cur = {"stage": 0, "power": 0}
+    evs, bad = load_events(JSONL)
     if not evs:   # no data yet — don't write an empty widget
         print(f"no events, skipped {len(bad)} bad lines — widget not written")
         return
 
-    last = evs[-1]
+    cur = current(evs)
     families = [reason_family(e.get("reason")) for e in evs]
     defeated = families.count("wall")
     progress = families.count("progress")
     rows = "".join(
-        f"<tr><td>{human_ts(e.get('ts', 0))}</td>"
+        f"<tr><td>{human_ts(e.get('ts'))}</td>"
         f"<td>{esc(or_dash(e.get('stage')))}</td>"
         f"<td>{fmt_int(e.get('power'))}</td>"
         f"<td>{esc(e.get('reason', '?'))}</td></tr>"

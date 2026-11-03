@@ -26,12 +26,10 @@ class DashCase(unittest.TestCase):
     def setUp(self):
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         self.jsonl = ARTIFACTS / f'{self._testMethodName}.log'
-        self.state = ARTIFACTS / f'{self._testMethodName}.state.json'
         self.out = ARTIFACTS / f'{self._testMethodName}.html'
-        for f in (self.jsonl, self.state, self.out):
+        for f in (self.jsonl, self.out):
             f.unlink(missing_ok=True)
-        for name, val in (('JSONL', str(self.jsonl)), ('STATE', str(self.state)),
-                          ('OUT', str(self.out))):
+        for name, val in (('JSONL', str(self.jsonl)), ('OUT', str(self.out))):
             p = mock.patch.object(wd, name, val)
             p.start()
             self.addCleanup(p.stop)
@@ -71,11 +69,10 @@ class LoadEvents(DashCase):
         self.assertEqual(evs, [REAL])
         self.assertEqual(len(bad), 4)
 
-    def test_non_dict_state_ignored(self):
-        self.state.write_text('[1,2]', encoding='utf-8')
-        self.write(json.dumps(REAL))
-        cur, evs, bad = wd.load()
-        self.assertEqual((cur, len(evs), bad), ({}, 1, []))
+    def test_current_from_newest_non_null(self):     # F18: no state file exists
+        evs = [REAL, {**REAL, 'stage': 255, 'power': None}, NULLS]
+        self.assertEqual(wd.current(evs), {'stage': 255, 'power': 74986})
+        self.assertEqual(wd.current([NULLS]), {'stage': None, 'power': None})
 
 
 class Render(DashCase):
@@ -87,7 +84,6 @@ class Render(DashCase):
         self.assertIn('74,986', html)
 
     def test_null_fields(self):
-        self.state.write_text(json.dumps({"stage": None, "power": None}), encoding='utf-8')
         self.write(json.dumps(NULLS))
         out = self.run_main()
         self.assertIn('(1 events, skipped 0 bad lines)', out)
@@ -129,6 +125,22 @@ class F17ReasonFamilies(DashCase):
         html = self.out.read_text(encoding='utf-8')
         self.assertIn('<div class="v">4</div><div class="l">Walls</div>', html)
         self.assertIn('<div class="v">1</div><div class="l">Progress</div>', html)
+
+
+
+class F18Display(DashCase):
+    def test_iso_ts_rendered_local(self):
+        self.assertRegex(wd.human_ts(REAL['ts']), r'^\d\d\.11 \d\d:\d\d$')
+        self.assertEqual(wd.human_ts('not a date'), 'not a date')
+        self.assertEqual(wd.human_ts(None), '—')
+
+    def test_tiles_from_events(self):
+        self.write(json.dumps(REAL), json.dumps(NULLS))
+        self.run_main()
+        html = self.out.read_text(encoding='utf-8')
+        self.assertIn('<div class="v">254</div><div class="l">Stage</div>', html)
+        self.assertIn('<div class="v">74,986</div><div class="l">Power</div>', html)
+        self.assertNotIn('2026-11-02T', html)                 # ISO no longer raw
 
 
 if __name__ == '__main__':

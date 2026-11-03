@@ -714,3 +714,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 - ⬜ R9 [LOW, offen → als Task A4/T48 im Wave-2-Plan]: scripts/_level_hands.py
   ist redundant zu afk_hero_level.py → wird im Dedup-Batch gelöscht
   (docs/claude-wave-2-plan.md, A4).
+- 📌 R12 [LOW, aus Night-Live-Test 2026-11-03]: afk-night.sh schluckt den
+  Exit-Code (Pipe auf tee → Script-exit = tee-rc = 0, auch wenn der Push mit
+  SKIP=5 endet; TaskResult zeigt fälschlich 0). Fix: rc nach dem tee capturen
+  und propagieren. Night feuerte 02:00 korrekt, skippte sauber (PC idle 0 s —
+  Sergej aktiv) → beim nächsten idle-Fenster nachfeuerbar.

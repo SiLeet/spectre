@@ -42,21 +42,52 @@ def dismiss_popup() -> None:
 
 
 def open_menu() -> bool:
-    for attempt in range(3):
+    """Open the main menu. 5 attempts (3 MENU taps failed live on 10-31); a
+    popup in the way gets BACK instead of another MENU tap."""
+    for attempt in range(5):
         img = v.shot(f'dl_menu_{attempt}')
         # menu probes: the light back arrow and the gear/settings circle are
         # both bright only while the menu panel is open (world: L 64 / 31)
         if v.lum(v.avg(img, (480, 1010))) > 150 and v.lum(v.avg(img, (1375, 1028))) > 150:
             return True
-        v.tap(MENU, 3.0)
+        v.tap(v.BACK if v.classify(img) == 'POPUP' else MENU, 3.0)
     return False
 
 
-def quick_claim_tab(name: str) -> bool:
+def reopen_quests() -> bool:
+    """After a tab that did not verify: back out of the unknown screen and
+    re-open the quest panel instead of tapping the next tab blind."""
+    v.tap(v.BACK, 1.5)
+    if not open_menu():
+        return False
+    v.tap(QUESTS_ICON, 3.5)
+    return is_quests_panel(v.shot('dl_questpanel_re'))
+
+
+QUEST_TABS = (('homestead', None), ('daily', DAILY_TAB),
+              ('lucky', LUCKY_FLIP_TAB),    # Lucky Flip: free daily flip claims
+              ('growth', GROWTH_TAB),       # Growth Trials: milestone claims
+              ('guild', GUILD_TAB))         # the guild tab has to be selected explicitly
+
+
+def claim_quest_tabs() -> bool:
+    """Quick Claim on every quest tab; False when the panel is lost."""
+    for i, (name, tab) in enumerate(QUEST_TABS):
+        if tab:
+            v.tap(tab, 2.5)
+        if quick_claim_tab(name) is None and i + 1 < len(QUEST_TABS) and not reopen_quests():
+            print('    ERROR: quest panel lost after a failed tab', flush=True)
+            return False
+    return True
+
+
+def quick_claim_tab(name: str) -> bool | None:
+    """True claimed, False nothing claimable, None = tab not verified (the
+    screen is unknown; the caller must not tap the next tab on it)."""
     img = v.shot(f'dl_tab_{name}')
     if not is_quests_panel(img):
         print(f'    [{name}] tab did not open', flush=True)
-        return False
+        return None
     v.tap(QUICK_CLAIM, 3.0)
     img = v.shot(f'dl_qc_{name}')
     got = v.lum(v.avg(img, (200, 270))) < 25   # dimmed "Rewards Obtained"
@@ -119,15 +150,8 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
     if not is_quests_panel(img):
         print('    ERROR: quest panel did not open', flush=True)
         return 1
-    quick_claim_tab('homestead')
-    v.tap(DAILY_TAB, 2.5)
-    quick_claim_tab('daily')
-    v.tap(LUCKY_FLIP_TAB, 2.5)     # Lucky Flip: free daily flip claims
-    quick_claim_tab('lucky')
-    v.tap(GROWTH_TAB, 2.5)         # Growth Trials: milestone claims
-    quick_claim_tab('growth')
-    v.tap(GUILD_TAB, 2.5)          # the guild tab has to be selected explicitly
-    quick_claim_tab('guild')
+    if not claim_quest_tabs():
+        return 1
     v.tap(v.BACK, 1.5)
 
     # 3. Mail: menu -> Mail -> Read All

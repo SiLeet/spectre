@@ -251,5 +251,27 @@ class F15SharedChestClaim(unittest.TestCase):
         self.assertTrue(dl.afk_chest_claim())
 
 
+
+class F9QuestTabs(unittest.TestCase):
+    def test_failed_tab_reopens_panel_before_next_tab(self):
+        dev = FakeDevice(self, ['QUESTS', 'QUESTS',                # homestead
+                                'UNKNOWN', 'MENU', 'QUESTS',       # daily fails -> reopen
+                                'QUESTS', 'QUESTS', 'QUESTS', 'QUESTS', 'QUESTS', 'QUESTS'])
+        self.assertTrue(dl.claim_quest_tabs())
+        self.assertEqual(dev.taps, [dl.QUICK_CLAIM, dl.DAILY_TAB, v.BACK, dl.QUESTS_ICON,
+                                    dl.LUCKY_FLIP_TAB, dl.QUICK_CLAIM, dl.GROWTH_TAB, dl.QUICK_CLAIM,
+                                    dl.GUILD_TAB, dl.QUICK_CLAIM])
+
+    def test_panel_lost_stops(self):
+        dev = FakeDevice(self, ['QUESTS', 'QUESTS', 'UNKNOWN'] + ['UNKNOWN'] * 5)
+        self.assertFalse(dl.claim_quest_tabs())
+        self.assertNotIn(dl.LUCKY_FLIP_TAB, dev.taps)
+
+    def test_open_menu_closes_popup_with_back(self):
+        dev = FakeDevice(self, ['POPUP', 'MENU'])
+        self.assertTrue(dl.open_menu())
+        self.assertEqual(dev.taps, [v.BACK])
+
+
 if __name__ == '__main__':
     unittest.main()

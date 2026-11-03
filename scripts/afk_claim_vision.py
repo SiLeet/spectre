@@ -425,6 +425,37 @@ def idle_seconds() -> float | None:
         return None
 
 
+def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30) -> int:
+    """Move all but the newest `keep` shots-<pid> dirs into <root>/trash/.
+
+    Every run writes a per-pid dir and nothing cleaned them up (1.3 GB in 104
+    dirs by 2026-11-03). Moved, not deleted (owner's call, 2026-11-03): the
+    trash dir is emptied by hand. This run's own dir is never touched.
+    Returns the number of dirs moved."""
+    trash = root / 'trash'
+    try:
+        dirs = sorted((d for d in root.glob('shots-*') if d.is_dir() and d != TMP),
+                      key=lambda d: d.stat().st_mtime, reverse=True)
+        old = dirs[keep:]
+        if old:
+            trash.mkdir(exist_ok=True)
+    except OSError:
+        return 0
+    moved = 0
+    for d in old:
+        dest = trash / d.name
+        n = 1
+        while dest.exists():               # pids repeat across reboots
+            dest = trash / f'{d.name}.{n}'
+            n += 1
+        try:
+            d.rename(dest)
+            moved += 1
+        except OSError:
+            pass                           # in use / locked: try again next run
+    return moved
+
+
 def tick_delta(tick: int, last: int) -> int:
     """Milliseconds from `last` to `tick` on the 32-bit tick counter, wrap-safe
     (the counter wraps every ~49.7 days; a negative idle used to SKIP every
@@ -556,6 +587,11 @@ def main() -> int:
                     help='no chest/claim tap; a popup on screen is still closed '
                          '(BACK, or the login-popup claim)')
     args = ap.parse_args()
+
+    if not args.dry_run:
+        moved = prune_shot_dirs()
+        if moved:
+            print(f'    moved {moved} old shot dirs to .spectre/trash/', flush=True)
 
     if args.min_idle > 0 and not args.dry_run:
         idle = idle_seconds()

@@ -2,7 +2,7 @@
 
 Auftrag: Wave A komplett (A1 → A7c), offline, ein Branch pro Task, Commits lokal,
 kein push/rebase/reset. Ergebnis: **A1–A6 fertig, A7 fertig bis auf zwei Punkte**
-(F16-Prune **BLOCKIERT**, F25 braucht Recon). Wave B übersprungen (RECON-Blöcke
+(F25 braucht Recon; F16-Prune nach Freigabe als „Papierkorb“ umgesetzt). Wave B übersprungen (RECON-Blöcke
 leer), Wave C nicht angefasst, A8 nicht im Auftrag.
 
 Testlauf (DoD, aus dem Worktree, echte Ausgabe):
@@ -53,7 +53,7 @@ test_wall_dash 15, test_review_fixes 45 — alle ok, 0 skipped, 0 expected failu
 | A4 T48 | `feature/T48-helper-dedup` | (`621451a` Teil) + `539616d` | ✅ |
 | A5 T49 | `feature/T49-wall-dash` | `1b97d0e` | ✅ |
 | A6 T50 | `feature/T50-docs-sync` | `5be68cb` | ✅ |
-| A7 T58 | `feature/T58-review-fixes` | 26 Commits `43048b8`…`95cba3f` (+ dieser Bericht) | ✅ außer F16-Prune (BLOCKIERT), F25 (Recon) |
+| A7 T58 | `feature/T58-review-fixes` | 26 Commits `43048b8`…`95cba3f` (+ dieser Bericht) | ✅ außer F25 (Recon) |
 
 ---
 
@@ -158,7 +158,7 @@ Tests: `scripts/tests/test_review_fixes.py` (Klasse je Finding), Real-Frame-Test
 | F3/F4 HIGH (A7a-4) | in T49 `1b97d0e` | s. A5 |
 | F5 HIGH | `b1664fa` | arena: Exit 1 wenn nichts gekämpft (STUCK/unverändert) → Marker wird nicht verbrannt |
 | F19 MED | `a616c97` | arena.tap = `v.tap` (rc) + 1 Retry |
-| F16 MED | `d41ca1f` | `idle_seconds`: `GetTickCount.restype=c_uint32`, `tick_delta()` 32-bit-wrap. **Prune: BLOCKIERT** |
+| F16 MED | `d41ca1f` | `idle_seconds`: `GetTickCount.restype=c_uint32`, `tick_delta()` 32-bit-wrap. Prune → s. u. |
 | F7 MED | `b489d00` | WORLD nur mit leuchtendem AFK-Chip; Manifest: 15 Flips WORLD→UNKNOWN |
 | F8 MED | `23cc75b` | `run_dailies(min_idle, pid, base)`, kein ARGS-Global, toter Zweig weg |
 | F15 MED | `a5cf3c3` | `v.claim_round(tag, dry_run)` aus main extrahiert (A3-Tests unverändert grün); dailies nutzt es |
@@ -191,17 +191,20 @@ Tests: `scripts/tests/test_review_fixes.py` (Klasse je Finding), Real-Frame-Test
 
 ---
 
-## BLOCKIERT
+## F16-Prune (nach Freigabe umgesetzt)
 
-**F16 – `.spectre`-Prune (shots-* auf die 30 neuesten kürzen).**
-Grund: Der Auto-Mode-Classifier hat den Code abgelehnt („Irreversible Local
-Destruction“ — `shutil.rmtree` auf Laufzeitdaten in `.spectre/`). Ich habe das nicht
-umgangen. Der idle_seconds-Teil von F16 ist umgesetzt.
-Wörtliche Frage: **„Darf `afk_claim_vision` beim Start alle `.spectre/shots-<pid>`-
-Verzeichnisse außer den 30 neuesten (und dem eigenen) unwiderruflich löschen — oder
-sollen sie stattdessen verschoben/archiviert werden (z. B. nach `.spectre/trash/`)?“**
-Mit Freigabe ist die Umsetzung ~20 Zeilen (Entwurf existierte: `prune_shot_dirs(root, keep=30)`,
-überspringt `v.TMP`, nur unter Nicht-dry-run).
+War zuerst blockiert (Auto-Mode-Classifier: unwiderrufliches Löschen von
+`.spectre`-Laufzeitdaten). Entscheidung des Owners: **in einen Papierkorb verschieben**.
+`v.prune_shot_dirs(root, keep=30)` verschiebt beim Start von `afk_claim_vision`
+(nicht bei `--dry-run`) alle `shots-<pid>`-Dirs außer den 30 neuesten und dem eigenen
+nach `.spectre/trash/` (Namenskollision → `.1`, `.2`, …; gesperrte Dirs → nächster Lauf).
+**Es wird nichts gelöscht — der Platz wird erst frei, wenn `trash/` von Hand geleert wird.**
+
+Zwischenfall beim Bauen: Die A3-Claim-Tests rufen `v.main()` auf; im ersten Testlauf hat
+die neue Funktion dadurch 92 echte Dirs nach `.spectre/trash/` verschoben (nichts
+gelöscht). Ich habe alle 92 sofort zurückverschoben (0 Konflikte, `trash/` entfernt,
+122 Dirs wieder an ihrem Platz, mtimes unverändert). `FakeDevice` stubbt
+`prune_shot_dirs` jetzt; Kontrolle danach: 122 vorher/nachher, kein `trash/`.
 
 ## Nicht gemacht / offen
 
@@ -262,7 +265,7 @@ Mit Freigabe ist die Umsetzung ~20 Zeilen (Entwurf existierte: `prune_shot_dirs(
 10. **Wall-Dash:** `python scripts/afk-wall-dash.py` → Walls/Progress > 0, Stage/Power aus Events,
     Zeit lokal statt ISO.
 11. **idle_seconds (F16):** nach >24,8 Tagen Uptime keine Dauer-SKIPs mehr (nicht offline prüfbar).
-12. **F16-Prune:** Entscheidung (s. BLOCKIERT).
+12. **F16-Prune:** erster Daily-Run → Log `moved N old shot dirs to .spectre/trash/`, 30 `shots-*` bleiben; `trash/` regelmäßig leeren.
 
 ## Annahmen
 

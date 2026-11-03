@@ -451,5 +451,38 @@ class F30GiftNoBlindDismiss(unittest.TestCase):
         self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), v.BACK, v.BACK])
 
 
+
+class F16PruneToTrash(unittest.TestCase):
+    def setUp(self):
+        import os
+        self.root = Path(__file__).resolve().parent / '.artifacts' / 'prune'
+        self.root.mkdir(parents=True, exist_ok=True)
+        for d in self.root.rglob('*'):                 # previous run's leftovers (test-owned dir)
+            if d.is_file():
+                d.unlink()
+        for d in sorted(self.root.rglob('*'), reverse=True):
+            d.rmdir()
+        for i in range(5):
+            d = self.root / f'shots-{i}'
+            d.mkdir()
+            (d / 'x.png').write_bytes(b'png')
+            os.utime(d, (1_000 + i, 1_000 + i))      # shots-4 newest
+        (self.root / 'trash').mkdir()
+        (self.root / 'trash' / 'shots-1').mkdir()      # same pid from an earlier boot
+
+    def test_moves_old_keeps_newest_and_current(self):
+        with mock.patch.object(v, 'TMP', self.root / 'shots-0'):   # oldest, but this run's
+            self.assertEqual(v.prune_shot_dirs(self.root, keep=2), 2)
+        self.assertEqual(sorted(p.name for p in self.root.glob('shots-*')),
+                         ['shots-0', 'shots-3', 'shots-4'])
+        self.assertEqual(sorted(p.name for p in (self.root / 'trash').iterdir()),
+                         ['shots-1', 'shots-1.1', 'shots-2'])
+        self.assertEqual((self.root / 'trash' / 'shots-2' / 'x.png').read_bytes(), b'png')
+
+    def test_nothing_to_move(self):
+        with mock.patch.object(v, 'TMP', self.root / 'shots-0'):
+            self.assertEqual(v.prune_shot_dirs(self.root, keep=30), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

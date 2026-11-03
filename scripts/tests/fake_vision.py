@@ -83,6 +83,10 @@ class FakeDevice:
                     p = mock.patch.object(mod, name, fake)
                     p.start()
                     test.addCleanup(p.stop)
+        # disk side effect on the real .spectre/ (main() prunes shot dirs): never in tests
+        p = mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: 0)
+        p.start()
+        test.addCleanup(p.stop)
         self.out = io.StringIO()   # driver prints, kept off the test runner output
         for p in (mock.patch('time.sleep'), mock.patch.object(sys, 'stdout', self.out)):
             p.start()

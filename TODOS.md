@@ -829,3 +829,7 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   gefangen), C2-C5 korrekt & sicher, Tests schreiben nichts nach .spectre.
   CONCERNs abgeräumt: C2 set_fps ersetzt jetzt ALLE Dup-Vorkommen (+2 Tests),
   .bak-Semantik dokumentiert. C5-Titel-Tap bleibt Live-Check (bounded, harmlos).
+- ✅ C5-LIVETEST [2026-11-03 13:06]: device-ensure.sh live gefixt (MSYS-Pfad
+  /c/... wurde an natives python als C:\c\... gereicht -> cygpath -m) und
+  verifiziert: VM ok, Spiel-PID 5176 gefunden, WORLD erreicht, rc=0. Titel-Tap
+  blieb diesmal ungetestet (Spiel startete direkt in der Welt).

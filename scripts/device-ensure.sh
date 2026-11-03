@@ -70,7 +70,9 @@ log "Spiel läuft: $PKG pid=$pid"
 # 4) bis zur Welt pollen (Python mit PIL, wie afk-bot-watch.sh)
 PY="${AFK_PYTHON:-python}"
 "$PY" -c 'import PIL' >/dev/null 2>&1 || { log "FEHLER: kein python mit PIL (AFK_PYTHON setzen)"; exit 9; }
-"$PY" "$SCRIPT_DIR/afk_device_ready.py" --timeout "$TIMEOUT" 2>&1 | tee -a "$LOG"
+# native python braucht einen Windows-Pfad (MSYS /c/... wird sonst als C:\c\... gelesen)
+READY_PY="$(cygpath -m "$SCRIPT_DIR/afk_device_ready.py" 2>/dev/null || printf '%s' "$SCRIPT_DIR/afk_device_ready.py")"
+"$PY" "$READY_PY" --timeout "$TIMEOUT" 2>&1 | tee -a "$LOG"
 rc=${PIPESTATUS[0]}
 [ "$rc" -eq 0 ] || { log "Welt nicht erreicht (rc=$rc)"; exit 8; }
 log "bereit: Welt/AFK-Panel erreicht"

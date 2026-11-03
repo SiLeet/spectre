@@ -4,6 +4,11 @@
 > `C:\Users\Sigi\spectre`-Workspace abarbeiten kann. Jeder Task berührt
 > **disjunkte Dateien** → parallele Ausführung ohne Merge-Konflikte.
 
+> **🔷 AKTUELLE WAVE: `docs/claude-wave-2-plan.md`** (2026-11-03) — Plan +
+> Briefs A1–A7 (offline, sofort startbar) und B1–B6 (Recon→Code). Dort stehen
+> auch die Spielregeln und die Fallback-Tabelle, wenn Claude bei etwas blockt.
+> Die alten T2–T20-Briefe unten bleiben als Referenz gültig.
+
 ---
 
 ## ⚙️ Gemeinsamer Kontext (in JEDEN Prompt einfügen)

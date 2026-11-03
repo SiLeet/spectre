@@ -697,8 +697,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   als „stale" geloescht und PARALLEL getippt. → Lock-Keeper (touch alle 240 s)
   in beiden Wrappern, LOCK_STALE 3600, Night auf 135 min gekuerzt (Ende vor
   dem 05:10-Daily).
-- ⬜ R8 [MED, offen]: Login-Popup („Esperia Monthly / Daily Rewards", freie
-  Gems) blockiert als POPUP den Bot bei jedem frischen Login → Startup-
-  Handler bauen (Claim-Button) statt manuell (heute manuell geclaimt).
-- ⬜ R9 [LOW, offen]: scripts/_level_hands.py ist redundant zu afk_hero_level.py
-  (Explorations-Skript) → entfernen oder als Demo behalten (entschieden im R-Batch).
+- ✅ R8 [MED]: Login-Popup („Esperia Monthly / Daily Rewards") — erledigt
+  (7e80fb4): resolve_startup_popup() mit OCR-Gate, verdrahtet in Claim-Flow +
+  Stage-Push; nie blind (nur OCR-erkannte Popups werden geclaimt).
+- ⬜ R9 [LOW, offen → als Task A4/T48 im Wave-2-Plan]: scripts/_level_hands.py
+  ist redundant zu afk_hero_level.py → wird im Dedup-Batch gelöscht
+  (docs/claude-wave-2-plan.md, A4).

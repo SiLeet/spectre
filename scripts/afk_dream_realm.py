@@ -45,6 +45,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import afk_normalize  # noqa: E402  (bounded escape ladder, T66)
 
 BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
@@ -509,8 +510,12 @@ def run(args) -> int:
         print('--- already inside Dream Realm', flush=True)
     else:
         if not reach_world('dr_world'):
-            print('    ERROR: could not reach the world view', flush=True)
-            return 1
+            # T66 (night log 2026-11-03: normalize 0..4 POPUP, then 'could not
+            # reach the world view'): bounded escapes first, then one more try
+            print('    could not reach the world view — escape ladder (max 2 cycles)', flush=True)
+            if not (afk_normalize.escape_ladder('dr_esc', cycles=2) and reach_world('dr_world2')):
+                print('    ERROR: could not reach the world view', flush=True)
+                return 1
 
         print('--- Battle Modes -> Dream Realm', flush=True)
         if not enter_dream('dr_enter0'):

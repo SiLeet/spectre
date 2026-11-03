@@ -153,7 +153,10 @@ class F5ArenaExitCodes(unittest.TestCase):
     def test_stuck_chain_exits_1(self):
         dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN'] + ['UNKNOWN'] * 6)
         self.assertEqual(rc, 1)
-        self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT] * 6)
+        # T66 zombie guard: two unchanged steps -> one card dismiss, the second
+        # stagnation ends the chain early (was: 6 identical opponent taps)
+        self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT, ar.OPPONENT_LEFT, ar.CARD_DISMISS,
+                                        ar.OPPONENT_LEFT, ar.OPPONENT_LEFT])
 
     def test_unchanged_screen_exits_1(self):
         dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'UNKNOWN'])

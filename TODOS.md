@@ -443,6 +443,25 @@ Queue-Eintrag als Task.
 
 - Queue-Driver-Review ca. 06:12 CET: Der Daily-Log vom 03.11. 05:10 (`.spectre/logs/afk-bot-2026-11-03.log`) bestätigt Chest-Claim, Gift-Warnung und Fehler in Arena (`STUCK`), Dream Realm (World nicht erreicht) und Stage-Push (unerwarteter BATTLE-State). Task Scheduler meldet dennoch Last Result `0`; der Lauf startete um 05:10 und liegt vor Commit `da9f411` (05:47 CET), daher ist das kein Gegenbeweis zum Phase-Exit-Fix und kein Post-Fix-Livebeleg. Keine weitere Scheduler-Änderung gerechtfertigt; Daily-Verifikation steht beim nächsten Daily-Lauf 04.11. 05:10 aus.
 - Queue-Driver-Review 07:29 CET: P5 hat keinen offenen `⬜`-Punkt; seit dem 05:10-Daily-Log kam kein weiterer AFK-Logblock hinzu. Task Scheduler bestätigt Daily `03.11. 05:10`, Last Result `0`, obwohl das Log Arena=`STUCK`, Dream Realm=World nicht erreicht und Stage-Push=unerwarteter `BATTLE` meldet; dieser Lauf liegt vor `da9f411` (05:47 CET). Progress bleibt `Ready`, letzter Lauf `02.11. 18:36`, Result `0x800710E0`, nächster Lauf heute 17:10. Night meldet `03.11. 02:00`, Result `0`, aber das war vor `00cc629d` (04:06 CET); kein eigener AFK-Night-Log vorhanden. Regressionstest des Daily-Exit-Fixes ist durch die Gesamtsuite bestätigt: 191 Tests ausgeführt, davon 22 übersprungen (169 bestanden); Frame-Regression übersprang alle 139 Einträge wegen fehlender lokaler Screenshots. Kein weiterer Code-/Task-Policy-Eingriff gerechtfertigt; Batterie-Gates unverändert, keine Game-Taps. Post-Fix-Livebelege stehen bei Night 04.11. 02:00 und Daily 04.11. 05:10 aus.
+- Queue-Driver-Review 23:09 CET 2026-11-03: P5 enthält keine aufgabenbezogene
+  `⬜`-Checkbox; Scheduler-Logs geprüft. `.spectre/logs/afk-bot-2026-11-03.log`
+  endet beim 17:10-Progress-Lauf (mtime 17:11). Der 05:10-Daily-Run protokolliert
+  Arena=`STUCK`, Dream Realm erreicht WORLD nicht und Stage-Push bricht auf
+  `BATTLE` ab; dieser Lauf liegt vor den späteren Recovery-Fixes und ist kein
+  Post-Fix-Beleg. Progress: Chest-Claim verifiziert, x2-Autobattle, zwei Kämpfe
+  übersprungen, Wand erreicht bei Stage 254 / Power 74986; Scheduler Result 0.
+  Der dortige Guard-Read 108449240 ist der Vor-Fix-Befund, nicht der aktuelle
+  Live-Wert. Daily/Progress/Night sind `Ready`, Last Result jeweils 0; nächste
+  Läufe 04.11. 05:10 / 17:10 bzw. 02:00. Keine Logs nach 17:10, kein AFK-Lock.
+  Kleinste sichere Verbesserung umgesetzt: Revalidator verwirft gleichrangige
+  u64-Ties und Map-Aliase auch mit nicht-null Hash bzw. High-Bit-u32 fail-closed;
+  Regressionen decken rohe Fixture-Bytes ab (inkl. korrekt innerhalb 1024 B
+  liegender Tie-Kandidaten). MCP-Livebeleg: BlueStacks/ADB `device`, Spiel-PID
+  5176, rw-Heap `0x796590000000`; `u64 @ 0x796590A67A54` = 259160. Nach MCP-Exit
+  lieferte `memory_preflight` `('ok', 259160)`; State blieb PID/Base/Offset/Width
+  konsistent. Keine Game-Taps. 23 Guard-Tests grün; Gesamtsuite 272 Tests OK,
+  22 übersprungen; Frame-Regression `checked=62 skipped=0`. Finaler Fresh-Eyes-
+  Review ohne sicherheitskritischen Befund; keine Task-/Policy-Änderung nötig.
 
 ## P6 — Idle-Architektur (Sergejs Korrektur, 2026-11-01)
 > 15-Minuten-Chest-Claims bringen bei einem Idle-Game NICHTS (fixe Rate, 12-h-Cap).

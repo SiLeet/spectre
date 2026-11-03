@@ -394,15 +394,21 @@ class TGuardDriftGate(unittest.TestCase):
     STATE = {'offset': 1824824, 'width': 4, 'power': 259850,
              'pid': '1', 'base': '0x7964E0000000', 'revalidated': True}
 
-    def pref(self, read_value, base='0x796590000000', relocate=None):
+    def pref(self, read_value, base='0x796590000000', relocate=None, entry_valid=True,
+             pid='1', relocation_calls=None, width=4):
         target = Path(__file__).resolve().parent / '.artifacts' / 'power-state-drift.json'
         target.parent.mkdir(exist_ok=True)
         target.unlink(missing_ok=True)
+        state = dict(self.STATE)
+        state['width'] = width
         with mock.patch.object(v, 'POWER_STATE', target):
-            v.save_power_state(dict(self.STATE))
+            v.save_power_state(state)
             with mock.patch.object(v, 'read_power', return_value=read_value), \
-                 mock.patch.object(v, 'revalidate_power_offset', return_value=relocate):
-                status, val = v.memory_preflight('1', base)
+                 mock.patch.object(v, 'read_power_entry_valid', return_value=entry_valid, create=True), \
+                 mock.patch.object(v, 'revalidate_power_offset', return_value=relocate) as revalidate:
+                status, val = v.memory_preflight(pid, base)
+                if relocation_calls is not None and revalidate.call_args is not None:
+                    relocation_calls.append(revalidate.call_args.args)
             st = v.load_power_state()
         return status, val, st
 
@@ -417,6 +423,112 @@ class TGuardDriftGate(unittest.TestCase):
         self.assertEqual((status, val), ('ok', 265000))
         self.assertEqual(st['power'], 265000)
         self.assertEqual(st['base'], '0x7964E0000000')
+
+    def test_in_tolerance_read_after_heap_base_change_relocates(self):
+        calls = []
+        status, val, st = self.pref(259850, base='0x796590000000',
+                                    relocate=(999, 8, 259850), relocation_calls=calls)
+        self.assertEqual((status, val), ('ok', 259850))
+        self.assertEqual((st['offset'], st['base'], st['revalidated']),
+                         (999, '0x796590000000', True))
+        self.assertEqual(calls, [('1', 0x796590000000, 259850)])
+
+    def test_u32_direct_read_without_map_entry_shape_relocates(self):
+        status, val, st = self.pref(259850, base='0x7964E0000000',
+                                    relocate=(999, 4, 259850), entry_valid=False)
+        self.assertEqual((status, val), ('ok', 259850))
+        self.assertEqual(st['offset'], 999)
+
+    def test_in_tolerance_read_after_pid_change_relocates(self):
+        calls = []
+        status, val, st = self.pref(259850, base='0x7964E0000000',
+                                    relocate=(999, 4, 259850), pid='2', relocation_calls=calls)
+        self.assertEqual((status, val), ('ok', 259850))
+        self.assertEqual((st['offset'], st['pid'], st['revalidated']), (999, '2', True))
+        self.assertEqual(calls, [('2', 0x7964E0000000, 259850)])
+
+    def test_u64_read_that_aliases_a_zero_hash_map_entry_relocates(self):
+        import tempfile
+        target = Path(__file__).resolve().parent / '.artifacts' / 'power-state-zero-hash.json'
+        target.parent.mkdir(exist_ok=True)
+        target.unlink(missing_ok=True)
+        state = dict(self.STATE)
+        state['width'] = 8
+        raw = (259850).to_bytes(4, 'little') + bytes(4) + (0x796590000000).to_bytes(8, 'little')
+        calls = []
+
+        def fake_dump(pid, addr, out, size='8'):
+            out.write_bytes(raw[:int(size)])
+            return object()
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(v, 'TMP', Path(tmp)), \
+             mock.patch.object(v, 'POWER_STATE', target):
+            v.save_power_state(state)
+            with mock.patch.object(v, 'adb_exec_dump', side_effect=fake_dump), \
+                 mock.patch.object(v, 'revalidate_power_offset', return_value=(999, 8, 259850)) as revalidate:
+                status, val = v.memory_preflight('1', '0x7964E0000000')
+                calls.extend(revalidate.call_args.args if revalidate.call_args else [])
+            st = v.load_power_state()
+        self.assertEqual((status, val), ('ok', 259850))
+        self.assertEqual((st['offset'], st['width'], st['revalidated']), (999, 8, True))
+        self.assertEqual(calls, ['1', 0x7964E0000000, 259850])
+
+    def test_u64_read_of_nonzero_hash_map_entry_without_anchor_is_rejected(self):
+        import tempfile
+        target = Path(__file__).resolve().parent / '.artifacts' / 'power-state-nonzero-hash.json'
+        target.parent.mkdir(exist_ok=True)
+        target.unlink(missing_ok=True)
+        # Raw measured [value][non-zero hash][heap pointer] bytes. Reading the
+        # first eight bytes as u64 is in GUARD range but is not team power.
+        raw = (259850).to_bytes(4, 'little') + (1).to_bytes(4, 'little') + \
+              (0x796590000000).to_bytes(8, 'little')
+        composite = int.from_bytes(raw[:8], 'little', signed=True)
+        state = {'offset': self.STATE['offset'], 'width': 8,
+                 'pid': '1', 'base': '0x7964E0000000'}
+
+        def fake_dump(pid, addr, out, size='8'):
+            out.write_bytes(raw[:int(size)])
+            return object()
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(v, 'TMP', Path(tmp)), \
+             mock.patch.object(v, 'POWER_STATE', target):
+            v.save_power_state(state)
+            with mock.patch.object(v, 'adb_exec_dump', side_effect=fake_dump), \
+                 mock.patch.object(v, 'revalidate_power_offset') as revalidate:
+                status, val = v.memory_preflight('1', '0x7964E0000000')
+            st = v.load_power_state()
+        self.assertEqual((status, val), ('disabled', composite))
+        self.assertFalse(revalidate.called)
+        self.assertNotEqual(st.get('power'), composite)
+
+    def test_u64_read_with_high_bit_map_value_is_rejected_without_anchor(self):
+        import tempfile
+        target = Path(__file__).resolve().parent / '.artifacts' / 'power-state-high-bit.json'
+        target.parent.mkdir(exist_ok=True)
+        target.unlink(missing_ok=True)
+        raw = (0x80000000).to_bytes(4, 'little') + (1).to_bytes(4, 'little') + \
+              (0x796590000000).to_bytes(8, 'little')
+        composite = int.from_bytes(raw[:8], 'little', signed=True)
+        state = {'offset': self.STATE['offset'], 'width': 8,
+                 'pid': '1', 'base': '0x7964E0000000'}
+
+        def fake_dump(pid, addr, out, size='8'):
+            out.write_bytes(raw[:int(size)])
+            return object()
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(v, 'TMP', Path(tmp)), \
+             mock.patch.object(v, 'POWER_STATE', target):
+            v.save_power_state(state)
+            with mock.patch.object(v, 'adb_exec_dump', side_effect=fake_dump), \
+                 mock.patch.object(v, 'revalidate_power_offset') as revalidate:
+                status, val = v.memory_preflight('1', '0x7964E0000000')
+            st = v.load_power_state()
+        self.assertEqual((status, val), ('disabled', composite))
+        self.assertFalse(revalidate.called)
+        self.assertNotEqual(st.get('power'), composite)
 
     def test_relocation_result_is_stored(self):
         status, val, st = self.pref(108449240, relocate=(999, 4, 260100))
@@ -565,6 +677,153 @@ class F16PruneToTrash(unittest.TestCase):
             v.prune_shot_dirs(self.root, keep=30, trash_max_age_days=7)
         self.assertFalse(aged.exists())
         self.assertTrue(fresh.exists())
+
+
+class TGuardStableSlotPref(unittest.TestCase):
+    """Revalidation requires the same address and measured structure in both
+    snapshots. U32 is a unique exact-anchor fallback only when no u64 candidate
+    survives, because nearby pointer-backed u32 values are common in live heaps.
+    """
+
+    ANCHOR = 259850
+    U32_OFF = 0x100
+    U64_OFFS = (0x200, 0x300)
+    HEAP_PTR = 0x7965_9000_0000
+
+    def _buf(self, u32_value: int | None = 259800, u32_off: int | None = None,
+             pointer_at: int | None = 8, u64_value: int | None = 259850):
+        buf = bytearray(1024)
+        if u32_value is not None:
+            off = self.U32_OFF if u32_off is None else u32_off
+            buf[off:off + 4] = u32_value.to_bytes(4, 'little')
+            buf[off + 4:off + 8] = (0x12345678).to_bytes(4, 'little')
+            if pointer_at is not None:
+                buf[off + pointer_at:off + pointer_at + 8] = \
+                    self.HEAP_PTR.to_bytes(8, 'little')
+        if u64_value is not None:
+            for off in self.U64_OFFS:
+                buf[off:off + 8] = u64_value.to_bytes(8, 'little')
+        return bytes(buf)
+
+    def run_revalidate(self, first=None, second=None, anchor=None):
+        import tempfile
+        first = self._buf() if first is None else first
+        second = first if second is None else second
+        payloads = iter((first, second))
+
+        def fake_dump(pid, addr, out, size):
+            out.write_bytes(next(payloads))
+            return out
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(v, 'TMP', Path(tmp)), \
+                 mock.patch.object(v, 'adb_exec_dump', side_effect=fake_dump), \
+                 mock.patch.object(v.time, 'sleep'):
+                return v.revalidate_power_offset(
+                    '1', 0x796590000000, self.ANCHOR if anchor is None else anchor)
+
+    def test_direct_u32_entry_check_requires_matching_value_and_heap_pointer(self):
+        import tempfile
+        value = self.ANCHOR.to_bytes(4, 'little')
+        hash_word = (0x12345678).to_bytes(4, 'little')
+        good_ptr = self.HEAP_PTR.to_bytes(8, 'little')
+
+        def check(raw):
+            def fake_dump(pid, addr, out, size):
+                self.assertEqual(size, '16')
+                out.write_bytes(raw)
+                return object()
+            with tempfile.TemporaryDirectory() as tmp, \
+                 mock.patch.object(v, 'TMP', Path(tmp)), \
+                 mock.patch.object(v, 'adb_exec_dump', side_effect=fake_dump):
+                return v.read_power_entry_valid('1', '0x796590000000', 0x100, self.ANCHOR)
+
+        self.assertTrue(check(value + hash_word + good_ptr))
+        self.assertFalse(check((self.ANCHOR - 1).to_bytes(4, 'little') + hash_word + good_ptr))
+        self.assertFalse(check(value + hash_word + bytes(8)))
+
+    def test_u64_candidate_without_full_map_lookahead_is_discarded(self):
+        payload = bytearray(1024)
+        real_u64 = self.U64_OFFS[0]
+        payload[real_u64:real_u64 + 8] = self.ANCHOR.to_bytes(8, 'little')
+        tail = len(payload) - 12  # scan_slots sees 8 bytes but map-shape needs 16
+        payload[tail:tail + 4] = self.ANCHOR.to_bytes(4, 'little')
+        payload[tail + 4:tail + 8] = bytes(4)
+        payload[tail + 8:] = self.HEAP_PTR.to_bytes(8, 'little')[:4]
+        self.assertIsNone(self.run_revalidate(bytes(payload)))
+
+    def test_two_zero_hash_u32_entries_cannot_impersonate_u64_copies(self):
+        payload = bytearray(self._buf(u32_value=None, u64_value=None))
+        for off in (0x100, 0x180):
+            payload[off:off + 4] = self.ANCHOR.to_bytes(4, 'little')
+            payload[off + 4:off + 8] = bytes(4)  # zero hash makes an apparent u64
+            payload[off + 8:off + 16] = self.HEAP_PTR.to_bytes(8, 'little')
+        self.assertIsNone(self.run_revalidate(bytes(payload)))
+
+    def test_exact_anchor_u32_beats_nearby_u64_candidate(self):
+        payload = self._buf(u32_value=259850, u64_value=259700)
+        self.assertEqual(self.run_revalidate(payload), (self.U32_OFF, 4, 259850))
+
+    def test_equally_ranked_u64_candidates_fail_closed(self):
+        payload = bytearray(self._buf(u32_value=None, u64_value=None))
+        for value, offsets in ((self.ANCHOR - 100, (0x200, 0x280)),
+                               (self.ANCHOR + 100, (0x300, 0x380))):
+            for off in offsets:
+                payload[off:off + 8] = value.to_bytes(8, 'little')
+        self.assertIsNone(self.run_revalidate(bytes(payload)))
+
+    def test_unique_exact_anchor_u32_is_fallback_without_u64(self):
+        payload = self._buf(u32_value=259850, u64_value=None)
+        self.assertEqual(self.run_revalidate(payload), (self.U32_OFF, 4, 259850))
+
+    def test_drifted_u32_is_not_accepted_without_u64(self):
+        payload = self._buf(u32_value=259840, u64_value=None)
+        self.assertIsNone(self.run_revalidate(payload))
+
+    def test_same_u32_value_at_different_offsets_is_not_stable(self):
+        first = self._buf(u32_value=259850, u64_value=None)
+        second = self._buf(u32_value=259850, u32_off=0x180, u64_value=None)
+        self.assertIsNone(self.run_revalidate(first, second))
+
+    def test_u32_pointer_must_be_at_measured_offset_plus_8(self):
+        payload = self._buf(u32_value=259850, pointer_at=16, u64_value=None)
+        self.assertIsNone(self.run_revalidate(payload))
+
+    def test_u32_pointer_shape_must_persist_in_both_dumps(self):
+        first = self._buf(u32_value=259850, u64_value=None)
+        second = self._buf(u32_value=259850, pointer_at=None, u64_value=None)
+        self.assertIsNone(self.run_revalidate(first, second))
+
+    def test_duplicate_exact_u32_slots_are_ambiguous(self):
+        payload = bytearray(self._buf(u32_value=259850, u64_value=None))
+        payload[0x180:0x184] = (259850).to_bytes(4, 'little')
+        payload[0x184:0x188] = (0x12345678).to_bytes(4, 'little')
+        payload[0x188:0x190] = self.HEAP_PTR.to_bytes(8, 'little')
+        self.assertIsNone(self.run_revalidate(bytes(payload)))
+
+    def test_nonzero_hash_map_entries_cannot_impersonate_u64_copies(self):
+        payload = bytearray(self._buf(u32_value=None, u64_value=None))
+        low = self.ANCHOR
+        hash_word = 1
+        composite = (hash_word << 32) | low
+        for off in (0x100, 0x180):
+            payload[off:off + 4] = low.to_bytes(4, 'little')
+            payload[off + 4:off + 8] = hash_word.to_bytes(4, 'little')
+            payload[off + 8:off + 16] = self.HEAP_PTR.to_bytes(8, 'little')
+        self.assertIsNone(self.run_revalidate(bytes(payload), anchor=composite))
+
+    def test_highbit_zero_hash_map_entries_cannot_impersonate_u64_copies(self):
+        payload = bytearray(self._buf(u32_value=None, u64_value=None))
+        low = 0x80000002
+        for off in (0x100, 0x180):
+            payload[off:off + 4] = low.to_bytes(4, 'little')
+            payload[off + 4:off + 8] = bytes(4)
+            payload[off + 8:off + 16] = self.HEAP_PTR.to_bytes(8, 'little')
+        self.assertIsNone(self.run_revalidate(bytes(payload), anchor=low))
+
+    def test_u64_fallback_without_u32_candidate(self):
+        payload = self._buf(u32_value=None, u64_value=259850)
+        self.assertEqual(self.run_revalidate(payload), (self.U64_OFFS[0], 8, 259850))
 
 
 if __name__ == '__main__':

@@ -95,6 +95,29 @@ def read_power(pid: str, base_hex: str, offset: int, width: int = 8) -> int | No
     return struct.unpack('<q' if width == 8 else '<i', raw[:width])[0]
 
 
+def read_power_entry_valid(pid: str, base_hex: str, offset: int, expected: int) -> bool | None:
+    '''Validate a map entry by exact u32 value and heap pointer at +8.
+
+    The +4 hash word is opaque; the measured layout does not require a
+    particular hash value. None means the memory read failed; False means the
+    bytes were readable but the value/alignment/pointer structure did not match.
+    '''
+    if offset < 0 or offset % 8:
+        return False
+    out = TMP / 'power_entry.bin'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.unlink(missing_ok=True)
+    if adb_exec_dump(pid, hex(int(base_hex, 16) + offset), out, '16') is None:
+        return None
+    raw = out.read_bytes()
+    if len(raw) < 16:
+        return None
+    # Compare the u32 bit pattern, not its signed-i32 interpretation: a map
+    # value with bit 31 set is still structurally meaningful in a u64 alias.
+    value = int.from_bytes(raw[:4], 'little')
+    return value == (int(expected) & 0xFFFF_FFFF) and _ptr_after(raw, 0)
+
+
 def scan_slots(buf: bytes, lo: int, hi: int) -> tuple[dict[int, list[int]], dict[int, list[int]]]:
     """One pass over 4-byte steps: u32 AND u64 little-endian slots in [lo, hi].
 
@@ -116,12 +139,23 @@ def scan_slots(buf: bytes, lo: int, hi: int) -> tuple[dict[int, list[int]], dict
 
 
 def _ptr_after(buf: bytes, off: int) -> bool:
-    """True if a userspace heap pointer (0x7xxx...) sits within +8..+20 bytes."""
-    for dd in (8, 12, 16, 20):
-        pv = int.from_bytes(buf[off + dd:off + dd + 8], 'little')
-        if 0x7000_0000_0000 <= pv <= 0x7FFF_FFFF_FFFF:
-            return True
-    return False
+    """True if the measured map-entry pointer at +8 is a userspace heap ptr."""
+    if off < 0 or off + 16 > len(buf):
+        return False
+    pv = int.from_bytes(buf[off + 8:off + 16], 'little')
+    return 0x7000_0000_0000 <= pv <= 0x7FFF_FFFF_FFFF
+
+
+def _u32_map_shape(buf: bytes, off: int, value: int) -> bool:
+    """True when [u32 value][opaque hash][heap pointer] matches this u64 hit."""
+    if off < 0 or off % 8 or off + 16 > len(buf):
+        return False
+    low = int.from_bytes(buf[off:off + 4], 'little')
+    combined = int.from_bytes(buf[off:off + 8], 'little', signed=True)
+    # The hash can be nonzero and the u32 can set its high bit. Compare the
+    # exact raw u64 candidate plus its low-word map value; do not interpret the
+    # opaque hash as a requirement that it be zero.
+    return low == (value & 0xFFFF_FFFF) and combined == value and _ptr_after(buf, off)
 
 
 def _alloc_shape(v: int) -> bool:
@@ -136,12 +170,15 @@ def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[i
     holds only server-synced state, so the last VERIFIED value (or a slowly
     drifted version of it) must exist somewhere. Two slot shapes are accepted
     (live-measured 2026-11-01):
-      u32 map entry — [u32 value][u32 hash][ptr][ptr][ptr], single copy,
+      u32 map entry — [u32 value][u32 hash][heap ptr], single copy,
       u64 field     — display copies + authoritative slot, >= 2 copies.
-    Alloc/metadata shapes (4096-multiples, size|flag) are excluded, candidates
-    ranked by distance to the anchor, acceptance capped at 10 % drift (the
-    restart itself changes nothing; larger drift has no anchor and stays
-    disabled — the vision gates still protect the taps). Returns
+    u32 map entries are single-copy by design, but the live heap also contains
+    unrelated pointer-shaped u32 values. Accept a u32 only as a unique stable
+    candidate that exactly equals the last VERIFIED anchor and has the measured
+    [value][hash][heap pointer] shape in both snapshots. If both widths survive,
+    the exact-anchor u32 beats a merely nearby u64; otherwise prefer the ranked
+    u64 identity candidate. If identity is ambiguous, fail closed.
+    Alloc/metadata shapes are excluded. Returns
     (offset, width, value) or None.
     """
     anchor = int(last_power)
@@ -171,32 +208,59 @@ def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[i
     u32b, u64b = scan_slots(dumps[1], lo, hi)
 
     def best_of(hits_a: dict, hits_b: dict, width: int):
-        cand = None   # (dist, copies, off, value)
-        for val, offs in hits_a.items():
-            if val not in hits_b or _alloc_shape(val):
+        cand = None   # (dist, stable_copies, off, value)
+        ambiguous = False
+        for val, offs_a in hits_a.items():
+            offs_b = hits_b.get(val)
+            if not offs_b or _alloc_shape(val):
                 continue
+            # Equal values at different offsets are not a stable slot. Require
+            # exact address persistence across both snapshots before ranking.
+            offs = sorted(set(offs_a) & set(offs_b))
             if width == 8:
-                if len(offs) < 2:          # display copies + authoritative slot
+                # The map hash is opaque: even a nonzero hash can make a
+                # plausible in-range u64. Reject any measured map-entry structure
+                # rather than treating its value+hash as a power field.
+                # The u32-shape probe needs 16 bytes; do not trust a truncated
+                # u64 candidate at the end of either dump where its alias cannot
+                # be ruled out.
+                offs = [o for o in offs if all(o + 16 <= len(buf) for buf in dumps)
+                        and not any(_u32_map_shape(buf, o, val) for buf in dumps)]
+                if len(offs) < 2:          # two stable display/authoritative copies
                     continue
             else:
-                # u32 map entries are single-copy by design: 8-aligned slot
-                # followed by a heap pointer (measured map-entry shape)
-                offs = [o for o in offs if o % 8 == 0 and _ptr_after(dumps[0], o)]
-                if not offs:
+                # Pointer-backed u32-shaped noise is common in live heaps.
+                # Only accept the exact last-verified value, and only when it
+                # identifies one stable map-entry slot.
+                if val != anchor:
+                    continue
+                offs = [o for o in offs if o % 8 == 0
+                        and _ptr_after(dumps[0], o) and _ptr_after(dumps[1], o)]
+                if len(offs) != 1:
                     continue
             dist = abs(val - anchor)
             if dist > tol:
                 continue
-            if cand is None or dist < cand[0] or (dist == cand[0] and len(offs) > cand[1]):
-                cand = (dist, len(offs), offs[0], val)
-        return cand
+            copies = len(offs)
+            if cand is None or dist < cand[0] or (dist == cand[0] and copies > cand[1]):
+                cand = (dist, copies, offs[0], val)
+                ambiguous = False
+            elif dist == cand[0] and copies == cand[1] and val != cand[3]:
+                # Do not let heap address/insertion order choose identity.
+                ambiguous = True
+        return None if ambiguous else cand
 
     u64c = best_of(u64a, u64b, 8)
     u32c = best_of(u32a, u32b, 4)
-    pick = u64c if u64c and (not u32c or u64c[0] <= u32c[0]) else u32c
+    # The exact last-verified u32 map entry is stronger evidence than a
+    # different u64 value that merely falls inside the drift window.
+    if u32c and u32c[3] == anchor:
+        pick, width = u32c, 4
+    else:
+        pick, width = (u64c, 8) if u64c else (u32c, 4)
     if pick is None:
         return None
-    return pick[2], (8 if pick is u64c else 4), pick[3]
+    return pick[2], width, pick[3]
 
 
 def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
@@ -217,15 +281,31 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     power = read_power(pid, base_hex, offset, width)
     if power is None:
         return 'fail', None
-    # Drift gate (2026-11-03 live fund): the plain read is only trusted when it
-    # is consistent with the last VERIFIED anchor. A heap-base change (watch.sh
-    # picks the biggest rw heap; the game reallocates without a restart) puts a
-    # different slot at the same offset — 108449240 read in-range here and
-    # silently overwrote the verified 259850 anchor. Out-of-tolerance values go
-    # to re-location instead (structure-checked, anchor-windowed).
     last = st.get('power')
-    if GUARD_LO < power < GUARD_HI and (
-            not last or abs(power - int(last)) <= max(2000, int(int(last) * 0.10))):
+    try:
+        same_base = int(str(st.get('base', '')), 16) == int(base_hex, 16)
+    except (TypeError, ValueError):
+        same_base = False
+    same_process = str(st.get('pid', '')) == str(pid)
+    identity_matches = same_process and same_base
+
+    # A u32 value alone is not enough: require the measured map-entry shape
+    # (same low word + heap pointer at +8) before trusting a stored direct offset.
+    # A u64 read combines the map's value and hash words; probe the low u32 so a
+    # non-zero hash cannot hide the same map-entry structure.
+    entry_valid = True
+    if width in (4, 8):
+        map_value = power if width == 4 else power & 0xFFFF_FFFF
+        map_entry_shape = read_power_entry_valid(pid, base_hex, offset, map_value)
+        if map_entry_shape is None:
+            return 'fail', None
+        entry_valid = map_entry_shape if width == 4 else not map_entry_shape
+
+    # Direct reads are only trusted for the exact process + heap identity that
+    # produced the verified state. A changed PID/base always re-locates, even
+    # when the value at the old offset happens to be in tolerance.
+    drift_ok = not last or abs(power - int(last)) <= max(2000, int(int(last) * 0.10))
+    if (identity_matches and entry_valid and GUARD_LO < power < GUARD_HI and drift_ok):
         st.update({'offset': offset, 'width': width, 'power': power,
                    'pid': pid, 'base': base_hex})
         save_power_state(st)

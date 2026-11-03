@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_arena as ar  # noqa: E402
 import afk_claim_vision as v  # noqa: E402
+import afk_dailies as dl  # noqa: E402
 import afk_hero_level as hl  # noqa: E402
 import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
@@ -219,6 +220,16 @@ class F7WorldNeedsChip(unittest.TestCase):
         img = frame('WORLD')
         img.paste((62, 70, 50), (40, 1016, 80, 1056))
         self.assertEqual(v.classify(img), 'UNKNOWN')
+
+
+
+class F8DailiesImportable(unittest.TestCase):
+    def test_run_dailies_without_main_globals(self):
+        # used to die with AttributeError on the ARGS global when imported
+        dev = FakeDevice(self, ['UNKNOWN'])
+        self.assertEqual(dl.run_dailies(0), 1)          # unknown screen -> refuse
+        self.assertIn('memory preflight skipped', dev.out.getvalue())
+        self.assertEqual(dev.taps, [])
 
 
 if __name__ == '__main__':

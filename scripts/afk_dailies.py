@@ -81,7 +81,7 @@ def is_mail(img) -> bool:
     return v.lum(v.avg(img, (560, 90))) > 180 and v.lum(v.avg(img, (500, 90))) < 130
 
 
-def run_dailies(min_idle: float) -> int:
+def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None) -> int:
     if min_idle > 0:
         idle = v.idle_seconds()
         if idle is not None and idle < min_idle:
@@ -89,7 +89,7 @@ def run_dailies(min_idle: float) -> int:
             return 5
         print(f'    idle check ok ({idle:.0f}s)' if idle is not None else '    idle unknown', flush=True)
 
-    status, power = v.memory_preflight(ARGS.pid, ARGS.base) if ARGS.pid and ARGS.base else ('skip', None)
+    status, power = v.memory_preflight(pid, base) if pid and base else ('skip', None)
     if status == 'fail':
         print('    ERROR: memory preflight failed', flush=True)
         return 2
@@ -97,10 +97,8 @@ def run_dailies(min_idle: float) -> int:
         print(f'    preflight team_power = {power}', flush=True)
     elif status == 'skip':
         print('    no pid/base given — memory preflight skipped', flush=True)
-    elif status == 'disabled':
+    else:   # 'disabled' — memory_preflight returns only ok/disabled/fail
         print(f'    team_power guard disabled (offset stale, read {power})', flush=True)
-    else:
-        print(f'    WARN: team_power offset stale (read {power})', flush=True)
 
     # 1. AFK chest claim (existing verified sequence)
     print('--- AFK chest claim', flush=True)
@@ -197,12 +195,10 @@ def afk_chest_claim() -> bool:
     return True
 
 
-ARGS = None
-
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('--pid', required=True)
-    ap.add_argument('--base', required=True)
+    ap.add_argument('--pid', default=None, help='game pid (memory preflight; skipped if absent)')
+    ap.add_argument('--base', default=None, help='hot-heap base hex (memory preflight)')
     ap.add_argument('--min-idle', type=float, default=0)
-    ARGS = ap.parse_args()
-    sys.exit(run_dailies(ARGS.min_idle))
+    args = ap.parse_args()
+    sys.exit(run_dailies(args.min_idle, args.pid, args.base))

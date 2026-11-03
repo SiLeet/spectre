@@ -426,5 +426,30 @@ class F29GiftSwipesOnScreen(unittest.TestCase):
             self.assertTrue(0 <= x2 <= 1919 and 0 <= y2 <= 1079, (x2, y2))
 
 
+
+class F30GiftNoBlindDismiss(unittest.TestCase):
+    def green_row(self):
+        img = frame('EVENTS')
+        img.paste((60, 180, 60), (700, 240, 740, 280))           # badge at (720,260)
+        return img
+
+    def run_rows(self, after_tap):
+        dev = FakeDevice(self, ['WORLD', 'GIFT_ENTRY', 'EVENTS', self.green_row(),
+                                after_tap, after_tap]                # after + re-shot
+                         + ['EVENTS'] * 6 + ['WORLD'])
+        with mock.patch.object(sys, 'argv', ['afk-daily-gift.py']):
+            self.assertEqual(gift.main(), 0)
+        return dev
+
+    def test_panel_unchanged_no_tap(self):
+        dev = self.run_rows(frame('EVENTS'))
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), v.BACK])
+
+    def test_unknown_overlay_gets_back_not_blind_tap(self):
+        dev = self.run_rows(frame('UNKNOWN'))
+        self.assertNotIn((1500, 600), dev.taps)
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), v.BACK, v.BACK])
+
+
 if __name__ == '__main__':
     unittest.main()

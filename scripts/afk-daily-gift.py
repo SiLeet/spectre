@@ -200,7 +200,10 @@ def main() -> int:
             v.tap((1500, 600), 1.2)
             print(f'    row y={y}: item info (already claimed), dismissed', flush=True)
             continue
-        v.tap((1500, 600), 1.2)              # make sure no overlay is left open
+        if not is_events_panel(img):
+            # unknown overlay: BACK instead of a blind (1500,600) tap; the
+            # next row check re-verifies the panel and stops if it is gone
+            v.tap(v.BACK, 1.2)
 
     v.tap(v.BACK, 1.5)
     img = v.shot('dg_back')

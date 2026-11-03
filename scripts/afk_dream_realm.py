@@ -46,8 +46,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 
-REPO = Path(__file__).resolve().parent.parent
-
 BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
 DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
@@ -105,9 +103,11 @@ def is_hero_card(img) -> bool:
 
     Two positive probes: a single threshold at ~180 sat right where the
     PANEL back-arrow reads (~178), so one probe alone was too tight (T38 #5).
+    HERO_PROBE threshold 180: every archived boss page reads 171.2 there, the
+    old 170 left 1.2 lum of margin (runtime review R14).
     """
     return (not is_battle_ended(img)
-            and v.lum(v.avg(img, HERO_PROBE)) > 170
+            and v.lum(v.avg(img, HERO_PROBE)) > 180
             and v.lum(v.avg(img, HERO_PROBE2)) > 150
             and v.lum(v.avg(img, CORNER)) > 140)
 
@@ -245,7 +245,10 @@ def resolve_end_states(img, tag: str):
         else:
             return img
         img = v.shot(f'{tag}_{i}')
-    return None   # still cycling end states after 8 rounds -> give up
+    # the 8th action may have closed the last card: judge that frame too
+    if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+        return None   # still cycling end states after 8 rounds -> give up
+    return img
 
 
 def back_to_ready(tag: str, attempts: int = 10) -> bool:

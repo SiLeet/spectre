@@ -187,6 +187,27 @@ class R13DreamReachWorld(unittest.TestCase):
         self.assertNotIn(v.BACK, dev.taps)
 
 
+
+class R14HeroMarginAndLastRound(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_boss_page_at_171_is_no_hero_card(self):
+        img = frame('DR_BOSS')
+        for xy, rgb in ((dr.HERO_PROBE, (175, 170, 165)), (dr.HERO_PROBE2, (160, 160, 160)),
+                        (dr.CORNER, (150, 150, 150))):
+            img.paste(rgb, (xy[0] - 14, xy[1] - 14, xy[0] + 14, xy[1] + 14))
+        self.assertFalse(dr.is_hero_card(img))                 # old threshold 170: True
+
+    def test_card_closed_by_the_eighth_action_counts(self):
+        dev = FakeDevice(self, ['DR_ENDED'] * 7 + ['DR_BOSS'])
+        img = dr.resolve_end_states(frame('DR_ENDED'), 'dr_f1_resolve')
+        self.assertTrue(dr.is_ready(img))                       # old: None after round 8
+        self.assertEqual(len(dev.taps), 8)
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

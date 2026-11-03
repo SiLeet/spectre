@@ -20,6 +20,11 @@ import afk_hero_level as hl  # noqa: E402
 import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
+import importlib.util  # noqa: E402
+
+_gs = importlib.util.spec_from_file_location('afk_daily_gift', REPO / 'scripts' / 'afk-daily-gift.py')
+gift = importlib.util.module_from_spec(_gs)
+_gs.loader.exec_module(gift)
 from test_parsers import DETAIL_74, DETAIL_NO_BADGE, HALL  # noqa: E402
 
 
@@ -271,6 +276,27 @@ class F9QuestTabs(unittest.TestCase):
         dev = FakeDevice(self, ['POPUP', 'MENU'])
         self.assertTrue(dl.open_menu())
         self.assertEqual(dev.taps, [v.BACK])
+
+
+
+class F10GiftEntry(unittest.TestCase):
+    def run_gift(self, frames):
+        dev = FakeDevice(self, frames)
+        with mock.patch.object(sys, 'argv', ['afk-daily-gift.py']):
+            return dev, gift.main()
+
+    def test_entry_tap_retried_once(self):
+        dev, rc = self.run_gift(['WORLD', 'GIFT_ENTRY',                  # init, cam_0
+                                 'WORLD', 'WORLD', 'WORLD',              # panel never opened
+                                 'GIFT_ENTRY', 'EVENTS']                 # entry still there -> retry
+                                + ['EVENTS'] * 7 + ['WORLD'])           # 7 rows (no green badge), close
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, gift.LOGIN_REWARDS, v.BACK])
+
+    def test_entry_not_found_is_warn_not_done(self):
+        dev, rc = self.run_gift(['WORLD'] + ['WORLD'] * 9)
+        self.assertEqual(rc, 3)
+        self.assertNotIn(gift.LOGIN_REWARDS, dev.taps)
 
 
 if __name__ == '__main__':

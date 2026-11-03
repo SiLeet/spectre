@@ -9,7 +9,9 @@ Every tap is gated on the previous screenshot, so a mis-tap cannot cascade.
 Run via scripts/afk-bot-watch.sh --daily or directly:
     python scripts/afk-daily-gift.py --pid 7529 --base 0x...
 Exit codes: 0 claimed or nothing to claim, 1 could not reach the panel,
-2 memory preflight failed, 5 skipped (PC in use).
+2 memory preflight failed, 3 WARN: Login Rewards entry not found (already
+claimed today, event gone, or the camera pan missed it - not marked done),
+5 skipped (PC in use).
 """
 from __future__ import annotations
 
@@ -63,6 +65,16 @@ def login_btn_visible(img) -> bool:
     """The Login Rewards entry floats in the world, so it moves with the camera."""
     c = v.avg(img, (1804, 662))
     return c[0] > 200 and c[2] < 120 and c[0] - c[2] > 80
+
+
+def wait_events_panel(tag: str, tries: int = 3):
+    """The panel animates open: up to `tries` shots ~1 s apart. Frame or None."""
+    for i in range(tries):
+        img = v.shot(f'{tag}_{i}' if i else tag)
+        if is_events_panel(img):
+            return img
+        time.sleep(1.0)
+    return None
 
 
 def find_login_button(max_tries: int = 8) -> bool:
@@ -128,11 +140,18 @@ def main() -> int:
         # The Login Rewards entry only floats in the world while a claim is
         # available; once the daily reward is taken it disappears (verified:
         # same camera position, button gone after the Day-3 claim).
-        print('    no Login Rewards entry — already claimed today (or event gone)', flush=True)
-        return 0
+        # Not 0: watch.sh marks the day done on 0, which masked a missed pan.
+        print('    WARN: no Login Rewards entry — already claimed today, event gone, '
+              'or the pan missed it', flush=True)
+        return 3
     v.tap(LOGIN_REWARDS, 3.5)
-    img = v.shot('dg_panel')
-    if not is_events_panel(img):
+    img = wait_events_panel('dg_panel')
+    if img is None and login_btn_visible(v.shot('dg_entry_retry')):
+        # live 10-31: the entry tap opened nothing (dg_panel was the world)
+        print('    panel did not open — re-tapping the entry once', flush=True)
+        v.tap(LOGIN_REWARDS, 3.5)
+        img = wait_events_panel('dg_panel_retry')
+    if img is None:
         print('    ERROR: Login Rewards panel did not open', flush=True)
         return 1
     print('    events panel open', flush=True)

@@ -358,9 +358,16 @@ BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
 
 
 def is_battle_modes(img: Image.Image) -> bool:
-    """Battle Modes menu open: bright cream body + bright tab bar."""
+    """Battle Modes menu open: bright cream body + bright tab bar, plus the
+    menu's own tab icons — orange Routines (500,920) ~(173,85,46) and the dark
+    Events icon (1160,940) L~102. Body + tab bar alone also matched the main
+    menu, Victory/Defeat/Battle-Ended cards and loading tips (review F6; 25 of
+    25 captured menu frames carry both icons, no other frame does)."""
+    routines = avg(img, (500, 920))
     return (lum(avg(img, (480, 270))) > 200
-            and lum(avg(img, (890, 934))) > 200)
+            and lum(avg(img, (890, 934))) > 200
+            and routines[0] > routines[2] + 80
+            and lum(avg(img, (1160, 940))) < 150)
 
 
 def reach_world(max_steps: int = 6) -> bool:

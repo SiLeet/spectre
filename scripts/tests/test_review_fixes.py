@@ -65,5 +65,32 @@ class F1ConfirmDialog(unittest.TestCase):
         self.assertIn('purchase dialog cancelled', dev.out.getvalue())
 
 
+
+class F6BattleModes(unittest.TestCase):
+    """is_battle_modes must not accept other cream screens."""
+
+    MENU = ('shots/arena_0_initial.png', 'world4.png', 'shots-48392/dr_hub.png')
+    LOOKALIKES = ('hall.png', 'shots-17856/dl_final.png',          # main menu
+                  'shots/arena_1_after.png', 'shots/t28_fight_end1.png',  # defeat / battle ended
+                  'shots-4844/sp_0_initial.png',                    # victory card
+                  'shots-40256/sp_wait.png')                        # loading tip
+
+    def test_menu(self):
+        for rel in self.MENU:
+            with self.subTest(rel):
+                self.assertTrue(v.is_battle_modes(real(rel)))
+
+    def test_lookalikes(self):
+        for rel in self.LOOKALIKES:
+            with self.subTest(rel):
+                self.assertFalse(v.is_battle_modes(real(rel)))
+
+    def test_synthetic(self):
+        self.assertTrue(v.is_battle_modes(frame('BATTLE_MODES')))
+        cream = frame('BATTLE_MODES')
+        cream.paste((240, 235, 225), (480, 900, 1180, 960))   # tab icons gone
+        self.assertFalse(v.is_battle_modes(cream))
+
+
 if __name__ == '__main__':
     unittest.main()

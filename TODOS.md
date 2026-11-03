@@ -756,3 +756,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Live-Fenster: F1-Cancel-Tap-Gegenprobe + F7-Chip-Marge (aus R14) + A8-Live-
   Checks (dream start/re-arm/chances, stage launcher/loading, popup-close,
   adb-down exit 2, summary-close). Danach Frame-Manifest-Regen (R13).
+- 📌 R16 [2026-11-03]: Wave-3-Plan angelegt (docs/claude-wave-3-plan.md) —
+  Zielbild Voll-Auto/Optimiert + Hacking-Lane (FPS/Frida/timeScale, Memory-Map,
+  Sniffing, Uhrzeit) mit Safety-Matrix. Starter-Briefs C1–C5 (T61–T65) im
+  Paste-Prompt docs/claude-wave-3-prompt.md. Research-Agents (Speed-Landschaft,
+  Projekte/Exploits) laufen; Live-Recon L1–L8 in §5. Queue-Driver: B/H-RECON
+  ziehen, wenn Blöcke gefüllt.

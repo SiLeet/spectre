@@ -380,5 +380,20 @@ class F26ClaimVisionPlumbing(unittest.TestCase):
         self.assertFalse(target.with_suffix('.tmp').exists())
 
 
+
+class F27NoBlindBackAfterPopup(unittest.TestCase):
+    def test_popup_closed_onto_world_goes_straight_to_afk(self):
+        # popup (not the login one) -> BACK -> WORLD: old code tapped BACK twice
+        # on the world view (exit confirm) before the AFK chip
+        dev = FakeDevice(self, ['POPUP', 'POPUP', 'WORLD', 'WORLD', 'PANEL', 'POPUP', 'PANEL'])
+        self.assertEqual(v.claim_round('r1'), 0)
+        self.assertEqual(dev.taps, [v.BACK, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+
+    def test_stuck_popup_refuses_after_reach_world_fails(self):
+        dev = FakeDevice(self, ['POPUP', 'POPUP', 'POPUP'] + ['UNKNOWN'] * 7)
+        self.assertEqual(v.claim_round('r1'), 1)
+        self.assertNotIn(v.AFK_PROGRESS, dev.taps)
+
+
 if __name__ == '__main__':
     unittest.main()

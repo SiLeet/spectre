@@ -495,8 +495,11 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         print('    ERROR: unknown screen — refusing to tap blind', flush=True)
         return 1
     if state != 'PANEL':
-        tap(BACK, 1.0)
-        tap(BACK, 1.0)
+        # classify-gated way back (BACK on the world view opens the exit
+        # confirm, a second blind BACK can punch through two layers)
+        if not reach_world():
+            print('    ERROR: could not get back to the world view', flush=True)
+            return 1
         tap(GROUND, 0.8)
         tap(AFK_PROGRESS, 3.0)
         state = classify(shot(f'{tag}_2_retry'))

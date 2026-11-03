@@ -209,5 +209,24 @@ class R9StaleResult(StagePushCase):
         self.assertIn('pushed 1/1', dev.out.getvalue())
 
 
+
+class R10PrepDebounce(StagePushCase):
+    def test_rearmed_chain_is_not_the_wall(self):
+        dev, rc = self.run_sp(['SP_PREP', 'SP_BATTLE',          # initial, auto started
+                               'SP_PREP', 'SP_BATTLE',          # prep, but the chain re-armed
+                               'SP_PREP', 'SP_PREP',            # prep that stays prep = wall
+                               'SP_PREP'], '--auto')            # wall_report shot
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.frames, [])                        # old code stopped 3 frames early
+        self.assertEqual(dev.out.getvalue().count('wall reached'), 1)
+        self.assertEqual(dev.taps, [sp.AUTO_BATTLE_BTN, sp.SPEED_X2_BTN])
+
+    def test_ambiguous_second_frame_gets_a_third_look(self):
+        dev, rc = self.run_sp(['SP_PREP', 'SP_BATTLE', 'SP_PREP', 'UNKNOWN', 'SP_PREP',
+                               'SP_PREP'], '--auto')
+        self.assertIn('wall reached', dev.out.getvalue())
+        self.assertIn('sp_auto_confirm2', dev.shots)
+
+
 if __name__ == '__main__':
     unittest.main()

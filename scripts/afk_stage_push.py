@@ -482,6 +482,18 @@ def main() -> int:
                         print(f'    DEFEAT after {int(time.time()-t0)}s ({skipped} skipped) '
                               '— stage wall reached', flush=True)
                         break
+                    # only a PREP that stays PREP is the wall (runtime review
+                    # R10): a re-armed chain keeps running, a dialog is
+                    # cancelled, anything else gets a third look
+                    if st2 in ('BATTLE', 'LOADING', 'RESULT'):
+                        continue
+                    if st2 == 'CONFIRM':
+                        v.tap(v.CONFIRM_CANCEL, 1.5)
+                        continue
+                    if st2 != 'PREP':
+                        time.sleep(3)
+                        if classify_battle(v.shot('sp_auto_confirm2')) != 'PREP':
+                            continue
                     wall_report(f'auto_prep_stop_{skipped}skipped_{int(time.time()-t0)}s')
                     print(f'    wall reached: {skipped} fights skipped in {int(time.time()-t0)}s',
                           flush=True)

@@ -1110,6 +1110,17 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   found") — derselbe Failure-Pfad wie ein BlueStacks-Stopp (adbd weg,
   ADB_FAIL_CAP-Zähler in try_shot). Vollständiger VM-Stopp mid-Kampf nicht
   erzwungen (unnötig destruktiv, identischer Code-Pfad).
+- ✅ R13-Manifest-Regen Teil 3 (2026-11-03 18:2x CET, Queue-Driver): plain Rebuild
+  über die frischen Live-Frames (17:10-Progress-Run shots-77760 inkl. sp_world/
+  sp_auto_confirm/sp_retry/sp_wall_report + adb-Down-Test shots-adbtest +
+  Dream-Recheck/Leveling-Run-Verzeichnisse) → 48 Frames (vorher 42), Frame-
+  Regression `checked=48 skipped=0`, Gesamtsuite 249 Tests OK (22 skipped).
+  Diff geprüft: 0 Verdict-Flips auf gehaltenen Frames (reiner Frame-Set-Refresh:
+  34 neue Frames, 28 Pfade verworfen = inzwischen gelöschte Dateien). Manifest
+  committet. Bonus: der Markt enthält jetzt einen echten LOADING-Battle-Frame
+  (shots-70956/f1probe_after_sword) — R15-Rest „Stage LOADING" hat damit
+  offline Regression-Abdeckung; LAUNCHER + Summary-Close bleiben Frame-abhängig
+  offen. Keine Game-Taps nötig (Idle 7946 s, Lock frei, kein Parallel-Writer).
 - Anker-Sicherheit: memory_preflight schreibt bei ADB-Ausfall NICHTS
   (read_power → None → 'fail', kein save_power_state); State-File nach dem
   Test unverändert 259270/offset 10960148/width 8 (updated 18:08:07 durch

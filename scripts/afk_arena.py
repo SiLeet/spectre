@@ -60,8 +60,14 @@ def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
-    adb('shell', 'input', 'tap', str(xy[0]), str(xy[1]))
-    time.sleep(wait)
+    """v.tap (raises on an adb failure) with one retry. The old copy ignored
+    the return code: a missed Challenge tap spun the advance loop to STUCK."""
+    try:
+        v.tap(xy, wait)
+    except RuntimeError as exc:
+        print(f'    WARN: {exc} — retrying once', flush=True)
+        time.sleep(1.0)
+        v.tap(xy, wait)
 
 
 def shot(name: str) -> Image.Image:

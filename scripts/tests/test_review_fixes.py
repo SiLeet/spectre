@@ -5,6 +5,7 @@ Real-frame cases need the local .spectre/ frames and skip when they are gone.
 """
 from __future__ import annotations
 
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -155,6 +156,24 @@ class F5ArenaExitCodes(unittest.TestCase):
         dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY'])
         self.assertEqual(rc, 0)
         self.assertIn('done: 1 arena fights driven', dev.out.getvalue())
+
+
+
+class F19ArenaTapRc(unittest.TestCase):
+    def setUp(self):
+        for patch in (mock.patch('time.sleep'), mock.patch.object(sys, 'stdout', io.StringIO())):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_failed_tap_retried_once(self):
+        with mock.patch.object(v, 'tap', side_effect=[RuntimeError('adb tap failed'), None]) as t:
+            ar.tap(ar.CHALLENGE, 4.0)
+        self.assertEqual(t.call_count, 2)
+
+    def test_second_failure_raises(self):
+        with mock.patch.object(v, 'tap', side_effect=RuntimeError('adb tap failed')):
+            with self.assertRaises(RuntimeError):
+                ar.tap(ar.CHALLENGE)
 
 
 if __name__ == '__main__':

@@ -118,8 +118,7 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
             print(f"    [{tag} {x}] level unreadable — skip", flush=True)
             key(4)
             return None, taps
-        if attempt == 0:
-            lvl = new_lvl
+        lvl = new_lvl                  # last level actually read (review F13)
         if new_lvl >= target:
             print(f"    [{tag} {x}] level {new_lvl} >= target {target}", flush=True)
             key(4)
@@ -135,6 +134,8 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
         # hands will fail identically, so stop the whole run (review lesson)
         lines2 = snap(f"{tag}_{x}_check{taps}")
         lvl2 = read_level(lines2) if lines2 else None
+        if lvl2 is not None:
+            lvl = lvl2
         if lvl2 is not None and lvl2 == new_lvl:
             # one unchanged read can be a missed tap (adb hiccup, animation):
             # only two unchanged x10 taps in a row mean the resources are out

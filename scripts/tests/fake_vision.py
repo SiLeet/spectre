@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import io
 import sys
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -29,6 +30,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 from PIL import Image, ImageDraw  # noqa: E402
 
 import afk_claim_vision as v  # noqa: E402
+
+# Test isolation (Race-Fund-Fix, 2026-11-03): suite runs must never touch the
+# real .spectre/afk-bot.lock. _bot_lock resolves its default at call time, so
+# redirecting the module attribute here covers every main()-calling test.
+# The gate is additionally stubbed out: atexit releases only at interpreter
+# exit, so an acquired temp lock would leak into later tests of the same
+# suite process. Flow tests exercise tap logic, not lock contention — real
+# semantics live in test_bot_lock via the _real_* originals.
+import _bot_lock  # noqa: E402
+_bot_lock.LOCK = Path(tempfile.mkdtemp(prefix='afk-bot-lock-test-')) / 'afk-bot.lock'
+if getattr(_bot_lock, '_real_acquire', None) is None:
+    _bot_lock._real_acquire = _bot_lock.acquire
+    _bot_lock._real_release = _bot_lock.release
+    _bot_lock._real_describe = _bot_lock.describe
+_bot_lock.acquire = lambda *a, **k: True
+_bot_lock.release = lambda *a, **k: None
+_bot_lock.describe = lambda *a, **k: 'test stub'
 
 _SPEC = {
     'WORLD': ((62, 70, 50), {v.BACK: (62, 70, 50), (564, 1010): (62, 70, 50),

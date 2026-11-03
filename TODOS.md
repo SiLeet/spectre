@@ -956,3 +956,40 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   prüfen und abwarten. Dream-Retry ÜBERSPRUNGEN, solange der Livecheck-
   Writer aktiv ist (Idle 0 s, hl_entry 15:34:53) — Chances 4/7
   unverbraucht, Boss-Page „King Croaker" steht weiter bereit.
+
+
+### ✅ Race-Fund-Fix (a): Tap-Lock in den Skripten — 2026-11-03 16:0x CET, Queue-Driver
+- Neues `scripts/_bot_lock.py`: PID-guarded Acquire/Release auf `.spectre/afk-bot.lock`
+  mit denselben Semantiken wie die Wrapper (R7): Fresh-Lock (< AFK_LOCK_STALE,
+  Default 3600 s) → `acquire()=False` → Script **exit 7** („another bot run is
+  tapping“) VOR jedem Probe/Tap; Stale-Lock → Takeover (wie die Wrapper);
+  `release()` löscht nur den EIGENEN PID-Eintrag (niemals einen Wrapper-Lock).
+- Verdrahtet in die 4 direkt-laufbaren Entry-Points: `afk_dream_realm` (main,
+  vor Idle-Check), `afk_arena`, `afk_stage_push`, `afk_dailies` — jeweils
+  `acquire()` → bei False Exit 7 + `describe()`-Zeile (Owner-PID + Age im Log),
+  sonst `release_at_exit()` (atexit, PID-guarded).
+- **Wrapper-Bypass:** watch.sh + afk-night.sh exportieren nach dem Lock-Erwerb
+  `AFK_BOT_LOCK_HELD=1` — Kind-Scripts skippen die Acquire (die Wrapper
+  serialisieren bereits); ohne das würden sie im Wrapper-Run selbst exit 7.
+- **`afk_hero_level.py` bewusst NICHT verdrahtet** — uncommitted Parallel-Writer-
+  Stand (tabu). Follow-up, sobald der Writer committet hat. Bis dahin gilt für
+  Leveling-Läufe weiterhin die Driver-Regel (frische fremde shots-Dirs prüfen).
+- Tests: `scripts/tests/test_bot_lock.py` (9 Tests: Semantik free/fresh-refuse/
+  stale-takeover/Custom-Stale/Wrapper-Bypass/release-PID-Guard/describe +
+  Wiring-Source-Checks für 4 Scripts + 2 Wrapper). Harness-Isolation:
+  `fake_vision.py` leitet `_bot_lock.LOCK` in ein Temp-Dir UND stubbt das Gate
+  (Originale als `_real_*` gesichert) — sonst leakt ein acquired Lock in
+  Folgetests desselben Suite-Prozesses (live erlebt: 24 False-Failures rc 7).
+- **Live verifiziert (read-only, keine Game-Taps):** Dry-Run mit freiem Lock →
+  Probes laufen, Exit 0, Lock nach Exit weg; Dry-Run mit fremdem Fresh-Lock →
+  Exit 7 + SKIP-Zeile für alle 4 Scripts, kein Probe/Tap; Wrapper-Bypass
+  (`AFK_BOT_LOCK_HELD=1`) → Dry-Run läuft trotz Fresh-Fremd-Lock, Fremd-Lock
+  bleibt bestehen. Suite: 245 Tests, 3 Failures — nur der bekannte uncommit-
+  tete Writer-Stand afk_hero_level.py (HALL_BTN 972→990); test_daily_leveling
+  ist inzwischen grün (Writer hat nachgezogen).
+- Rest offen: Live-Gegenprobe im echten Kollisionsfall (z. B. 17:10-Progress-
+  Run vs. direkter Driver-Lauf) — das Gate verifiziert sich im Betrieb.
+- 🟨 Re-Check 16:02 CET: Writer weiterhin aktiv (2 PNGs nach 15:50 in
+  shots-74688), Idle 71 s → Dream-Retry (Chances 4/7, Boss-Page King Croaker)
+  weiter ausgesetzt. Read-only-Dry-Run las den aktuellen Screen als POPUP
+  (Livecheck-Nachwehen); keine Taps.

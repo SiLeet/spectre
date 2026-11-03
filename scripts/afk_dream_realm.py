@@ -33,7 +33,7 @@ T38 hardening (review batch, 2026-11-01):
     before tapping again (no taps into the fight-start transition).
 
 Usage: python scripts/afk_dream_realm.py --fights N [--dry-run]
-Exit codes: 0 done, 1 stuck, 2 adb error, 5 skipped (PC in use).
+Exit codes: 0 done, 1 stuck, 2 adb error, 5 skipped (PC in use), 7 tap lock held (another run tapping).
 """
 from __future__ import annotations
 
@@ -46,6 +46,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 import afk_normalize  # noqa: E402  (bounded escape ladder, T66)
+import _bot_lock  # noqa: E402
 
 BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
@@ -494,6 +495,12 @@ def main() -> int:
     ap.add_argument('--min-idle', type=float, default=0)
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
+
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        return 7
+    _bot_lock.release_at_exit()
 
     if args.min_idle > 0:
         idle = v.idle_seconds()

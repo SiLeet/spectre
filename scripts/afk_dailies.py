@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import _bot_lock  # noqa: E402
 
 MENU = (1880, 1030)
 QUESTS_ICON = (1140, 610)
@@ -201,4 +202,9 @@ if __name__ == '__main__':
     ap.add_argument('--base', default=None, help='hot-heap base hex (memory preflight)')
     ap.add_argument('--min-idle', type=float, default=0)
     args = ap.parse_args()
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        sys.exit(7)
+    _bot_lock.release_at_exit()
     sys.exit(run_dailies(args.min_idle, args.pid, args.base))

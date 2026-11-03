@@ -49,6 +49,9 @@ if [ -e "$LOCK" ]; then
   rm -f "$LOCK"
 fi
 echo $$ > "$LOCK"
+# Race-Fund-Fix (2026-11-03): child scripts must not re-acquire the lock we
+# already hold — without this they would SKIP (exit 7) inside wrapper runs.
+export AFK_BOT_LOCK_HELD=1
 LOCK_KEEPER=""
 cleanup() {
   [ -n "$LOCK_KEEPER" ] && kill "$LOCK_KEEPER" 2>/dev/null

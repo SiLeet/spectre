@@ -22,7 +22,7 @@ that the screen CHANGED between fight start and fight end before counting
 an attempt. Reaching Battle Modes is v.open_battle_modes (classify-gated).
 
 Usage: python scripts/afk_arena.py [--fights 4] [--dry-run]
-Exit codes: 0 = all attempts done (incl. the attempts-exhausted stop), 1 = stuck / unknown / aborted with no fight, 5 = idle-gate skip.
+Exit codes: 0 = all attempts done (incl. the attempts-exhausted stop), 1 = stuck / unknown / aborted with no fight, 5 = idle-gate skip, 7 = tap lock held by another run.
 """
 from __future__ import annotations
 
@@ -35,6 +35,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import _bot_lock  # noqa: E402
 
 
 # verified T27 coordinates (TODOS.md, 2026-10-31)
@@ -153,6 +154,12 @@ def main() -> int:
     ap.add_argument('--min-idle', type=float, default=0,
                     help='skip when the PC has been in use for less than this many seconds')
     args = ap.parse_args()
+
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        return 7
+    _bot_lock.release_at_exit()
 
     if args.min_idle > 0:
         idle = v.idle_seconds()

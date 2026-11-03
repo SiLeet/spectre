@@ -10,7 +10,8 @@ and always leaves the game on the result screen (no stray taps).
 
 Usage: python scripts/afk_stage_push.py [--battles N] [--max-battle-seconds 150]
 Exit codes: 0 finished/pushed, 1 stuck (unknown screen), 2 memory preflight
-or adb down (5 screenshots in a row failed), 3 game crashed (BlueStacks launcher), 5 skipped (PC in use).
+or adb down (5 screenshots in a row failed), 3 game crashed (BlueStacks launcher), 5 skipped (PC in use),
+7 tap lock held (another run tapping).
 """
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import _bot_lock  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 BATTLE_BTN = (1280, 1000)
@@ -274,6 +276,11 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
 
 
 def main() -> int:
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        return 7
+    _bot_lock.release_at_exit()
     try:
         return _run()
     except AdbDown as exc:

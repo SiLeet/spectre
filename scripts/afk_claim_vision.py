@@ -236,19 +236,30 @@ POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
 
 
+def ocr_png(png: Path, timeout: int = 20, check_rc: bool = False) -> list[str]:
+    """WinRT OCR (templates/ocr.ps1, offline) on a PNG; [] on any failure.
+
+    check_rc=True also treats a non-zero exit as failure (afk_stage_push's
+    historical semantics); ocr_lines keeps its stdout-only behaviour."""
+    png = Path(png).resolve()          # ocr.ps1 needs absolute native paths
+    try:
+        pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                             '-File', str(OCR_PS1), '-Path', str(png)],
+                            capture_output=True, timeout=timeout, text=True,
+                            encoding='utf-8', errors='replace')
+        if check_rc and pr.returncode != 0:
+            return []
+        return [ln.strip() for ln in pr.stdout.splitlines() if ln.strip()]
+    except (subprocess.SubprocessError, OSError):
+        return []
+
+
 def ocr_lines(name: str) -> list[str]:
     """WinRT OCR on a screenshot already saved by shot() (offline, real text)."""
     png = TMP / f'{name}.png'
     if not png.exists():
         return []
-    try:
-        pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
-                             '-File', str(OCR_PS1), '-Path', str(png)],
-                            capture_output=True, timeout=20, text=True,
-                            encoding='utf-8', errors='replace')
-        return [ln.strip() for ln in pr.stdout.splitlines() if ln.strip()]
-    except (subprocess.SubprocessError, OSError):
-        return []
+    return ocr_png(png)
 
 
 def resolve_startup_popup(tag: str) -> bool:

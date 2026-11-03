@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -32,7 +31,6 @@ AUTO_BATTLE_BTN = (780, 1000)
 SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
 SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
-OCR_PS1 = REPO / "templates" / "ocr.ps1"
 WALL_LOG = REPO / ".spectre" / "wall-report.log"
 POWERSHELL = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 
@@ -110,18 +108,7 @@ def classify_battle(img) -> str:
 
 def ocr_text(png: Path) -> list[str]:
     """Run templates/ocr.ps1 (Windows.Media.Ocr) on a screenshot PNG."""
-    png = Path(png).resolve()          # ocr.ps1 needs absolute native paths
-    try:
-        p = subprocess.run(
-            [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
-             "-File", str(OCR_PS1), "-Path", str(png)],
-            capture_output=True, timeout=15, text=True, encoding="utf-8",
-            errors="replace")
-        if p.returncode != 0:
-            return []
-        return [ln.strip() for ln in p.stdout.splitlines() if ln.strip()]
-    except (subprocess.SubprocessError, OSError):
-        return []
+    return v.ocr_png(png, timeout=15, check_rc=True)
 
 
 def parse_stage(lines: list[str]) -> int | None:

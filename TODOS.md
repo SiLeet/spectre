@@ -703,6 +703,11 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Arena-Fehler), hero_level-Parser-Defekte, wall-dash-Crashes, classify-Klippe,
   .spectre 1,3 GB + idle_seconds-Overflow. Als A7 (a/b/c) im Wave-2-Plan →
   Claude-Batch nach A1.
+- 📄 R11 [REVIEW-DOKU]: docs/reviews/2026-11-03-runtime-review.md — Subagent-
+  Review stage_push/dream_realm (artefakt-verifiziert): HIGH Fight-Start-Regress
+  (schwarzer Frame = „läuft" → Chance verloren), wait-ohne-Re-Arm, LAUNCHER-
+  Kreuzklassifikation, Screenshot-Leak 1,05 GB, Phantom-Wins u. a. Als A8 im
+  Wave-2-Plan → Claude-Batch nach A1.
 - ✅ R8 [MED]: Login-Popup („Esperia Monthly / Daily Rewards") — erledigt
   (7e80fb4): resolve_startup_popup() mit OCR-Gate, verdrahtet in Claim-Flow +
   Stage-Push; nie blind (nur OCR-erkannte Popups werden geclaimt).

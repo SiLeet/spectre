@@ -689,8 +689,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 
 ---
 
-## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
-
+## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
+
 > Anlass: 2 Tage BlueStacks-Ausfall; off-game Review der Scheduler-/Wrapper-Schicht.
 > Alle HIGH/MED-Funde eingezogen (commits cde8ecd + 584ea2f).
 

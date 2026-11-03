@@ -176,5 +176,19 @@ class F19ArenaTapRc(unittest.TestCase):
                 ar.tap(ar.CHALLENGE)
 
 
+
+class F16IdleSeconds(unittest.TestCase):
+    def test_tick_delta_wraps(self):
+        self.assertEqual(v.tick_delta(5_000, 2_000), 3_000)
+        # GetTickCount wrapped past 2**32 after the last input
+        self.assertEqual(v.tick_delta(1_000, 0xFFFFFF00), 1_256)
+        # past 2**31 ms uptime (where the old c_long went negative)
+        self.assertEqual(v.tick_delta(2**31 + 10_000, 2**31 - 5_000), 15_000)
+
+    @unittest.skipUnless(sys.platform == 'win32', 'GetLastInputInfo is Windows-only')
+    def test_idle_seconds_non_negative(self):
+        self.assertGreaterEqual(v.idle_seconds(), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

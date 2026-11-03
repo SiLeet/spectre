@@ -411,9 +411,18 @@ def idle_seconds() -> float | None:
         lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
         if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
             return None
-        return (ctypes.windll.kernel32.GetTickCount() - lii.dwTime) / 1000.0
+        get_tick = ctypes.windll.kernel32.GetTickCount
+        get_tick.restype = ctypes.c_uint32   # default c_long goes negative after ~24.8 d uptime
+        return tick_delta(get_tick(), lii.dwTime) / 1000.0
     except Exception:
         return None
+
+
+def tick_delta(tick: int, last: int) -> int:
+    """Milliseconds from `last` to `tick` on the 32-bit tick counter, wrap-safe
+    (the counter wraps every ~49.7 days; a negative idle used to SKIP every
+    scheduled run as 'PC in use' until reboot)."""
+    return (tick - last) & 0xFFFFFFFF
 
 
 def classify(img: Image.Image) -> str:

@@ -299,5 +299,26 @@ class F10GiftEntry(unittest.TestCase):
         self.assertNotIn(gift.LOGIN_REWARDS, dev.taps)
 
 
+
+class F11GiftClaimSignal(unittest.TestCase):
+    def test_signals(self):
+        dim = frame('EVENTS')
+        dim.paste((10, 10, 10), (180, 250, 220, 290))
+        self.assertEqual(gift.claim_signal(dim), 'dimmed')
+        self.assertEqual(gift.claim_signal(frame('POPUP')), 'classify POPUP')
+        self.assertIsNone(gift.claim_signal(frame('EVENTS')))
+
+    def test_late_popup_caught_by_reshot(self):
+        green_row = frame('EVENTS')
+        green_row.paste((60, 180, 60), (700, 240, 740, 280))     # badge at (720,260)
+        dev = FakeDevice(self, ['WORLD', 'GIFT_ENTRY', 'EVENTS', green_row,
+                                'EVENTS', 'POPUP',                 # after-tap: still panel, then popup
+                                'EVENTS', 'WORLD'])                # dismissed, close
+        with mock.patch.object(sys, 'argv', ['afk-daily-gift.py']):
+            self.assertEqual(gift.main(), 0)
+        self.assertIn('claimed row y=260 (Rewards Obtained, classify POPUP)', dev.out.getvalue())
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), (700, 500), v.BACK])
+
+
 if __name__ == '__main__':
     unittest.main()

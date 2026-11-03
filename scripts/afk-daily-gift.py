@@ -48,6 +48,17 @@ def is_dimmed(img) -> bool:
     return v.lum(v.avg(img, (200, 270))) < 25
 
 
+def claim_signal(img) -> str | None:
+    """Which tell says 'Rewards Obtained' is up, or None. The single dim probe
+    (L<25) was never seen true on a capture and neighbours sit at L 59-60,
+    so the classifier's POPUP verdict backs it up."""
+    if is_dimmed(img):
+        return 'dimmed'
+    if v.classify(img) == 'POPUP':
+        return 'classify POPUP'
+    return None
+
+
 def is_events_tooltip(img) -> bool:
     """An item-info tooltip covers the title area while the bottom tab bar and
     the panel edges stay visible."""
@@ -173,8 +184,13 @@ def main() -> int:
             continue
         v.tap((ROW_X, y), 1.6)
         img = v.shot(f'dg_after_{y}')
-        if is_dimmed(img):
-            print(f'    claimed row y={y} (Rewards Obtained)', flush=True)
+        sig = claim_signal(img)
+        if sig is None and not is_events_tooltip(img):
+            time.sleep(1.0)                  # popup animation: one re-shot before judging
+            img = v.shot(f'dg_after_{y}b')
+            sig = claim_signal(img)
+        if sig:
+            print(f'    claimed row y={y} (Rewards Obtained, {sig})', flush=True)
             claimed.append(y)
             v.tap((700, 500), 2.0)          # dismiss the reward popup
             img = v.shot(f'dg_dismiss_{y}')

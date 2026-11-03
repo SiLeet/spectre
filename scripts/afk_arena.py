@@ -77,13 +77,25 @@ def screen_signature(img: Image.Image) -> tuple[int, int, int]:
 
 
 def arena_state(img: Image.Image) -> str:
-    """Classify the arena chain: RESULT card, PREP (Battle button) or SELECT."""
-    card = avg(img, (960, 300))
-    if sum(card) / 3 > 190:                 # bright victory/defeat card
-        return 'RESULT'
+    """Classify the arena chain: RESULT card, PREP (Battle button) or SELECT.
+
+    PREP is checked first (the green Battle button is unambiguous). SELECT is
+    identified POSITIVELY: the season banners light the card probe (960,300)
+    warm-orange while the Refresh badge (1160,1010) stays bright — the old
+    bare 'bright card => RESULT' rule read the season-skinned Select screen
+    as RESULT (banner avg 198.7 > 190) and stalled the whole chain
+    (2026-11-03, shots-6048 + f1probe_select). A real RESULT card dims the
+    underlying UI, so the refresh badge reads dark there."""
     btn = avg(img, ARENA_BATTLE)
     if btn[1] > 120 and btn[1] > btn[0] + 20 and btn[1] > btn[2] + 20:
         return 'PREP'                       # green Battle button at the bottom
+    card = avg(img, (960, 300))
+    refresh = avg(img, (1160, 1010))
+    if refresh[0] > 190 and refresh[1] > 190 \
+            and card[0] > 180 and card[0] - card[2] > 50:
+        return 'SELECT'                     # warm season banners + bright refresh badge
+    if sum(card) / 3 > 190:                 # bright victory/defeat card
+        return 'RESULT'
     return 'SELECT'
 
 

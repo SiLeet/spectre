@@ -61,6 +61,12 @@ _SPEC = {
     'ARENA_LOBBY': ((40, 40, 40), {(1080, 1004): (150, 200, 150)}),
     'ARENA_PREP': ((40, 40, 40), {(960, 1010): (60, 180, 60)}),
     'ARENA_RESULT': ((40, 40, 40), {(960, 300): (240, 240, 240)}),   # T66: bright card
+    # 2026-11-03 live fund: the season-skinned Select screen lights (960,300)
+    # warm-orange (banner avg 198.7) AND keeps the Refresh badge bright —
+    # the bare bright-card rule stalled the chain as a phantom RESULT
+    'ARENA_SELECT': ((40, 40, 40), {(960, 300): (242, 201, 153),
+                                    (1160, 1010): (250, 246, 240),
+                                    (960, 1010): (131, 99, 98)}),
     # afk_dailies
     'MENU': ((40, 40, 40), {(480, 1010): (200, 200, 200), (1375, 1028): (200, 200, 200)}),
     'QUESTS': ((40, 40, 40), {(500, 90): (230, 230, 230)}),

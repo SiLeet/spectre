@@ -61,6 +61,14 @@ class NormalizeLadder(unittest.TestCase):
 
 
 class ArenaZombie(unittest.TestCase):
+    def test_season_select_screen_reads_select_not_result(self):
+        # 2026-11-03 live fund (shots-6048): the season banners light (960,300)
+        # warm-orange (avg 198.7 > 190) — the bare bright-card rule stalled the
+        # chain as a phantom RESULT on the Select screen
+        self.assertEqual(ar.arena_state(frame('ARENA_SELECT')), 'SELECT')
+        self.assertEqual(ar.arena_state(frame('ARENA_RESULT')), 'RESULT')
+        self.assertEqual(ar.arena_state(frame('ARENA_PREP')), 'PREP')
+
     def test_select_result_zombie_then_challenge(self):
         # night log: step 0 SELECT, steps 1..5 RESULT (the card never goes away)
         dev = FakeDevice(self, ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY', 'UNKNOWN', 'UNKNOWN',

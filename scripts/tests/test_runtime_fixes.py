@@ -110,6 +110,20 @@ class R5BackToReadyMidFight(unittest.TestCase):
         self.assertEqual(dev.taps, [])
 
 
+
+class R6SpeedTapGated(unittest.TestCase):
+    def test_tap_waits_for_the_fight_marker(self):
+        dev = FakeDevice(self, ['DR_BLACK', 'DR_FIGHT'])
+        self.assertTrue(dr.set_speed_x2(1))
+        self.assertEqual(dev.taps, [dr.SPEED_X2])
+
+    def test_no_marker_no_tap(self):
+        for frames in (['DR_BLACK', 'DR_BLACK'], ['DR_PREP', 'DR_PREP']):
+            dev = FakeDevice(self, frames)
+            self.assertFalse(dr.set_speed_x2(1))
+            self.assertEqual(dev.taps, [])
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

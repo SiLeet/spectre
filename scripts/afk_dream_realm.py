@@ -69,6 +69,7 @@ HERO_PROBE2 = (1450, 850)        # second hero-card probe (T38 #5: the PANEL
                                  # back-arrow lum ~178 is too close to a
                                  # single-probe threshold)
 HERO_DISMISS = (100, 100)        # verified live: corner tap closes the hero card
+SPEED_X2 = (1092, 788)           # 2x speed toggle in a running fight (b69fbc4)
 DIM_DISMISS = (480, 300)
 
 POLL = 5.0
@@ -392,6 +393,20 @@ def start_fight(fight: int, attempts_max: int = 4) -> bool:
     return False
 
 
+def set_speed_x2(fight: int) -> bool:
+    """Tap 2x only on a frame that shows the fight marker (runtime review R6:
+    the blind tap 1.5 s after start_fight hit the black transition, or a
+    roster card on a pre-fight screen). One retry ~3 s later."""
+    for k in range(2):
+        if is_fight(v.shot(f'dr_f{fight}_speed{k}')):
+            v.tap(SPEED_X2, 1.5)
+            print(f'    fight {fight}: 2x speed enabled', flush=True)
+            return True
+        time.sleep(3)
+    print(f'    fight {fight}: no fight marker for the 2x tap — running at 1x', flush=True)
+    return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--fights', type=int, default=7)
@@ -470,8 +485,7 @@ def run(args) -> int:
 
         # fight is running: set 2x speed (same damage per game-second,
         # half the real wall-clock time; x4 is premium-locked)
-        v.tap((1092, 788), 1.5)
-        print(f'    fight {fight}: 2x speed enabled', flush=True)
+        set_speed_x2(fight)
 
         end_img = wait_for_fight_end(f'dr_f{fight}', args.wait_fight)
         if end_img is None:

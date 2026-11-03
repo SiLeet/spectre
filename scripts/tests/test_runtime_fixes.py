@@ -328,5 +328,20 @@ class R16SummaryClose(StagePushCase):
         self.assertIn('pushed 1/1', dev.out.getvalue())
 
 
+
+class R17ParsePower(unittest.TestCase):
+    def test_upward_before_below(self):
+        self.assertEqual(sp.parse_power(['74,986', 'Battle', '12,345']), 74986)   # old: 12345
+        self.assertEqual(sp.parse_power(['Battle', '12,345']), 12345)             # below = fallback
+
+    def test_ocr_punctuation_anchor(self):
+        self.assertEqual(sp.parse_power(['0 74451', 'Battle !']), 74451)          # old: None
+        self.assertEqual(sp.parse_power(['0 74451', 'Battle.']), 74451)
+
+    def test_words_after_battle_are_no_anchor(self):
+        self.assertIsNone(sp.parse_power(['74,986', 'Battle Advice']))
+        self.assertIsNone(sp.parse_power(['74,986', 'Auto Battle']))
+
+
 if __name__ == '__main__':
     unittest.main()

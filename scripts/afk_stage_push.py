@@ -136,12 +136,15 @@ def parse_power(lines: list[str]) -> int | None:
     shots-38404/sp_prep.png), the AFK panel prints it right next to 'Battle'
     ('0 74451'). 'Auto Battle' lines are explicitly NOT anchors. Scan upward
     from each bare anchor so the nearest number (the button's own power)
-    wins over the team power higher up.
+    wins over the team power higher up. The line below the anchor is only
+    tried after the eight above it; OCR punctuation ('Battle !', 'Battle .')
+    still counts as a bare anchor, words after it do not ('Battle Advice')
+    (runtime review R17).
     """
     for i, ln in enumerate(lines):
-        if re.fullmatch(r"Battle", ln.strip(), re.I):
-            for j in reversed(range(i - 8, i + 2)):
-                if 0 <= j < len(lines) and j != i:
+        if re.fullmatch(r"Battle\b\W*", ln.strip(), re.I):
+            for j in [*range(i - 1, i - 9, -1), i + 1]:
+                if 0 <= j < len(lines):
                     for m in re.finditer(r"(\d{1,3}(?:[.,]\d{3})+|\d{4,8})", lines[j]):
                         val = int(m.group(1).replace(",", "").replace(".", ""))
                         if 5_000 <= val <= 5_000_000:

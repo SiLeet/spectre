@@ -140,10 +140,49 @@ README: `scripts/`-Sektion mit Einzeiler je Skript + Verweis hierher.
 **DoD:** Markdown-Links/Codeblöcke intakt; keine erfundenen Flags (aus
 `--help`-Quellen ableiten).
 
-### A7 — Review-Findings-Batch (Platzhalter)
-> Subagent-Reviews der Skripte laufen (2026-11-03). Hermes pflegt Findings als
-> `A7.1..n` hier ein; Claude zieht sie als Sammel-Batch (Branch
-> `feature/R-fixes-2`) — erst nach A1, damit Fixes regressionstestbar sind.
+### A7 / T58 — Review-Fix-Batch (Subagent-Review liegt vor)
+> **Voller, frame- (+live-)verifizierter Report: `docs/reviews/2026-11-03-scripts-review.md`**
+> (27 k, mit Beweisen; erklärt u. a. den Live-Ausfall „arena lobby did not open").
+> Nach A1 ziehen, damit jeder Fix durch die Regressionstests abgesichert wird.
+> Branch `feature/T58-review-fixes`. 1 Finding = 1 Commit mit Finding-Nr.
+
+**A7a — HIGH (zuerst):**
+1. `afk_arena.confirm_dialog`-Probes sitzen ~50 px unter den echten Knöpfen —
+   der Nie-Diamanten-Kauf-Gate feuert nie (Cancel-Tap 1014,784 trifft nichts).
+   Ground-Truth: X ~(1010,728), grün ~(1142,734); stage_push-Koords
+   (1014,710)/(1155,710) evaluieren auf denselben Frames korrekt → EINEN
+   Detector in afk_claim_vision bauen, beide Skripte nutzen ihn.
+2. `afk_claim_vision.is_battle_modes` False-Positive auf hellen Welt-Frames →
+   open_battle_modes öffnet nichts, arena tippt blind (Live-Ursache!). Fix:
+   Welt ausschließen (z. B. AFK-Chip (60,1036) < 100).
+3. `afk_hero_level.read_level`: `Lv.74986`→749, `LvL99`/`LV.74`→None;
+   is_detail zu lose (Hall passiert); key(4) verlässt den Hall ohne
+   Re-Navigation; Exit 0 trotz Totalausfall. Fix: case-insensitiv +
+   Plausibilitäts-Guard + Hall-Re-Verify (972,1034) + Exit 1.
+4. `afk-wall-dash`: Crash bei non-dict-JSONL/None/String-Nulls (load + STATE);
+   Reason-Familien werden nie gematcht (Stats = 0). Fix: isinstance-Guards,
+   fmt_int-Helper, `'defeat' in reason`-Familien; STATE ist tot → aus letztem
+   Event mit stage/power ableiten; ts ISO-Parsing.
+5. `afk_arena` Exit-Codes: beide Abbruchpfade returnen 0 → watch.sh verbrennt
+   den Tagesmarker bei Fehlschlag. Fix: ok-Flag; return 1 wenn wins==0 und
+   kein exhaust-Pfad; Tap-rc wie v.tap behandeln.
+6. Ops: `.spectre`-Prune (1,3 GB, 104 ungeprüfte shot-Dirs → die 30 neuesten
+   behalten) + `idle_seconds` c_long-Overflow (nach ~24,8 Tagen Windows-Uptime
+   wird idle negativ → ALLE Scheduled-Runs SKIPpen). Fix: GetTickCount.restype
+   uint32 + (tick-dwTime)&0xFFFFFFFF; Prune im claim_vision-Start.
+
+**A7b — MED:** classify-POPUP/WORLD-1-Punkt-Klippe (d=-9 real; drittes
+tell oder UNKNOWN statt Blind-Tap); dailies: ARGS-Global nur in __main__
+(run_dailies(args) übergeben), quick_claim-Tab-Fehler → BACK + Panel-Re-Open,
+open_menu-Retries statt Abbruch; gift: Entry-Tap-Retry + Panel-Check-Retry,
+not-found → WARN-Exitcode statt 0; hero_level: x10-Nachschlag + erneutes
+Lesen statt Einzel-Unverändert=Abbruch, letzten Level zurückgeben; dailies-
+ChestClaim auf gemeinsame claim_vision-Funktion; arena Tap-Retry.
+
+**A7c — LOW:** swipe-rc prüfen, save_power_state atomar (tmp+replace),
+dismiss-Taps classify-gaten, per-pid shot-Dirs auch in hero_level/gift,
+off-screen-Swipes clampen, `_level_hands` löschen (→ A4), tote Imports/Branches
+entfernen (arena reach_world/at_world, dailies TMP, gift struct).
 
 ---
 

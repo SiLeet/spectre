@@ -697,6 +697,12 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   als „stale" geloescht und PARALLEL getippt. → Lock-Keeper (touch alle 240 s)
   in beiden Wrappern, LOCK_STALE 3600, Night auf 135 min gekuerzt (Ende vor
   dem 05:10-Daily).
+- 📄 R10 [REVIEW-DOKU]: docs/reviews/2026-11-03-scripts-review.md — Subagent-
+  Review (7 Skripte, frame-/live-verifiziert): u. a. arena-Kaufdialog-Probes
+  50 px daneben (Gate feuert nie), battle_modes-False-Positive (Live-Ursache
+  Arena-Fehler), hero_level-Parser-Defekte, wall-dash-Crashes, classify-Klippe,
+  .spectre 1,3 GB + idle_seconds-Overflow. Als A7 (a/b/c) im Wave-2-Plan →
+  Claude-Batch nach A1.
 - ✅ R8 [MED]: Login-Popup („Esperia Monthly / Daily Rewards") — erledigt
   (7e80fb4): resolve_startup_popup() mit OCR-Gate, verdrahtet in Claim-Flow +
   Stage-Push; nie blind (nur OCR-erkannte Popups werden geclaimt).

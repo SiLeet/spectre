@@ -562,12 +562,19 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   liest **Power 259K** (konsistent mit dem letzten verifizierten exakten Wert
   259850) → Panel per Back geschlossen, WORLD verifiziert → State-File mit
   Anker 259850 geschrieben → `memory_preflight('5176','0x7964E0000000')`:
-  **Re-Location ('ok', 259850) in 11,7 s** (u32 Map-Entry, offset 0x1BD518,
-  width 4, base 0x7964E0000000) → Zweitread 10 s später unverändert 259850,
+  **Re-Location ('ok', 259850) in 11,7 s** (u32 Map-Entry, offset 1824824 =
+  0x1BD838 [korrigiert 13:05 — der hier zuerst notierte Hexwert 0x1BD518 war
+  ein Rechenfehler; die State-File war korrekt], width 4, base
+  0x7964E0000000) → Zweitread 10 s später unverändert 259850,
   Preflight-2 in 0,13 s ('ok'-Pfad). Der 17:10-Progress-Run hat den Guard damit
   wieder scharf; bei einem weiteren Game-Restart re-lokaliert die Maschine jetzt
   wieder aus einem frischen Anker. Belege: .spectre/shots-5176/anchor-*.png,
   .spectre/power-state.json.
+  **Re-Check 13:05 CET (Queue-Driver, rein read-only):** PID 5176 lebt weiterhin,
+  `spectre dump` am absoluten Offset (base + 0x1BD838) liest unverändert
+  `0a f7 03 00` = **259850** — Anker gültig, der 17:10-Lauf geht direkt über
+  den 'ok'-Pfad (0 Re-Location, 0 Taps). Keine neuen Logblöcke seit dem
+  05:10-Daily (Log-Stand 05:23, alle Befunde daraus = vor da9f411).
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

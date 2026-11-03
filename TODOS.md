@@ -879,3 +879,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   /c/... wurde an natives python als C:\c\... gereicht -> cygpath -m) und
   verifiziert: VM ok, Spiel-PID 5176 gefunden, WORLD erreicht, rc=0. Titel-Tap
   blieb diesmal ungetestet (Spiel startete direkt in der Welt).
+- ✅ Wave-4 (D1–D4) [2026-11-03]: Zombei-Recovery (T66), Tages-Leveling-Regel
+  (T67, exakt 1 Charge/Tag — T33 damit abgearbeitet), device-ensure-Verdrahtung
+  (T68), Dura's-Trials v1 (T69). Alle 4 gemergt, 230 Tests grün. Live-Checks
+  offen: LEVEL_X1 +1-vs+10, Dura's-Komplettnavigation, (480,300)-Karten-Dismiss,
+  + 7er-Liste im Bericht docs/reports/claude-wave-4-run.md. Hinweis: T66-Nummer
+  doppelt (feature/T66-tray-icon existiert in spectre-tray).

@@ -116,11 +116,14 @@ def _dim_probes(img) -> bool:
     boss page:    bottom bar ~228                            -> no match
     night world:  back-arrow ~47, bottom bar bright          -> no match
     black loading frame: corner ~0 (no glow)                 -> no match
+    fight-start transition: back ~4, bar ~4, blue corner ~67 -> DID match
+      (shots-1752/dr_f1_resolve_0, runtime review R4): a dim popup still
+      shows its card, a transition is dark at every other probe -> excluded
     """
     back = v.lum(v.avg(img, BACK_ARROW))
     bar = v.lum(v.avg(img, BOTBAR))
     glow = v.lum(v.avg(img, CORNER))
-    return back < 25 and bar < 25 and 30 < glow < 100
+    return back < 25 and bar < 25 and 30 < glow < 100 and not is_uniform_dark(img)
 
 
 def is_dim_popup(img) -> bool:
@@ -186,7 +189,7 @@ def is_fight(img) -> bool:
     if v.lum(centre) > 200 or _green(centre) or v.lum(v.avg(img, BATTLE_BTN_PREP)) >= 120:
         return False
     return not (is_uniform_dark(img) or is_ready(img) or is_battle_ended(img)
-                or is_hero_card(img))
+                or is_hero_card(img) or _dim_probes(img))
 
 
 def is_world(img) -> bool:
@@ -288,7 +291,7 @@ def wait_for_fight_end(tag: str, max_wait: float):
     fought = rearmed = False
     img = v.shot(f'{tag}_w0')
     while time.time() < deadline:
-        if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+        if is_battle_ended(img) or is_hero_card(img) or dim_confirmed(f'{tag}_w{n}', img):
             return img
         if is_fight(img):
             fought, ready_run = True, 0

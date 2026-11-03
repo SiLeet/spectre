@@ -67,6 +67,31 @@ class R2ReadyRearm(unittest.TestCase):
 
 
 
+
+class R4DimVsTransition(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_probes(self):
+        self.assertTrue(dr._dim_probes(frame('DR_DIM')))
+        self.assertFalse(dr._dim_probes(frame('DR_TRANSITION')))   # old: True
+        self.assertFalse(dr.is_fight(frame('DR_DIM')))             # a popup is no fight marker
+
+    def test_transition_is_not_a_fight_end(self):
+        # fight-start transition, then the fight, then the end card
+        dev = FakeDevice(self, ['DR_TRANSITION', 'DR_FIGHT', 'DR_ENDED'])
+        img = dr.wait_for_fight_end('dr_f1', 150)
+        self.assertTrue(dr.is_battle_ended(img))
+
+    def test_dim_end_needs_the_debounce_shot(self):
+        dev = FakeDevice(self, ['DR_DIM', 'DR_FIGHT', 'DR_DIM', 'DR_DIM'])
+        img = dr.wait_for_fight_end('dr_f1', 150)
+        self.assertTrue(dr._dim_probes(img))
+        self.assertEqual(len(dev.shots), 4)          # first dim was not confirmed
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

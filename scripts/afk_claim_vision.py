@@ -333,6 +333,27 @@ def lum(c: tuple[int, int, int]) -> float:
     return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
 
 
+CONFIRM_CANCEL = (1014, 710)     # inside the X circle for both button rows below
+CONFIRM_ROWS = (710, 729)        # the dialog's button row sits at either y (measured)
+
+
+def is_confirm_dialog(img: Image.Image) -> bool:
+    """Cream-band confirm dialog: X = cancel, green check = confirm.
+
+    One layout for 'Spend <diamonds> to purchase ...?' (arena attempts,
+    screens/arena_debug1.png) and 'Turn off Auto Battle mode?' (stage push).
+    Must always be CANCELLED (CONFIRM_CANCEL), never confirmed. The full-width
+    cream band is required: the arena Select Opponent screen matched a bare
+    X/check probe pair (white card + green swords button, shots/arena_p1_pre)."""
+    if not all(lum(avg(img, p)) > 200 for p in ((200, 550), (1720, 550), (960, 450))):
+        return False
+    for y in CONFIRM_ROWS:
+        ok = avg(img, (1142, y))
+        if lum(avg(img, (1014, y))) > 140 and ok[1] > ok[0] + 20 and ok[1] > ok[2] + 20:
+            return True
+    return False
+
+
 BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
 
 

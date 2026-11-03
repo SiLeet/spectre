@@ -777,7 +777,7 @@
   ],
   "sha16": "e012559f8e053afb",
   "classify": "POPUP",
-  "battle_class": "BATTLE"
+  "battle_class": "CONFIRM"
  },
  {
   "relpath": ".spectre/shots-39644/r1_3b_chest_retry.png",
@@ -1187,7 +1187,7 @@
   ],
   "sha16": "dd23f36e836cb1a9",
   "classify": "POPUP",
-  "battle_class": "LOADING"
+  "battle_class": "CONFIRM"
  },
  {
   "relpath": ".spectre/shots-49980/dr_0.png",
@@ -1357,7 +1357,7 @@
   ],
   "sha16": "302d07b9ca69e007",
   "classify": "POPUP",
-  "battle_class": "CONFIRM"
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots/t28_pre.png",

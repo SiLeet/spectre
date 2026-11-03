@@ -5,10 +5,11 @@ The manifest pins what classify() (afk_claim_vision) and classify_battle()
 replays it, so any vision change that flips a verdict shows up offline.
 
 REGENERATE ONLY ON PURPOSE: when a classifier change is meant to change
-verdicts, re-run this script, review the diff of frame_manifest.json (every
-flipped entry is a behaviour change) and commit it together with the change.
+verdicts, re-run this script with --relabel (same frames, fresh verdicts),
+review the diff of frame_manifest.json (every flipped entry is a behaviour
+change) and commit it together with the change. A plain run re-picks frames.
 
-Usage: python scripts/tests/make_frame_manifest.py [--per-dir 2] [--out PATH]
+Usage: python scripts/tests/make_frame_manifest.py [--per-dir 2] [--relabel] [--out PATH]
 Frames stay local (.spectre/ is gitignored); only the text manifest is committed.
 """
 from __future__ import annotations
@@ -66,12 +67,29 @@ def build(per_dir: int) -> list[dict]:
     return entries
 
 
+def relabel(entries: list[dict]) -> list[dict]:
+    """Fresh verdicts for the frames already in the manifest (unchanged files only)."""
+    out = []
+    for e in entries:
+        path = REPO / e['relpath']
+        if path.exists() and sha16(path) == e['sha16']:
+            img = load_rgb(path)
+            e = {**e, 'classify': v.classify(img), 'battle_class': sp.classify_battle(img)}
+        out.append(e)
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--per-dir', type=int, default=2)
+    ap.add_argument('--relabel', action='store_true',
+                    help='keep the frame set, re-evaluate verdicts (deliberate behaviour change)')
     ap.add_argument('--out', type=Path, default=MANIFEST)
     args = ap.parse_args()
-    entries = build(args.per_dir)
+    if args.relabel:
+        entries = relabel(json.loads(args.out.read_text(encoding='utf-8')))
+    else:
+        entries = build(args.per_dir)
     args.out.write_text(json.dumps(entries, indent=1) + '\n', encoding='utf-8')
     print(f'wrote {args.out} ({len(entries)} frames)')
     return 0

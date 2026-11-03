@@ -4,8 +4,9 @@
     rc = afk_normalize.main()
     self.assertEqual(dev.taps, [v.BACK])
 
-Patches v.adb / v.tap / v.swipe / v.shot / v.ocr_lines and time.sleep for the
-duration of the test (undone via addCleanup). Any real adb call fails the test.
+Patches v.adb / v.tap / v.swipe / v.shot / v.ocr_lines (and the same names on
+any module passed via also=) and time.sleep for the duration of the test
+(undone via addCleanup). Any real adb call fails the test.
 
 Synthetic frames ("blank matrix"): a solid 1920x1080 base colour with only the
 classifier probe patches painted (measured colours from the
@@ -36,6 +37,12 @@ _SPEC = {
     'POPUP': ((40, 40, 40), {v.BACK: (62, 58, 57), (564, 1010): (100, 100, 100),
                              v.CLAIM: (233, 179, 117)}),
     'UNKNOWN': ((128, 128, 128), {}),
+    # afk_arena / review fixes (T58)
+    'BATTLE_MODES': ((40, 40, 40), {(480, 270): (240, 235, 225), (890, 934): (240, 240, 240)}),
+    'ARENA_LOBBY': ((40, 40, 40), {(1080, 1004): (150, 200, 150)}),
+    'DIALOG': ((40, 40, 40), {(200, 550): (240, 236, 228), (1720, 550): (240, 236, 228),
+                              (960, 450): (240, 236, 228), (1014, 710): (245, 240, 230),
+                              (1142, 710): (110, 170, 110)}),
 }
 _CACHE: dict[str, Image.Image] = {}
 
@@ -55,16 +62,18 @@ def frame(state: str) -> Image.Image:
 class FakeDevice:
     """Scripted screen sequence + tap/shot log."""
 
-    def __init__(self, test, frames: list, ocr: dict[str, list[str]] | None = None):
+    def __init__(self, test, frames: list, ocr: dict[str, list[str]] | None = None, also=()):
         self.frames = [frame(f) if isinstance(f, str) else f for f in frames]
         self.ocr = ocr or {}
         self.taps: list[tuple[int, int]] = []
         self.shots: list[str] = []
         for name, fake in (('adb', self._no_adb), ('tap', self._tap), ('swipe', self._swipe),
                            ('shot', self._shot), ('ocr_lines', self._ocr)):
-            p = mock.patch.object(v, name, fake)
-            p.start()
-            test.addCleanup(p.stop)
+            for mod in (v, *also):       # also: modules with their own tap/shot copies
+                if hasattr(mod, name):
+                    p = mock.patch.object(mod, name, fake)
+                    p.start()
+                    test.addCleanup(p.stop)
         self.out = io.StringIO()   # driver prints, kept off the test runner output
         for p in (mock.patch('time.sleep'), mock.patch.object(sys, 'stdout', self.out)):
             p.start()

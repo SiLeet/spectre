@@ -236,6 +236,10 @@ def main() -> int:
     ap.add_argument('--min-idle', type=float, default=0)
     args = ap.parse_args()
 
+    moved = v.prune_shot_dirs()        # old shots-<pid> dirs -> .spectre/trash (R8)
+    if moved:
+        print(f'    moved {moved} old shot dirs to .spectre/trash/', flush=True)
+
     if args.min_idle > 0:
         idle = v.idle_seconds()
         if idle is not None and idle < args.min_idle:

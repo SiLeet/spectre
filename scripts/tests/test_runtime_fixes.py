@@ -150,6 +150,20 @@ class R7Chances(unittest.TestCase):
         self.assertEqual(dev.taps, [dr.BOSS_TAP, v.BACK])
 
 
+
+class R8PruneCalled(unittest.TestCase):
+    def test_dream_main_prunes_except_dry_run(self):
+        for argv, calls in ((['--fights', '1'], 1), (['--dry-run'], 0)):
+            with mock.patch.object(v, 'prune_shot_dirs', return_value=3) as prune,                  mock.patch.object(dr, 'run', return_value=0),                  mock.patch.object(v, 'shot', return_value=frame('DR_BOSS')),                  mock.patch.object(sys, 'argv', ['afk_dream_realm.py', *argv]),                  mock.patch.object(sys, 'stdout', __import__('io').StringIO()):
+                self.assertEqual(dr.main(), 0)
+            self.assertEqual(prune.call_count, calls, argv)
+
+    def test_stage_push_main_prunes(self):
+        with mock.patch.object(v, 'prune_shot_dirs', return_value=0) as prune,              mock.patch.object(v, 'idle_seconds', return_value=0),              mock.patch.object(sys, 'argv', ['afk_stage_push.py', '--min-idle', '999']),              mock.patch.object(sys, 'stdout', __import__('io').StringIO()):
+            self.assertEqual(sp.main(), 5)           # skipped right after the prune
+        prune.assert_called_once()
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

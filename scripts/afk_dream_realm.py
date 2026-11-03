@@ -467,6 +467,9 @@ def main() -> int:
         print('    dry-run: no actions taken', flush=True)
         return 0
 
+    moved = v.prune_shot_dirs()        # old shots-<pid> dirs -> .spectre/trash (R8)
+    if moved:
+        print(f'    moved {moved} old shot dirs to .spectre/trash/', flush=True)
     try:
         return run(args)
     except RuntimeError as exc:

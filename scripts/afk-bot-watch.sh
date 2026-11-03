@@ -174,6 +174,10 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         [ "${PIPESTATUS[0]}" = "0" ] && date -u +%Y-%m-%d > "$OUT_DIR/$marker"
       fi
     }
+    # phase normalizer: a phase that ends on an unknown screen (live case: an
+    # accidental world-object tap into a submenu) must not poison the rest of
+    # the run — bring the game back to a known screen first, non-blind.
+    "$PY" scripts/afk_normalize.py 2>&1 | tee -a "$LOG"
     # arena: use ALL daily attempts (4) — one invocation per attempt is the
     # verified path; a rejected purchase dialog stops the loop early
     if [ "$(cat "$OUT_DIR/arena-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
@@ -190,9 +194,11 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
       # a failed arena day should not burn the marker: a later manual run can retry
       [ "$first_ok" = "1" ] && date -u +%Y-%m-%d > "$OUT_DIR/arena-last.txt"
     fi
+    "$PY" scripts/afk_normalize.py 2>&1 | tee -a "$LOG"
     run_daily_task "dream realm (all chances)" "dream-last.txt" \
       "$PY" scripts/afk_dream_realm.py --fights 7 --pid "$pid" --base "$base" \
       --min-idle "$MIN_IDLE"
+    "$PY" scripts/afk_normalize.py 2>&1 | tee -a "$LOG"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \
       --pid "$pid" --base "$base" --min-idle "$MIN_IDLE"

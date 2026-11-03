@@ -600,6 +600,16 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   Android-seitigen `pidof` als Prozessnachweis nehmen. Keine Taps, kein
   Code-Change; nächster Meilenstein bleibt der 17:10-Progress-Lauf mit
   R15/A8-Live-Checks + Frame-Manifest-Regen (R13).
+  **Re-Check 14:26 CET (Queue-Driver, rein read-only):** identisches Bild —
+  Device reachable, `pidof` bestätigt Spiel-PID 5176, Direkt-Read am Anker
+  liest unverändert `0a f7 03 00` = **259850** — Anker gültig, 17:10-Progress
+  geht weiter über den 'ok'-Pfad. Kein Lock, kein neuer Logblock (Stand 05:23).
+  Task-Scheduler unverändert (Progress Ready → 17:10; Daily/Night Result 0 →
+  04.11.). **Parallel-Writer-Beobachtung:** neuer lokaler Worktree
+  `C:/Users/Sigi/spectre-tray` auf Branch `feature/T66-tray-icon` (Commit
+  c9ef793, nicht gepusht; T66 fehlt noch im Wave-3-Plan) — Tray-Icon-Feature
+  in Arbeit, hier NICHT angefasst. `.spectre` auf 244 MB geschrumpft
+  (Trash-Auto-Age wirkt; R10-Befund 1,3 GB erledigt).
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

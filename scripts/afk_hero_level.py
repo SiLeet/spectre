@@ -18,7 +18,7 @@ only — OCR gate before, read-back (+1) after; afk-bot-watch.sh runs it once a 
 Usage: python scripts/afk_hero_level.py [--target 95] [--dry-run] [--level]
 Exit codes: 0 done / charged, 1 stuck (unknown screen / hand unreadable or not
 found / hall lost), 4 (--level) skipped today: resources short, no effect or a
-purchase dialog (cancelled).
+purchase dialog (cancelled), 7 tap lock held (another bot run is tapping).
 """
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402  (shared adb/tap/shot/OCR helpers)
+import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
 
 HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
 HAND_XS = [710, 840, 970, 1100, 1220]
@@ -323,6 +324,12 @@ def main():
                     help="daily mode (T67): exactly one x1 level charge on the lowest hand")
     args = ap.parse_args()
     target, dry = args.target, args.dry_run
+
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        return 7
+    _bot_lock.release_at_exit()
 
     # navigate: town -> Resonating Hall
     v.tap(HALL_BTN, 4.0)

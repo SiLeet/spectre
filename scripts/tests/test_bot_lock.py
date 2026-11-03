@@ -92,12 +92,15 @@ class BotLockWiring(unittest.TestCase):
 
     def test_direct_scripts_wired(self):
         for name in ('afk_dream_realm.py', 'afk_arena.py',
-                     'afk_stage_push.py', 'afk_dailies.py'):
+                     'afk_stage_push.py', 'afk_dailies.py',
+                     'afk_hero_level.py'):
             self._assert_wired(name)
-        # the parallel-writer-owned file is intentionally NOT wired here
-        # (uncommitted at fix time) — wiring it is a follow-up.
-        self.assertNotIn('_bot_lock.acquire',
-                         (SCRIPTS / 'afk_hero_level.py').read_text(encoding='utf-8'))
+
+    def test_hero_level_gate_precedes_navigation(self):
+        src = (SCRIPTS / 'afk_hero_level.py').read_text(encoding='utf-8')
+        self.assertLess(src.index('_bot_lock.acquire'),
+                        src.index('# navigate: town -> Resonating Hall'),
+                        'hero_level: lock gate must run before the first tap')
 
     def test_wrappers_export_held_env(self):
         for name in ('afk-bot-watch.sh', 'afk-night.sh'):

@@ -16,7 +16,8 @@
 1. **Offline only.** Kein Task startet BlueStacks/apps, tippt live oder ruft
    echte adb-Befehle. Alles läuft über Dateien/Tests.
 2. **`.spectre/` ist read-only Input** (gitignored Runtime-Daten: Screenshots,
-   Logs). Neue Artefakte schreibt nur `scripts/tests/.artifacts/`.
+   Logs) — Ausnahme: `.spectre/logs/` (dort schreibt `bluestacks-ensure.sh` sein Log).
+   Neue Artefakte schreibt nur `scripts/tests/.artifacts/`.
 3. **Keine neuen Dependencies.** Nur Python-Stdlib + vorhandenes `PIL`
    (Interpreter: `python` in dieser Shell, 3.14.9, PIL vorhanden).
    Kein pytest — **stdlib `unittest`**.
@@ -292,3 +293,17 @@ Key-Gate `--use-keys`.
 
 > Dieser Plan ist bewusst als Datei im Repo (`docs/claude-wave-2-plan.md`) —
 > Claude Code liest ihn direkt als Kontext statt Kopier-Rauschen.
+
+---
+
+## 5. Hermes-Zusatz (03.11., nach Plan-Freeze)
+
+- **T59 (Brief in `CLAUDE-TASKS.md`; Branch `feature/T59-spectre-mcp`):** `spectre-mcp` —
+  stdio-MCP-Server, der Agenten die Live-Pipeline als Tools gibt (find/regions/dump/
+  hot/hunt/search/read/adb_taps; EINZIGER adb-Owner). Registrierung via `.mcp.json`;
+  Live-Smoke durch Hermes nach Merge.
+- **STATUS 03.11.: T59 gebaut (`13e959f`), unabhängig verifiziert (11 Tests grün, clippy 0 Warnings, Live-Smoke health/find/regions/read/screencap gegen BlueStacks ok), in `main` gemergt und Branch gepusht. Fresh-Eyes-Review (12 Findings) eingearbeitet: `0fe3bcd` (Config/Docs) + `d4c6ce6` (ensure-Härtung; Launch via MSYS-EXCL live verifiziert). Topologie-Punkt (main noch ohne Docs) löst der Wave-Merge; Exe für `.mcp.json` liegt bereit.**
+- **`scripts/bluestacks-ensure.sh`:** prüft/startet BlueStacks idle-gated (Exit 4 =
+  Idle-Gate). Queue-Driver nutzt es bei fehlendem Device statt "Sergej startet manuell".
+- **Agent-Docs:** `CLAUDE.md`, `AGENTS.md`, `docs/agent-workflow.md`,
+  `.claude/settings.json` (Model-Pin), `.mcp.json` (projekt-scope).

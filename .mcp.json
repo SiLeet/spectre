@@ -6,8 +6,7 @@
       "env": {
         "SPECTRE_BIN": "C:/Users/Sigi/spectre/target/release/spectre.exe",
         "ADB_BIN": "C:/Users/Sigi/AppData/Local/Android/Sdk/platform-tools/adb.exe",
-        "SERIAL": "127.0.0.1:5555",
-        "WORKDIR": "C:/Users/Sigi/spectre"
+        "SERIAL": "127.0.0.1:5555"
       }
     }
   }

@@ -1,5 +1,6 @@
 {
   "model": "opus",
+  "enableAllProjectMcpServers": true,
   "permissions": {
     "allow": ["mcp__spectre"]
   }

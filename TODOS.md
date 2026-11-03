@@ -628,8 +628,8 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   🟨 Queue-Driver 23:12 CET: erneut live blockiert — PC-Idle 2.696,125 s (>180-s-Gate), `.spectre/afk-bot.lock` fehlt; `HD-Player.exe` läuft nicht. `adb connect 127.0.0.1:5555` verweigert mit 10061, `adb devices -l` ist leer. Gemäß Emulator-Prerequisite BlueStacks nicht gestartet; keine Game-Taps. Season-Banner/Timer weiter ungeprüft; T45j bleibt offen.
   🟨 Queue-Driver 23:29 CET: erneut live blockiert — PC-Idle 3,656 s (<180-s-Gate; gemessen via GetLastInputInfo), `.spectre/afk-bot.lock` fehlt, `HD-Player.exe` läuft nicht; `adb connect 127.0.0.1:5555` verweigert mit 10061 und `adb devices -l` ist leer. Kein Emulatorstart/keine Game-Taps; Season-Banner/Timer ungeprüft. T45j bleibt offen.
   🟨 Queue-Driver 00:02 CET 2026-11-03: erneut live blockiert — BlueStacks/HD-Player läuft nicht (`adb connect 127.0.0.1:5555` verweigert 10061, `adb devices` leer, `HD-Player.exe` nicht aktiv). Gemäß Emulator-Prerequisite kein Emulatorstart und keine Game-Taps; Season-Banner/Timer nicht prüfbar. T45j bleibt offen.
-  → Aktion erforderlich: Sergej startet BlueStacks manuell (oder per Windows-Task).
-  → Im nächsten Lauf prüfe ich nach Emulator-Start Banner-Timer und dokumentiere den Season-End-Arbitrage-Entscheidungspunkt (≤6h: Chest/Attempts NICHT claimen; Tag 1: Push → Claim; Season-Mats 24h vor Ende dumpen).
+  🟨 Queue-Driver 02:08 CET 2026-11-03: `scripts/bluestacks-ensure.sh` erfolgreich (Exit 0: VM + ADB verbunden); Spielprozess PID 4392. Screenshot zeigt Battle Modes; Dream-Realm-Karte „Results in 22h“ ist kein belegter Season-End-Timer, und ein Season-Kalender/Banner ist auf diesem Screen nicht sichtbar. PC-Idle 9 s; keine Game-Taps, um die aktive Nutzung nicht zu stören. T45j bleibt offen: bei einem späteren idle-gated Lauf nach dem Season-Banner/Endtimer suchen. Manueller BlueStacks-Start ist nicht erforderlich.
+  🟨 Queue-Driver 02:27 CET 2026-11-03: MCP-Health meldet BlueStacks + ADB erreichbar; `find igame` bestätigt PID 4392. Read-only-Screenshot `.spectre/shots-4392/readonly-season-check.png` zeigt erneut Battle Modes; „Results in 22h“ gehört zum Dream-Realm-Timer und belegt keinen Season-End-Timer. Kein Season-Banner/Kalender sichtbar. Lock fehlt, aber Windows-Idle nur 11 s (<180 s); keine Game-Taps. T45j bleibt offen.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`
@@ -675,7 +675,23 @@ Wand-Stand: Stage 254, Level-Cap 95, Resonanz 80. Die „Wand" bei 250 löst
 sich durch Auto-Battle-Retries (249→252 gemessen) + Leveling. Der
 Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 
+## P9 — Agent-Infra & MCP (Hermes, 03.11.)
+
+- ✅ T59: `spectre-mcp` (MCP-Server: Live-Pipeline als Agenten-Tools, einziger adb-Owner,
+  serialisiert) — gebaut (Claude), unabhängig verifiziert (11 Tests, clippy 0, Live-Smoke
+  health/find/regions/read/screencap gegen BlueStacks), in `main` gemergt (`13e959f`),
+  Branch `feature/T59-spectre-mcp` gepusht. Nutzung via `.mcp.json` (projekt-scope):
+  MCP-first, nie CLI+adb parallel.
+- ✅ `scripts/bluestacks-ensure.sh` + Queue-Driver-Prompt: Emulator startet idle-gated
+  selbst (Exit 4 = Idle-Gate) statt „Sergej startet manuell".
+- ⬜ Nach dem Wave-Merge nach `main`: im main-Checkout `cargo build --release -p spectre-mcp
+  -p spectre-cli` (macht den `.mcp.json`-Pfad real) + `claude mcp list`-Gegencheck.
+- ⬜ Optional (YAGNI): MCP-Tools für `search`-Refine (`--continue`) nachziehen.
+
+---
+
 ## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
+
 > Anlass: 2 Tage BlueStacks-Ausfall; off-game Review der Scheduler-/Wrapper-Schicht.
 > Alle HIGH/MED-Funde eingezogen (commits cde8ecd + 584ea2f).
 
@@ -714,3 +730,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 - ⬜ R9 [LOW, offen → als Task A4/T48 im Wave-2-Plan]: scripts/_level_hands.py
   ist redundant zu afk_hero_level.py → wird im Dedup-Batch gelöscht
   (docs/claude-wave-2-plan.md, A4).
+- 📌 R12 [LOW, aus Night-Live-Test 2026-11-03]: afk-night.sh schluckt den
+  Exit-Code (Pipe auf tee → Script-exit = tee-rc = 0, auch wenn der Push mit
+  SKIP=5 endet; TaskResult zeigt fälschlich 0). Fix: rc nach dem tee capturen
+  und propagieren. Night feuerte 02:00 korrekt, skippte sauber (PC idle 0 s —
+  Sergej aktiv) → beim nächsten idle-Fenster nachfeuerbar.

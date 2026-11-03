@@ -751,3 +751,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   F25 (Lobby→PREP; Recon), N2/A8 (stage_push LAUNCHER-Kreuzklassifikation,
   dream start_fight-Fight-Marker + wait_re-arm). Live-Gegenproben: F1-Cancel-Tap
   (1014,710) auf echten row-729-Dialogen, F7-Chip-Marge (103 vs 100).
+- 📌 R15 [2026-11-03]: A8 (R1–R18 Runtime-Fixes) gemergt (b330e6b) — 12-Punkte-
+  Live-Check-Liste in docs/reports/claude-wave-2-a8-run.md §§. Beim nächsten
+  Live-Fenster: F1-Cancel-Tap-Gegenprobe + F7-Chip-Marge (aus R14) + A8-Live-
+  Checks (dream start/re-arm/chances, stage launcher/loading, popup-close,
+  adb-down exit 2, summary-close). Danach Frame-Manifest-Regen (R13).

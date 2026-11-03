@@ -61,7 +61,24 @@ trap cleanup EXIT
 ( while [ -e "$LOCK" ]; do sleep 240; touch "$LOCK" 2>/dev/null || true; done ) &
 LOCK_KEEPER=$!
 
-pid=$("$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}')
+find_pid() { "$SPECTRE" find igame --adb 2>/dev/null | awk '/^[0-9]+[[:space:]]/ {print $1; exit}'; }
+pid=$(find_pid)
+# T68 step 0: game/emulator not reachable -> one bounded device-ensure
+# (BlueStacks + game start, title/login popups only). Scheduled runs keep
+# their idle gate (--min-idle), manual runs pass --force. Any failure is only
+# a warning: the normal check below decides.
+if [ -z "${pid:-}" ] && [ "${AFK_DEVICE_ENSURE:-1}" = "1" ]; then
+  if [ "$MIN_IDLE" -gt 0 ] 2>/dev/null; then ens_args=(--min-idle "$MIN_IDLE"); else ens_args=(--force); fi
+  echo "afk-bot-watch: game not reachable — device-ensure (${ens_args[*]})" | tee -a "$LOG"
+  timeout "${AFK_ENSURE_TIMEOUT:-600}" bash scripts/device-ensure.sh "${ens_args[@]}" 2>&1 | tee -a "$LOG"
+  ens_rc="${PIPESTATUS[0]}"
+  case "$ens_rc" in
+    0) echo "afk-bot-watch: device-ensure ok" | tee -a "$LOG" ;;
+    4) echo "afk-bot-watch: device-ensure skipped (idle gate: PC in use)" | tee -a "$LOG" ;;
+    *) echo "afk-bot-watch: WARN device-ensure rc=$ens_rc — continuing with the normal checks" | tee -a "$LOG" ;;
+  esac
+  pid=$(find_pid)
+fi
 if [ -z "${pid:-}" ]; then
   echo "afk-bot-watch: game process not found (is BlueStacks running and the game open?)" | tee -a "$LOG" >&2
   exit 2

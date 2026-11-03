@@ -277,9 +277,14 @@ def main() -> int:
             print('    ERROR: unknown screen — refusing to tap blind', flush=True)
             return 1
     if st == 'POPUP':
-        # a reward/event popup blocks the flow; cancelling blind risks a buy
-        print('    ERROR: popup on screen — aborting (no blind dismiss)', flush=True)
-        return 1
+        # known login popup (free monthly/daily rewards) -> claim it;
+        # anything else: abort (no blind dismiss, cancelling risks a buy)
+        if v.resolve_startup_popup('sp_1a_popup'):
+            st = classify_battle(v.shot('sp_1b_after_popup'))
+            print(f'    after login popup: {st}', flush=True)
+        if st == 'POPUP':
+            print('    ERROR: popup on screen — aborting (no blind dismiss)', flush=True)
+            return 1
     if st not in ('PREP', 'RESULT', 'DEFEAT'):
         # enter the stage screen through the AFK panel
         for _ in range(3):

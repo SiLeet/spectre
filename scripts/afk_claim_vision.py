@@ -231,6 +231,48 @@ CHEST = (975, 760)
 CLAIM = (960, 602)
 BACK = (474, 1010)
 GROUND = (300, 250)
+LOGIN_CLAIM = (960, 930)   # 'Esperia Monthly / Daily Rewards' popup Claim (verified live)
+POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
+
+
+def ocr_lines(name: str) -> list[str]:
+    """WinRT OCR on a screenshot already saved by shot() (offline, real text)."""
+    png = TMP / f'{name}.png'
+    if not png.exists():
+        return []
+    try:
+        pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                             '-File', str(OCR_PS1), '-Path', str(png)],
+                            capture_output=True, timeout=20, text=True,
+                            encoding='utf-8', errors='replace')
+        return [ln.strip() for ln in pr.stdout.splitlines() if ln.strip()]
+    except (subprocess.SubprocessError, OSError):
+        return []
+
+
+def resolve_startup_popup(tag: str) -> bool:
+    """Handle the known login popup (Esperia Monthly / Daily Rewards).
+
+    Appears on a fresh game login, sits in POPUP state and blocks every flow.
+    The Claim is free (accumulated daily rewards). OCR gates the tap so the
+    resolver stays non-blind; a follow-up card is dismissed with one BACK.
+    Returns True when the popup was recognised and handled.
+    """
+    shot(tag)
+    lines = ocr_lines(tag)
+    hit = any(('monthly' in l.lower() or 'gazette' in l.lower()
+               or 'daily rewards' in l.lower()) for l in lines)
+    if not hit:
+        return False
+    print(f'    {tag}: login popup detected -> claim', flush=True)
+    tap(LOGIN_CLAIM, 3.0)
+    st = classify(shot(f'{tag}_after'))
+    if st in ('POPUP', 'UNKNOWN'):
+        tap(BACK, 1.5)          # rewards-obtained card / second popup
+        st = classify(shot(f'{tag}_dismiss'))
+    print(f'    {tag}: after login claim: {st}', flush=True)
+    return True
 
 
 def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
@@ -407,9 +449,13 @@ def main() -> int:
             state = classify(shot(f'r{rnd}_1_panel'))
             print(f'    after AFK tap: {state}', flush=True)
         if state == 'POPUP':
-            # a popup from a previous run: close it and retry from the panel
-            tap(BACK, 1.5)
-            state = classify(shot(f'r{rnd}_1b_recover'))
+            # known login popup (free monthly/daily rewards) gets claimed,
+            # anything else is closed and retried from the panel
+            if resolve_startup_popup(f'r{rnd}_1a_popup'):
+                state = classify(shot(f'r{rnd}_1b_recover'))
+            else:
+                tap(BACK, 1.5)
+                state = classify(shot(f'r{rnd}_1b_recover'))
             print(f'    after close: {state}', flush=True)
         if state == 'UNKNOWN':
             # never fire the recovery taps on an unidentified screen: that is

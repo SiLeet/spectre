@@ -68,10 +68,12 @@ def classify_battle(img) -> str:
     # dim-uniform back-arrow predicate falsely says WORLD — shots-19744).
     if v.classify(img) == 'WORLD' and v.lum(v.avg(img, AFK_PROGRESS)) > 100:
         return 'WORLD'
-    if search > 120 and dark < 60:
+    if search > 200 and pause > 150 and dark < 60:
         # BlueStacks launcher: bright search field on a dark background — the
         # game crashed or was closed. Without this, a crash looked like a
-        # never-ending LOADING screen.
+        # never-ending LOADING screen. Gate measured (runtime review R3):
+        # launcher search 242 / pause 196-200, live fights search 30-180 /
+        # pause 0-46 — the old 'search > 120' called fights 'game crashed'.
         return 'LAUNCHER'
     if dark < 45 and header < 45:
         return 'LOADING'
@@ -480,6 +482,8 @@ def main() -> int:
                     print(f'    wall reached: {skipped} fights skipped in {int(time.time()-t0)}s',
                           flush=True)
                     break
+                elif st == 'LOADING':
+                    pass    # no information: dark night fight frames read LOADING (R3)
                 else:
                     # UNKNOWN/POPUP without the summary card: tolerated briefly,
                     # but a persistent unknown screen must not spin silently.
@@ -513,15 +517,15 @@ def main() -> int:
                 print('    SKIP: PC is in use — aborting the run', flush=True)
                 return 5
         v.tap(BATTLE_BTN, 3.0)
-        st, _ = wait_for({'BATTLE', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}')
+        st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}')
         print(f'    battle {i}: started ({st})', flush=True)
         if st == 'PREP':
             # the Battle tap was swallowed by a transition frame: one re-tap
             # before declaring the fight a failure (review finding)
             v.tap(BATTLE_BTN, 3.0)
-            st, _ = wait_for({'BATTLE', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}b')
+            st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}b')
             print(f'    battle {i}: restarted ({st})', flush=True)
-        if st == 'BATTLE':
+        if st in ('BATTLE', 'LOADING'):
             st, _ = wait_for({'RESULT', 'PREP', 'DEFEAT'}, args.max_battle_seconds, f'sp_end_{i}')
         if st == 'RESULT':
             wins += 1

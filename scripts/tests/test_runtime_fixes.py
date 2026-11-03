@@ -66,5 +66,37 @@ class R2ReadyRearm(unittest.TestCase):
         self.assertEqual(dev.taps, [])
 
 
+
+class StagePushCase(unittest.TestCase):
+    """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
+
+    def run_sp(self, frames, *argv):
+        dev = FakeDevice(self, frames)
+        log = Path(__file__).resolve().parent / '.artifacts' / 'wall-report.test.log'
+        log.parent.mkdir(exist_ok=True)
+        for patch in (mock.patch.object(sp, 'ocr_text', lambda png: []),
+                      mock.patch.object(sp, 'WALL_LOG', log),
+                      mock.patch.object(sys, 'argv', ['afk_stage_push.py', *argv])):
+            patch.start()
+            self.addCleanup(patch.stop)
+        return dev, sp.main()
+
+
+class R3LauncherLoading(StagePushCase):
+    def test_classifier(self):
+        self.assertEqual(sp.classify_battle(frame('SP_LAUNCHER')), 'LAUNCHER')
+        fight = frame('SP_BATTLE')
+        fight.paste((170, 170, 170), (946, 110, 974, 138))   # bright search probe (fight UI)
+        self.assertEqual(sp.classify_battle(fight), 'BATTLE')   # old gate: LAUNCHER
+        self.assertEqual(sp.classify_battle(frame('SP_LOADING')), 'LOADING')
+
+    def test_single_battle_through_a_loading_frame(self):
+        # dark night fight reads LOADING: used to end as 'no victory (LOADING)'
+        dev, rc = self.run_sp(['SP_PREP', 'SP_LOADING', 'SP_RESULT', 'SP_RESULT'])
+        self.assertEqual(rc, 0)
+        self.assertIn('battle 1: VICTORY', dev.out.getvalue())
+        self.assertEqual(dev.taps, [sp.BATTLE_BTN])
+
+
 if __name__ == '__main__':
     unittest.main()

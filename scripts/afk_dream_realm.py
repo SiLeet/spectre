@@ -38,6 +38,7 @@ Exit codes: 0 done, 1 stuck, 2 adb error, 5 skipped (PC in use).
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
@@ -353,13 +354,17 @@ def reach_world(tag: str) -> bool:
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 
-def start_fight(fight: int, attempts_max: int = 4) -> bool:
+def start_fight(fight: int, attempts_max: int = 4) -> str | None:
     """Tap Battle on the boss page / prep screen until the fight is underway.
 
     Never re-taps while the same ready screen still stands (T38 #6). "Underway"
     needs positive evidence (A8a-1): the in-fight marker or an end state.
     Black/undecided transition frames keep polling — accepting them left the
     driver on the pre-fight screen for 153 s (shots-33128).
+
+    Returns 'started' (fight marker or end card seen), 'dialog' (a dim
+    dialog answered the tap — chance purchase / empty pool: BACK, no fight
+    counted; runtime review R7) or None (no start after attempts_max taps).
     """
     for attempt in range(attempts_max):
         img = v.shot(f'dr_f{fight}_pre{attempt}')
@@ -376,8 +381,13 @@ def start_fight(fight: int, attempts_max: int = 4) -> bool:
         same = 0
         for k in range(10):
             img = v.shot(f'dr_f{fight}_after{attempt}_{k}')
-            if is_fight(img) or is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
-                return True
+            if is_fight(img) or is_battle_ended(img) or is_hero_card(img):
+                return 'started'
+            if dim_confirmed(f'dr_f{fight}_after{attempt}_{k}', img):
+                print(f'    fight {fight}: dim dialog after the Battle tap — BACK, '
+                      'not counted as a fight', flush=True)
+                v.tap(v.BACK, 2.0)
+                return 'dialog'
             now = 'prep' if is_prep(img) else 'boss' if is_boss_page(img) else None
             if now is not None and now != cls:
                 break                       # boss <-> prep: next attempt taps the right button
@@ -390,7 +400,16 @@ def start_fight(fight: int, attempts_max: int = 4) -> bool:
             time.sleep(2.5)                 # dark / undecided transition: keep polling
         else:
             print(f'    fight {fight}: no fight marker after the tap', flush=True)
-    return False
+    return None
+
+
+def parse_chances(lines: list[str]) -> int | None:
+    """Remaining chances from the boss page OCR ('Chances: 5/7')."""
+    for ln in lines:
+        m = re.search(r'chances?\W*(\d+)\s*/\s*\d+', ln, re.I)
+        if m:
+            return int(m.group(1))
+    return None
 
 
 def set_speed_x2(fight: int) -> bool:
@@ -478,7 +497,20 @@ def run(args) -> int:
         if not back_to_ready(f'dr_pre{fight}'):
             print('    ERROR: Dream Realm boss page not reachable', flush=True)
             return 1
-        if not start_fight(fight):
+        img = v.shot(f'dr_f{fight}_chances')
+        if is_boss_page(img):
+            chances = parse_chances(v.ocr_lines(f'dr_f{fight}_chances'))
+            print(f'    fight {fight}: chances left = '
+                  f'{"unreadable" if chances is None else chances}', flush=True)
+            if chances == 0:
+                print('    STOP: no Dream Realm chances left', flush=True)
+                break
+        started = start_fight(fight)
+        if started == 'dialog':
+            print('    STOP: Battle opened a dialog instead of a fight '
+                  '(chance purchase / empty pool?)', flush=True)
+            break
+        if started is None:
             print('    ERROR: fight did not start after 4 battle taps',
                   flush=True)
             return 1

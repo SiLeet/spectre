@@ -31,12 +31,12 @@ class R1FightMarker(unittest.TestCase):
         # code returned 'underway' on the black frames and never tapped prep.
         dev = FakeDevice(self, ['DR_BOSS', 'DR_BLACK', 'DR_BLACK', 'DR_PREP',
                                 'DR_PREP', 'DR_FIGHT'])
-        self.assertTrue(dr.start_fight(1))
+        self.assertEqual(dr.start_fight(1), 'started')
         self.assertEqual(dev.taps, [dr.BOSS_TAP, dr.PREP_TAP])
 
     def test_endless_black_is_not_a_fight(self):
         dev = FakeDevice(self, ['DR_BOSS'] + ['DR_BLACK'] * 10 + ['DR_BLACK'] * 6)
-        self.assertFalse(dr.start_fight(1))
+        self.assertIsNone(dr.start_fight(1))
         self.assertEqual(dev.taps, [dr.BOSS_TAP])
 
 
@@ -122,6 +122,32 @@ class R6SpeedTapGated(unittest.TestCase):
             dev = FakeDevice(self, frames)
             self.assertFalse(dr.set_speed_x2(1))
             self.assertEqual(dev.taps, [])
+
+
+
+class R7Chances(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_parse(self):
+        self.assertEqual(dr.parse_chances(['Elite Challenge', 'Chances: 5/7']), 5)
+        self.assertEqual(dr.parse_chances(['Chance 0 / 7']), 0)
+        self.assertIsNone(dr.parse_chances(['Battle']))
+
+    def test_empty_pool_stops_cleanly(self):
+        import argparse
+        dev = FakeDevice(self, ['DR_BOSS', 'DR_BOSS', 'DR_BOSS', 'DR_BOSS'],
+                         ocr={'dr_f1_chances': ['Chances: 0/7']})
+        self.assertEqual(dr.run(argparse.Namespace(fights=7, wait_fight=150)), 0)
+        self.assertEqual(dev.taps, [])
+        self.assertIn('no Dream Realm chances left', dev.out.getvalue())
+
+    def test_dim_dialog_after_tap_is_not_a_fight(self):
+        dev = FakeDevice(self, ['DR_BOSS', 'DR_DIM', 'DR_DIM'])
+        self.assertEqual(dr.start_fight(1), 'dialog')
+        self.assertEqual(dev.taps, [dr.BOSS_TAP, v.BACK])
 
 
 class StagePushCase(unittest.TestCase):

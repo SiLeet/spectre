@@ -116,11 +116,13 @@ minimieren); alle conf-Edit mit Backup.
 - **R-A/R-B Research-Agents laufen** (Speed-/Hack-Landschaft; bestehende
   AFJ-Projekte + API-Sniff + Trick-Liste). Ergebnisse fließen hier ein.
 - **Live-Recon L1–L8** (nächste Live-Fenster, idle-gated):
-  L1 **speedybara-Test (NEU, höchste Prio):** natives Windows-Tool skaliert die
-     Prozess-Geschwindigkeit 0.25–8× (PC-Prozess ODER gerooteter Emulator) —
-     Download, mit/ohne BlueStacks-Root testen, Effekt via C1-Metriken messen
-     (2×/4×/8×), Stabilität beobachten. Potenziell der größte Einzel-Hebel,
-     noch vor Frida, weil fertige Software.
+  L1 **Host-Speed-Tools testen (NEU, höchste Prio):** (a) OpenSpeedy
+     (game1024/OpenSpeedy, 19k★, aktiv): Ring-3-Hooks auf Windows-Zeitfunktionen
+     (Sleep/QPC/GetTickCount…) des HD-Player.exe-Prozesses — KEIN Emulator-Root
+     nötig; (b) speedybara (Alternativ-Tool, braucht Root). Vorgehen: Tool
+     installieren, an HD-Player hängen, 2×/4× setzen, Effekt via C1-Metriken +
+     In-Game-Timer messen, Stabilität beobachten. Potenziell der größte
+     Einzel-Hebel (Wall-Clock!), noch vor Frida, weil Fertig-Software.
   L2 Frida auf DIESEM Setup — **Machbarkeit research-bestätigt**: BS5 Pie64 +
      x86_64-frida-server + `--realm=emulated` (frida#3497, il2cpp sichtbar);
      Falle dokumentiert: BS ≥5.22 setzt Root-Flag je Start zurück

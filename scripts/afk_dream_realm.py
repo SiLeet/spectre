@@ -77,6 +77,12 @@ MAX_UNKNOWN = 20                 # back_to_ready: ~60 s of unrecognised frames
 MAX_DISMISS_TAPS = 24            # global dismiss budget (T38 #12)
 
 _dismiss_taps = 0
+_battle_tap_t = 0.0              # T61: monotonic time of the last Battle tap
+
+
+def _mark_battle_tap() -> None:
+    global _battle_tap_t
+    _battle_tap_t = time.monotonic()
 
 
 def _budget(n: int = 1) -> bool:
@@ -321,6 +327,7 @@ def wait_for_fight_end(tag: str, max_wait: float):
                 cls = 'prep' if is_prep(img) else 'boss'
                 print(f'    {tag}: still on the {cls} screen, no fight marker — '
                       're-tapping Battle once', flush=True)
+                _mark_battle_tap()
                 v.tap(PREP_TAP if cls == 'prep' else BOSS_TAP, 4.0)
                 rearmed, ready_run = True, 0
                 deadline = time.time() + max_wait
@@ -393,6 +400,7 @@ def start_fight(fight: int, attempts_max: int = 4) -> str | None:
                 continue
         btn = PREP_TAP if cls == 'prep' else BOSS_TAP
         print(f'    fight {fight}: {cls} screen -> Battle', flush=True)
+        _mark_battle_tap()
         v.tap(btn, 4.0)
         same = 0
         for k in range(10):
@@ -511,6 +519,7 @@ def run(args) -> int:
             return 1
 
     fights = 0
+    walls: list[float] = []
     for fight in range(1, args.fights + 1):
         print(f'--- dream realm fight {fight}/{args.fights}', flush=True)
         if not back_to_ready(f'dr_pre{fight}'):
@@ -539,10 +548,15 @@ def run(args) -> int:
         set_speed_x2(fight)
 
         end_img = wait_for_fight_end(f'dr_f{fight}', args.wait_fight)
+        wall = time.monotonic() - _battle_tap_t   # T61: Battle tap -> end detected
         if end_img is None:
+            print(f'    fight {fight}: {v.battle_metric("dream", "timeout", wall)}', flush=True)
+            print(v.wall_summary('dream', walls), flush=True)
             return 1
         fights += 1
-        print(f'    fight {fight}: completed (chance consumed)', flush=True)
+        walls.append(wall)
+        print(f'    fight {fight}: completed (chance consumed) '
+              f'{v.battle_metric("dream", "ended", wall)}', flush=True)
         final = resolve_end_states(end_img, f'dr_f{fight}_resolve')
         if final is None:
             print('    ERROR: end-state dismiss failed', flush=True)
@@ -557,6 +571,7 @@ def run(args) -> int:
         if is_ready(img):
             v.tap(BACK, 2.0)
     img = v.shot('dr_final')
+    print(v.wall_summary('dream', walls), flush=True)
     print(f'    done: {fights} fight(s) completed; final state: '
           f'{v.classify(img)}', flush=True)
     return 0

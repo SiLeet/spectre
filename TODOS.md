@@ -574,7 +574,11 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   `spectre dump` am absoluten Offset (base + 0x1BD838) liest unverändert
   `0a f7 03 00` = **259850** — Anker gültig, der 17:10-Lauf geht direkt über
   den 'ok'-Pfad (0 Re-Location, 0 Taps). Keine neuen Logblöcke seit dem
-  05:10-Daily (Log-Stand 05:23, alle Befunde daraus = vor da9f411).
+  **Re-Check 13:21 CET (Queue-Driver, rein read-only):** PID 5176 + rw-Heap
+  `7964e0000000-7964e7e00000` weiter in maps, Direkt-Read am Anker
+  (skip=133474163611704) liest unverändert `0a f7 03 00` = **259850** —
+  Anker gültig, 17:10-Progress geht weiter über den 'ok'-Pfad. Keine neuen
+  Scheduler-Logblöcke seit dem 05:10-Daily (Log-Stand 05:23).
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

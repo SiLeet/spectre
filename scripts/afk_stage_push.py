@@ -158,6 +158,9 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
     """Screenshot -> OCR -> JSONL line in .spectre/wall-report.log.
 
     Never raises: a failed report must not break the push run.
+    Reason vocabulary (afk-wall-dash.reason_family groups it): walls =
+    '*defeat*' + 'auto_prep_stop_*'; progress = 'single_push_complete_*';
+    everything else (timeouts, aborts, 'battle_N_no_victory_*') is 'other'.
     """
     rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "reason": reason, "stage": None, "power": None,

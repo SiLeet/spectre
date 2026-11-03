@@ -65,6 +65,21 @@ def fmt_int(v):
         return "—"
 
 
+def reason_family(reason):
+    """'wall' | 'progress' | 'other' for afk_stage_push.wall_report reasons.
+
+    Producer vocabulary: wall_defeat_*, auto_defeat_after_*, battle_N_defeat
+    and auto_prep_stop_* ('wall reached') are walls; single_push_complete_*
+    is the only stage gain. Exact 'defeat'/'progress' never occur, and
+    'battle_N_no_victory_*' is a stall, not a win."""
+    r = str(reason or "")
+    if "defeat" in r or r.startswith("auto_prep_stop"):
+        return "wall"
+    if r.startswith("single_push_complete"):
+        return "progress"
+    return "other"
+
+
 def esc(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -87,8 +102,9 @@ def main():
         return
 
     last = evs[-1]
-    defeated = sum(1 for e in evs if e.get("reason") == "defeat")
-    progress = sum(1 for e in evs if e.get("reason") == "progress")
+    families = [reason_family(e.get("reason")) for e in evs]
+    defeated = families.count("wall")
+    progress = families.count("progress")
     rows = "".join(
         f"<tr><td>{human_ts(e.get('ts', 0))}</td>"
         f"<td>{esc(or_dash(e.get('stage')))}</td>"

@@ -113,5 +113,23 @@ class Render(DashCase):
                          ['74,986', '74,986', '74,986', '—', '—', '—'])
 
 
+
+class F17ReasonFamilies(DashCase):
+    REAL_REASONS = ['auto_defeat_after_20s', 'auto_prep_stop_3skipped_34s', 'auto_timeout_14skipped',
+                    'auto_timeout_8skipped_end_unknown', 'battle_1_no_victory_prep',
+                    'wall_defeat_initial', 'single_push_complete_2of3', 'battle_2_defeat', None]
+
+    def test_families(self):
+        self.assertEqual([wd.reason_family(r) for r in self.REAL_REASONS],
+                         ['wall', 'wall', 'other', 'other', 'other', 'wall', 'progress', 'wall', 'other'])
+
+    def test_counters_rendered(self):
+        self.write(*(json.dumps({**REAL, 'reason': r}) for r in self.REAL_REASONS))
+        self.run_main()
+        html = self.out.read_text(encoding='utf-8')
+        self.assertIn('<div class="v">4</div><div class="l">Walls</div>', html)
+        self.assertIn('<div class="v">1</div><div class="l">Progress</div>', html)
+
+
 if __name__ == '__main__':
     unittest.main()

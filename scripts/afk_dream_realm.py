@@ -333,9 +333,12 @@ def wait_for_fight_end(tag: str, max_wait: float):
 
 
 def reach_world(tag: str) -> bool:
-    """BACK-tap back to the world view. UNKNOWN frames abort instead of
-    tapping blind (T38 #3)."""
-    for i in range(6):
+    """BACK-tap back to the world view. UNKNOWN frames never get a BACK
+    (T38 #3): a running fight is waited out, other unknowns are polled a few
+    times before aborting (runtime review R13 — every fight frame is UNKNOWN,
+    so starting mid-fight used to exit 1 at once)."""
+    unknown = 0
+    for i in range(6 + 4):
         img = v.shot(f'{tag}_{i}')
         state = v.classify(img)
         if state == 'WORLD':
@@ -347,9 +350,19 @@ def reach_world(tag: str) -> bool:
         if state == 'WORLD':
             return True
         if state == 'UNKNOWN':
-            print(f'    {tag}: unknown frame -- refusing to tap BACK blind',
-                  flush=True)
-            return False
+            if is_fight(img):
+                print(f'    {tag}: fight running — waiting for its end', flush=True)
+                end = wait_for_fight_end(f'{tag}_fight{i}', FIGHT_WAIT)
+                if end is None or resolve_end_states(end, f'{tag}_fend{i}') is None:
+                    return False
+                continue
+            unknown += 1
+            if unknown >= 4:
+                print(f'    {tag}: unknown frame -- refusing to tap BACK blind',
+                      flush=True)
+                return False
+            time.sleep(3)
+            continue
         v.tap(v.BACK, 1.5)
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 

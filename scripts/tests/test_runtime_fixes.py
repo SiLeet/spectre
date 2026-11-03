@@ -164,6 +164,29 @@ class R8PruneCalled(unittest.TestCase):
         prune.assert_called_once()
 
 
+
+class R13DreamReachWorld(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_unknown_is_polled_not_fatal(self):
+        dev = FakeDevice(self, ['UNKNOWN', 'UNKNOWN', 'WORLD'])
+        self.assertTrue(dr.reach_world('dr_world'))           # old: False at once
+        self.assertEqual(dev.taps, [])
+
+    def test_running_fight_waited_out(self):
+        dev = FakeDevice(self, ['DR_FIGHT', 'DR_ENDED', 'WORLD', 'WORLD'])
+        self.assertTrue(dr.reach_world('dr_world'))
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE])
+
+    def test_persistent_unknown_still_refuses(self):
+        dev = FakeDevice(self, ['UNKNOWN'] * 4)
+        self.assertFalse(dr.reach_world('dr_world'))
+        self.assertNotIn(v.BACK, dev.taps)
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

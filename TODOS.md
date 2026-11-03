@@ -610,6 +610,17 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
   c9ef793, nicht gepusht; T66 fehlt noch im Wave-3-Plan) — Tray-Icon-Feature
   in Arbeit, hier NICHT angefasst. `.spectre` auf 244 MB geschrumpft
   (Trash-Auto-Age wirkt; R10-Befund 1,3 GB erledigt).
+  **Re-Check 14:43 CET (Queue-Driver, rein read-only):** identisches Bild —
+  Device reachable, `pidof` bestätigt Spiel-PID 5176, Direkt-Read am Anker
+  liest unverändert `0a f7 03 00` = **259850** — Anker gültig, 17:10-Progress
+  geht weiter über den 'ok'-Pfad. Kein Lock, kein neuer Logblock (Stand 05:23),
+  `git pull --ff-only` up to date (`7a78078`). Task-Scheduler unverändert
+  (Progress Ready, Last 02.11. 18:36, Result 0x800710E0, Next heute 17:10;
+  Daily/Night Result 0 → 04.11.). **Tool-Notiz:** `schtasks //Query //TN …`
+  wurde diesmal von schtasks als „Ungültige Option //Query" abgelehnt (MSYS
+  doppel-slash landete als Literal) — zuverlässige Routine ist
+  `powershell -NoProfile -Command 'Get-ScheduledTaskInfo -TaskName …'`
+  (Single-Quotes gegen bash-$-Expansion). Keine Taps, kein Code-Change.
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

@@ -38,8 +38,9 @@ WALL_LOG = REPO / ".spectre" / "wall-report.log"
 def classify_battle(img) -> str:
     dark = v.lum(v.avg(img, (960, 300)))
     header = v.lum(v.avg(img, (960, 40)))
-    arena = v.avg(img, (960, 400))
-    card = v.lum(v.avg(img, (960, 300)))
+    # one probe, two meanings (runtime review R15): dark backdrop for the
+    # LAUNCHER/LOADING gates (< 60 / < 45) and the bright result card (> 160)
+    card = dark
     search = v.lum(v.avg(img, (960, 124)))
     # Theme-independent battle marker: the pause button is dark during a fight
     # (L~44 day and night) while prep ground is bright (L~147) and result cards
@@ -95,11 +96,6 @@ def classify_battle(img) -> str:
     back = v.lum(v.avg(img, v.BACK))
     if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
         return 'STATS'
-    # dimmed reward/event popups and the dark 'Auto Battle Complete' summary
-    # card: v.classify says POPUP, every heuristic above misreads the dimmed
-    # frame — report it instead of tapping blind (handlers OCR-check it)
-    if v.classify(img) == 'POPUP':
-        return 'POPUP'
     if v.avg(img, BATTLE_BTN)[1] > 150:
         return 'PREP'
     return 'UNKNOWN'

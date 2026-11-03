@@ -87,15 +87,43 @@ class ReadLevel(unittest.TestCase):
     def test_first_badge_wins(self):
         self.assertEqual(hl.read_level(['Ascend', 'Lv. 74', 'Lv. 80']), 74)
 
-    # --- review 2026-11-03 finding #2 (fixed in T58 / A7a-3) ---------------
-    @unittest.expectedFailure
+    # --- review 2026-11-03 F2 (fixed in T58 / A7a-3) ------------------------
     def test_ocr_case_variants(self):
         self.assertEqual(hl.read_level(['LvL99']), 99)
         self.assertEqual(hl.read_level(['LV.74']), 74)
+        self.assertEqual(hl.read_level(['Lvl 84']), 84)          # real, hl_840_0
 
-    @unittest.expectedFailure
     def test_glued_number_never_yields_a_wrong_level(self):
         self.assertIn(hl.read_level(['Lv.74986']), (74, None))
+
+    def test_no_word_boundary_no_level(self):
+        self.assertIsNone(hl.read_level(['ELVI 99']))             # real OCR junk
+
+
+# real WinRT OCR of .spectre/hl_entry.png / hl_710_0b.png / hl_840_1.png
+HALL = ['?esonatingH I', 'Resonance Level: 80', 'Hands of Resonance', 'Resonance Heroes',
+        'v! 80', 'Equipment', 'Artifacts', 'Resonating Guild', 'Mys Battle Modes Hall']
+DETAIL_74 = ['endar?,', 'Dragonslayer Knight', 'Gwynet,LB', 'Affinih', 'Skin Not Pinned',
+             'Lvl. 74', 'Reach Leeendarv+ to unlock Hero Focus.', 'Level', '11613 0',
+             "' Hands of Resonance must be within 10 levels ofeach Other."]
+DETAIL_NO_BADGE = ['Epic', 'Knight of Valor', 'Estrilda', '84', '3/4', 'Affinity Not',
+                   'Head ear', 'Level', '10,169 0',
+                   'Hands of Resonance must be within 10 levels of each Other.']
+
+
+class HeroScreens(unittest.TestCase):
+    def test_hall_is_not_a_detail(self):
+        self.assertTrue(hl.is_hall(HALL))
+        self.assertFalse(hl.is_detail(HALL))
+        self.assertIsNone(hl.read_level(HALL))
+
+    def test_detail(self):
+        self.assertTrue(hl.is_detail(DETAIL_74))
+        self.assertEqual(hl.read_level(DETAIL_74), 74)
+
+    def test_detail_without_badge_is_unreadable(self):
+        self.assertTrue(hl.is_detail(DETAIL_NO_BADGE))
+        self.assertIsNone(hl.read_level(DETAIL_NO_BADGE))
 
 
 class OcrLines(unittest.TestCase):

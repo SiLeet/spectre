@@ -12,7 +12,7 @@ cap 10 levels per hand per run; abort when the x10 button is disabled or when
 a level-up fails to register twice.
 
 Usage: python scripts/afk_hero_level.py [--target 95] [--dry-run]
-Exit codes: 0 done, 1 stuck (unknown screen / hand not found).
+Exit codes: 0 done, 1 stuck (unknown screen / hand unreadable or not found / hall lost).
 """
 from __future__ import annotations
 
@@ -29,6 +29,8 @@ HAND_XS = [710, 840, 970, 1100, 1220]
 LEVEL_X10 = (1460, 1065)           # Level Up x10 button on the hero detail
 TARGET_DEFAULT = 95                # stage-253 level cap (rises with stages)
 MAX_X10_PER_HAND = 2               # 10 levels per hand per run
+HALL_BTN = (972, 1034)             # bottom-nav Resonating Hall
+LEVEL_MAX = 300                    # plausibility cap for an OCR'd level
 
 
 def key(keycode, wait=1.5):
@@ -43,16 +45,55 @@ def snap(name):
 
 
 def read_level(lines):
-    """Hero level from the detail screen: 'Lv. 74' bottom-left badge."""
+    """Hero level from the detail badge: 'Lvl. 74' and the OCR variants
+    'LvL99', 'LV.74', 'Lv. 74' (case-insensitive). A glued run such as
+    'Lv.74986' (badge + power) keeps the leading digits that form a plausible
+    level instead of truncating to 749; implausible values are skipped."""
     for ln in lines:
-        m = re.search(r"Lv[l.\s]*\.?\s*(\d{1,3})", ln)
-        if m:
-            return int(m.group(1))
+        m = re.search(r"(?i)\blv[l.\s]*\.?\s*(\d{1,6})", ln)
+        if not m:
+            continue
+        digits = m.group(1)
+        n = int(digits)
+        if n > LEVEL_MAX:
+            n = int(digits[:3]) if int(digits[:3]) <= LEVEL_MAX else int(digits[:2])
+        if 1 <= n <= LEVEL_MAX:
+            return n
     return None
 
 
+def is_hall(lines):
+    return any("Resonance Level" in ln for ln in lines)
+
+
 def is_detail(lines):
-    return any("Ascend" in ln or "Level" in ln or "Lvl" in ln for ln in lines)
+    """Hero detail: level badge or the detail-only texts (real OCR: 'Affinity
+    Not Pinned', 'Hands of Resonance must be within 10 levels ...'). The hall
+    ('Resonance Level: 80') used to pass via the bare 'Level' match."""
+    if is_hall(lines):
+        return False
+    return read_level(lines) is not None or any(
+        "Affini" in ln or "within 10 level" in ln for ln in lines)
+
+
+def in_hall(tag):
+    """Re-verify the Resonating Hall before the next hand: key(4) out of a
+    detail can leave the hall entirely. Detail still open -> one more back;
+    town (WORLD) -> re-enter via the bottom nav; anything else -> False."""
+    img = v.shot(tag)
+    lines = v.ocr_lines(tag)
+    if is_hall(lines):
+        return True
+    if is_detail(lines):
+        key(4)
+        img = v.shot(f"{tag}_b")
+        lines = v.ocr_lines(f"{tag}_b")
+        if is_hall(lines):
+            return True
+    if v.classify(img) == "WORLD":
+        v.tap(HALL_BTN, 4.0)
+        return is_hall(snap(f"{tag}_reenter"))
+    return False
 
 
 def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | None, int]:
@@ -111,9 +152,9 @@ def main():
     dry = "--dry-run" in sys.argv
 
     # navigate: town -> Resonating Hall
-    v.tap((972, 1034), 4.0)            # bottom-nav Resonating Hall
+    v.tap(HALL_BTN, 4.0)
     lines = snap("hl_entry")
-    if not any("Resonance Level" in ln for ln in lines):
+    if not is_hall(lines):
         print("    ERROR: Resonating Hall did not open (no 'Resonance Level' line)", flush=True)
         return 1
     bar = next((ln for ln in lines if "Resonance Level" in ln), "")
@@ -121,10 +162,15 @@ def main():
 
     results = []
     stop_flag: list[bool] = []
-    for x in HAND_XS:
+    failed = False
+    for i, x in enumerate(HAND_XS):
         if dry:
             print(f"    [dry-run] would open hand {x} and level to {target}", flush=True)
             continue
+        if i > 0 and not in_hall(f"hl_hall_{x}"):
+            print(f"    ERROR: lost the Resonating Hall before hand {x} — stopping", flush=True)
+            failed = True
+            break
         lvl, taps = level_hand(x, target, "hl", stop_flag)
         results.append((x, lvl, taps))
         time.sleep(1.0)
@@ -140,6 +186,9 @@ def main():
     if stop_flag:
         print("    NOTE: run stopped early — hero leveling resources exhausted "
               "(top up hero EXP/gold, then rerun)", flush=True)
+    if failed or any(lvl is None for _, lvl, _ in results):
+        print("done — with failures (hand unreadable / not found / hall lost)", flush=True)
+        return 1
     print("done", flush=True)
     return 0
 

@@ -14,9 +14,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_arena as ar  # noqa: E402
 import afk_claim_vision as v  # noqa: E402
+import afk_hero_level as hl  # noqa: E402
 import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
+from test_parsers import DETAIL_74, DETAIL_NO_BADGE, HALL  # noqa: E402
 
 
 def real(relpath: str):
@@ -90,6 +92,43 @@ class F6BattleModes(unittest.TestCase):
         cream = frame('BATTLE_MODES')
         cream.paste((240, 235, 225), (480, 900, 1180, 960))   # tab icons gone
         self.assertFalse(v.is_battle_modes(cream))
+
+
+
+class F2HeroLevel(unittest.TestCase):
+    """Hall re-verify between hands + exit 1 on any failed hand."""
+
+    def run_hl(self, frames, ocr, hands=(710, 840)):
+        dev = FakeDevice(self, frames, ocr=ocr)
+        keys = []
+        for patch in (mock.patch.object(hl, 'key', lambda code, wait=1.5: dev.taps.append(('key', code))),
+                      mock.patch.object(hl, 'HAND_XS', list(hands)),
+                      mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--target', '90'])):
+            patch.start()
+            self.addCleanup(patch.stop)
+        return dev, hl.main()
+
+    def test_hall_lost_is_reentered_from_town(self):
+        lvl95 = ['Affinity', 'Lvl. 95']
+        dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'WORLD', 'UNKNOWN', 'UNKNOWN'],
+                              {'hl_entry': HALL, 'hl_710_0': lvl95, 'hl_hall_840': ['Battle Modes'],
+                               'hl_hall_840_reenter': HALL, 'hl_840_0': lvl95})
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), ('key', 4),
+                                    hl.HALL_BTN, (840, hl.HANDS_Y), ('key', 4)])
+
+    def test_unknown_screen_between_hands_stops_without_blind_tap(self):
+        dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 95']})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), ('key', 4)])
+
+    def test_unreadable_hand_exits_1(self):
+        dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
+                              {'hl_entry': HALL, 'hl_710_0': DETAIL_NO_BADGE,
+                               'hl_hall_840': HALL, 'hl_840_0': ['Affinity', 'Lvl. 95']})
+        self.assertEqual(rc, 1)
+        self.assertIn('with failures', dev.out.getvalue())
 
 
 if __name__ == '__main__':

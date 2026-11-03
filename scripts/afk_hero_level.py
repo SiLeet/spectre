@@ -16,6 +16,7 @@ Exit codes: 0 done, 1 stuck (unknown screen / hand unreadable or not found / hal
 """
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 import time
@@ -177,11 +178,13 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
 
 
 def main():
-    target = TARGET_DEFAULT
-    for i, a in enumerate(sys.argv):
-        if a == "--target" and i + 1 < len(sys.argv):
-            target = int(sys.argv[i + 1])
-    dry = "--dry-run" in sys.argv
+    ap = argparse.ArgumentParser(description="Level the lowest Hands of Resonance.")
+    ap.add_argument("--target", type=int, default=TARGET_DEFAULT,
+                    help=f"level to reach per hand (default {TARGET_DEFAULT})")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="open the hall only; no hand / x10 taps")
+    args = ap.parse_args()
+    target, dry = args.target, args.dry_run
 
     # navigate: town -> Resonating Hall
     v.tap(HALL_BTN, 4.0)

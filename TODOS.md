@@ -632,6 +632,7 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   🟨 Queue-Driver 02:27 CET 2026-11-03: MCP-Health meldet BlueStacks + ADB erreichbar; `find igame` bestätigt PID 4392. Read-only-Screenshot `.spectre/shots-4392/readonly-season-check.png` zeigt erneut Battle Modes; „Results in 22h“ gehört zum Dream-Realm-Timer und belegt keinen Season-End-Timer. Kein Season-Banner/Kalender sichtbar. Lock fehlt, aber Windows-Idle nur 11 s (<180 s); keine Game-Taps. T45j bleibt offen.
   🟨 Queue-Driver 02:55 CET 2026-11-03: MCP-`health` meldet BlueStacks + ADB erreichbar, `find igame` bestätigt PID 4392. Neuer Read-only-Screenshot `.spectre/shots-4392/readonly-season-20261103-0255.png` zeigt Battle Modes, aber keinen Season-Banner/Kalender/Endtimer; „Results in 22h“ ist weiterhin nur der Dream-Realm-Timer. `.spectre/afk-bot.lock` fehlt; Windows-Idle 39,625 s (<180 s), daher keine Game-Taps. T45j bleibt offen.
   🟨 Queue-Driver 03:15 CET 2026-11-03: BlueStacks/ADB bereits erreichbar; `pidof` bestätigt Spiel-PID 4392. Read-only-Screenshot `.spectre/shots-4392/readonly-season-20261103-0315.png` zeigt Battle Modes, keinen Season-Banner/Kalender/Endtimer; „Results in 21h“ ist der Dream-Realm-Timer. `.spectre/afk-bot.lock` fehlt, Windows-Idle 6,14 s (<180-s-Gate); keine Game-Taps. T45j bleibt offen.
+  🟨 Queue-Driver 03:34 CET 2026-11-03: MCP-`health`/`find` erfolgreich (BlueStacks + ADB erreichbar, Spiel-PID 4392). Read-only-Screenshot `.spectre/shots-4392/readonly-season-20261103-0334.png` zeigt erneut Battle Modes, keinen Season-Banner/Kalender/Endtimer; „Results in 21h“ ist der Dream-Realm-Timer. `.spectre/afk-bot.lock` fehlt; Windows-`GetLastInputInfo` meldet 0 s Idle (<180-s-Gate), daher keine Game-Taps. T45j bleibt offen.
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`
@@ -762,3 +763,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Paste-Prompt docs/claude-wave-3-prompt.md. Research-Agents (Speed-Landschaft,
   Projekte/Exploits) laufen; Live-Recon L1–L8 in §5. Queue-Driver: B/H-RECON
   ziehen, wenn Blöcke gefüllt.
+- ✅ R17 [2026-11-03]: A8-Reviewer-Urteil: 18/18 verifiziert (14 FIXED, 2 PARTIAL
+  mit dokumentierter Begründung, 2 bewusste Abweichungen als sinnvoll bestätigt,
+  kein HAND-WAVY; Reversion-Checks R1/R2/R9/R17 grün). Alle Rest-Concerns in
+  DIESEM Batch geschlossen: R16 OCR-gated Fallback-Tap, R12 Stuck-Close-WARN +
+  Recovery (jeder 10.), Dream-Prune pro Fight, Trash-Auto-Age (14 Tage),
+  Start-Tap zählt ins Budget. 150 Tests grün. Live-Checks bleiben (R15).

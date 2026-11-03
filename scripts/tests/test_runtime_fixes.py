@@ -304,6 +304,20 @@ class R12PopupFallback(StagePushCase):
         self.assertEqual(rc, 0)
         self.assertEqual(dev.taps, [sp.AUTO_BATTLE_BTN, sp.SPEED_X2_BTN, (960, 540)])
 
+    def test_ten_stuck_closes_get_a_warn_and_recovery(self):
+        popup = ['Level Up!', 'Tap to close']
+        frames = (['SP_PREP', 'SP_BATTLE'] + ['UNKNOWN'] * 10
+                  + ['SP_PREP', 'SP_PREP', 'SP_PREP'])
+        dev, rc = self.run_sp(frames, '--auto',
+                              ocr=lambda png: popup if ('sp_auto_' in str(png)
+                              and 'start' not in str(png)
+                              and 'confirm' not in str(png)) else [])
+        self.assertEqual(rc, 0)
+        centre = (960, 540)
+        self.assertEqual(dev.taps, [sp.AUTO_BATTLE_BTN, sp.SPEED_X2_BTN]
+                         + [centre] * 9 + [v.BACK, centre])
+        self.assertIn('popup card closed 10x', dev.out.getvalue())
+
     def test_one_recovery_before_abort(self):
         dev, rc = self.run_sp(['SP_PREP', 'SP_BATTLE'] + ['UNKNOWN'] * 30 + ['UNKNOWN'], '--auto')
         self.assertEqual(rc, 1)
@@ -325,6 +339,20 @@ class R16SummaryClose(StagePushCase):
                               if 'sp_0_initial' in str(png) else [])
         self.assertEqual(dev.taps[0], sp.CARD_CLOSE)
         self.assertNotIn((960, 1000), dev.taps)
+        self.assertIn('pushed 1/1', dev.out.getvalue())
+
+    def test_failed_centre_close_gets_one_ocr_gated_fallback(self):
+        # the initial card AND the post-close frame still OCR as the summary:
+        # the single centre close missed -> exactly one fallback tap, then on
+        complete = ['Auto Battle Complete', 'Tap to Close']
+        dev, rc = self.run_sp(['UNKNOWN', 'UNKNOWN', 'SP_PREP', 'SP_PREP', 'SP_BATTLE',
+                               'SP_RESULT', 'SP_RESULT'],
+                              ocr=lambda png: complete
+                              if ('sp_0_initial' in str(png)
+                                  or 'sp_after_close.png' in str(png)) else [])
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps[0], sp.CARD_CLOSE)
+        self.assertEqual(dev.taps[1], (960, 1000))
         self.assertIn('pushed 1/1', dev.out.getvalue())
 
 

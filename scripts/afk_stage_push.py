@@ -315,6 +315,13 @@ def _run() -> int:
             img = try_shot('sp_after_close')
             st = classify_battle(img)
             print(f'    after closing summary: {st}', flush=True)
+        if st == 'UNKNOWN' and is_auto_complete(ocr_text(v.TMP / 'sp_after_close.png')):
+            # the centre close can miss; the card being still up is OCR-proven,
+            # so one fallback tap (old close position) is safe (reviewer concern)
+            print('    summary close missed — one fallback tap', flush=True)
+            v.tap((960, 1000), 2.5)
+            st = classify_battle(try_shot('sp_after_close2'))
+            print(f'    after fallback close: {st}', flush=True)
         if st == 'UNKNOWN':
             print('    ERROR: unknown screen — refusing to tap blind', flush=True)
             return 1
@@ -426,6 +433,7 @@ def _run() -> int:
             retries = 0
             unknowns = 0
             recovered = False
+            stuck_closes = 0
             while time.time() - t0 < args.auto_minutes * 60:
                 if args.min_idle > 0:
                     idle = v.idle_seconds()
@@ -550,8 +558,14 @@ def _run() -> int:
                     # UNKNOWN/POPUP without the summary card: tolerated briefly,
                     # but a persistent unknown screen must not spin silently.
                     if is_closable_popup(lines):
-                        print('    popup (level/perk/reward) — closing via the card centre',
-                              flush=True)
+                        stuck_closes += 1
+                        if stuck_closes % 10 == 0:
+                            print(f'    WARN: popup card closed {stuck_closes}x this run — '
+                                  f'one BACK + centre recovery', flush=True)
+                            v.tap(v.BACK, 1.5)
+                        else:
+                            print('    popup (level/perk/reward) — closing via the card centre',
+                                  flush=True)
                         v.tap((960, 540), 2.0)
                         unknowns = 0
                         continue

@@ -694,8 +694,13 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   MCP-first, nie CLI+adb parallel.
 - ✅ `scripts/bluestacks-ensure.sh` + Queue-Driver-Prompt: Emulator startet idle-gated
   selbst (Exit 4 = Idle-Gate) statt „Sergej startet manuell".
-- ⬜ Nach dem Wave-Merge nach `main`: im main-Checkout `cargo build --release -p spectre-mcp
-  -p spectre-cli` (macht den `.mcp.json`-Pfad real) + `claude mcp list`-Gegencheck.
+- ✅ Nach dem Wave-Merge nach `main`: `cargo build --release -p spectre-mcp -p
+  spectre-cli` im main-Checkout — erledigt 2026-11-03 (Build 48 s, HEAD 32426be).
+  Beide Binaries frisch (`target/release/spectre.exe` + `spectre-mcp.exe`, Nov 3
+  11:49); `spectre.exe --version` = 0.4.0; MCP-Smoke über stdio (initialize mit
+  den .mcp.json-env Werten) antwortete korrekt (serverInfo spectre-mcp 0.4.0).
+  `claude mcp list`: `spectre: ...spectre-mcp.exe - ✔ Connected`. Der
+  .mcp.json-Pfad ist damit real und healthy.
 - ⬜ Optional (YAGNI): MCP-Tools für `search`-Refine (`--continue`) nachziehen.
 
 ---

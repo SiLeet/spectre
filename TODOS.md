@@ -735,3 +735,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   SKIP=5 endet; TaskResult zeigt fälschlich 0). Fix: rc nach dem tee capturen
   und propagieren. Night feuerte 02:00 korrekt, skippte sauber (PC idle 0 s —
   Sergej aktiv) → beim nächsten idle-Fenster nachfeuerbar.
+- 📌 R13 [MED, 2026-11-03]: .spectre beim Worktree-Teardown über die Junction
+  geleert (779 Frames/1,3 GB, Logs, wall-report — alles Runtime, regeneriert
+  sich; Frame-Manifest skippt bis zur Neugenerierung). Teardown-Anleitung in
+  docs/agent-workflow.md. → Nach den Abend-Läufen 03.11.: make_frame_manifest.py
+  neu generieren + committen. Queue-Driver: ziehen.

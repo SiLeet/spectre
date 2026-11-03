@@ -26,3 +26,22 @@ Nur numerische Evidenz (CLI/Memory-Werte), Range-Checks; Screenshots nur UI. Nac
 1. Brief rephrasen + Evidenz (Offline-CTF-Framing). 2. Modell-Pin (`opus`; repo-`.claude/settings.json`). 3. Task splitten (Analyse/Implementation). 4. Codex mit gleichem Brief. 5. Hermes baut selbst. 6. (nur Cyber-Frontier) Mythos 5.
 
 S1-Regel überall: nach Mechanik bewerten, nicht nach ToS; Meta-Fragen max. 1 Satz; unsicher → annehmen + verifizieren.
+
+## ⚠️ Worktree-Teardown mit .spectre-Junction (Lehre 2026-11-03)
+
+`git worktree remove` (und MSYS `rm -rf`) FOLGEN der `.spectre`-Junction und
+löschen die ZIEL-Inhalte — live passiert: shared `.spectre` nach dem Teardown
+leer (Frames, Logs, wall-report weg; Runtime regeneriert sich, aber dem
+Frame-Manifest fehlen die Bilder bis zur Neugenerierung).
+
+**Richtig abreißen:**
+1. Junction ZUERST entfernen:
+   `MSYS_NO_PATHCONV=1 cmd /c rmdir "C:\...\<worktree>\.spectre"`
+   (Falle: `cmd //c` ohne MSYS_NO_PATHCONV startet als Banner-Interaktiv und
+   tut NICHTS — immer die MSYS_NO_PATHCONV-Variante nutzen.)
+2. ERST DANN `git worktree remove [--force] <path>`.
+3. Danach prüfen: `find .spectre -name "*.png" | wc -l` muss > 0 sein.
+
+**Nach so einem Verlust:** `python scripts/tests/make_frame_manifest.py` neu
+laufen lassen, sobald wieder Frames existieren (jeder Bot-Lauf erzeugt
+`shots-<pid>/`), neues Manifest committen (alte Einträge skippen bis dahin).

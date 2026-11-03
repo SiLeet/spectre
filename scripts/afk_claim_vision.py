@@ -442,7 +442,13 @@ def classify(img: Image.Image) -> str:
     # sequence into a live popup.
     if lb < 100 and (lbar > 172 or lb - lg < -8):
         return 'POPUP'
-    if lb < 100 and abs(lb - lg) < 8:
+    # WORLD also needs the world-only tell: the lit AFK Progress chip
+    # (60,1036), L 103-174 on all 51 captured world frames (day + night).
+    # The back-arrow probes alone said WORLD on 110 non-world frames —
+    # battles, Battle Modes, a store bundle popup, a 'Use Diamond' dialog —
+    # and on dimmed popups one luminance point from the POPUP cliff (review
+    # F7). Without the chip the frame stays UNKNOWN: no taps.
+    if lb < 100 and abs(lb - lg) < 8 and lum(avg(img, AFK_PROGRESS)) > 100:
         return 'WORLD'
     chip = avg(img, (1390, 704))
     # only trust the chip fallback when the back arrow is clearly NOT dimmed

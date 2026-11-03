@@ -190,5 +190,36 @@ class F16IdleSeconds(unittest.TestCase):
         self.assertGreaterEqual(v.idle_seconds(), 0)
 
 
+
+class F7WorldNeedsChip(unittest.TestCase):
+    """WORLD requires the lit AFK chip; dim lookalikes stay UNKNOWN (no taps)."""
+
+    def test_real_non_world_frames(self):
+        for rel in ('shots-24812/dr_start.png',          # 'Use Diamond' Cancel/Confirm dialog
+                    'shots-14672/bm_0.png',              # store bundle popup
+                    'ar4.png',                           # Battle Modes menu
+                    'shots-30096/sp_auto_19.png'):       # running battle
+            with self.subTest(rel):
+                self.assertNotEqual(v.classify(real(rel)), 'WORLD')
+
+    def test_real_world_day_and_night(self):
+        for rel in ('after_claim.png', 'shots-34228/t44_world.png', 'shots-20408/sp_0_initial.png'):
+            with self.subTest(rel):
+                self.assertEqual(v.classify(real(rel)), 'WORLD')
+
+    def test_dim_popup_inside_the_old_cliff(self):
+        # review case: dimmed popup, no bright claim bar, lb-lg = -5 (old: WORLD)
+        img = frame('UNKNOWN')
+        img.paste((60, 60, 60), (0, 0, 1920, 1080))
+        img.paste((70, 66, 62), (460, 996, 488, 1024))   # back arrow
+        img.paste((75, 71, 67), (550, 996, 578, 1024))   # right of it
+        self.assertEqual(v.classify(img), 'UNKNOWN')
+
+    def test_synthetic_world_without_chip(self):
+        img = frame('WORLD')
+        img.paste((62, 70, 50), (40, 1016, 80, 1056))
+        self.assertEqual(v.classify(img), 'UNKNOWN')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -96,7 +96,7 @@
    1080
   ],
   "sha16": "455c38427ae413e2",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "RESULT"
  },
  {
@@ -106,7 +106,7 @@
    1080
   ],
   "sha16": "0198310cd234da83",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "RESULT"
  },
  {
@@ -156,7 +156,7 @@
    1080
   ],
   "sha16": "d804e96232976781",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "LOADING"
  },
  {
@@ -286,7 +286,7 @@
    1080
   ],
   "sha16": "f9969fd9ebdf3b30",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -296,7 +296,7 @@
    1080
   ],
   "sha16": "8a7df3341ec56fab",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "RESULT"
  },
  {
@@ -346,7 +346,7 @@
    1080
   ],
   "sha16": "f149df06f18ef352",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -486,7 +486,7 @@
    1080
   ],
   "sha16": "00a9aa438b8cb239",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "LOADING"
  },
  {
@@ -506,7 +506,7 @@
    1080
   ],
   "sha16": "08ce15738507bad6",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "BATTLE"
  },
  {
@@ -596,7 +596,7 @@
    1080
   ],
   "sha16": "e1fc9623177c6637",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -836,7 +836,7 @@
    1080
   ],
   "sha16": "cdc8e792e5191bf8",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -946,7 +946,7 @@
    1080
   ],
   "sha16": "9a77a9be252dd985",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "RESULT"
  },
  {
@@ -1106,7 +1106,7 @@
    1080
   ],
   "sha16": "df87f795e9ca0d58",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -1206,7 +1206,7 @@
    1080
   ],
   "sha16": "621b043b2848924c",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },
  {
@@ -1316,7 +1316,7 @@
    1080
   ],
   "sha16": "c1946a63f2456c9f",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "BATTLE"
  },
  {
@@ -1386,7 +1386,7 @@
    1080
   ],
   "sha16": "ff3fdbb6d9b1a454",
-  "classify": "WORLD",
+  "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  }
 ]

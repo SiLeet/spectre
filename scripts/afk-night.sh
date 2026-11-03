@@ -76,3 +76,10 @@ echo "afk-night: pid=$pid heap_base=$base"
   python scripts/afk_stage_push.py --auto --auto-minutes 135 --retry-defeats \
     --pid "$pid" --base "$base" --min-idle "${AFK_MIN_IDLE:-180}" 2>&1
 } | tee -a "$LOG"
+pipeline_rc=("${PIPESTATUS[@]}")
+push_rc="${pipeline_rc[0]}"
+tee_rc="${pipeline_rc[1]}"
+if [ "$push_rc" -ne 0 ]; then
+  exit "$push_rc"
+fi
+exit "$tee_rc"

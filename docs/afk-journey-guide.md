@@ -133,9 +133,9 @@ eventually, verified 249→252). Retry cap 200; a wall report is written on the
 first defeat and every 10th retry (`.spectre/wall-report.log`, JSONL, rendered
 by `scripts/afk-wall-dash.py`). 135 min from 02:00 ends before the 05:10 Daily
 run. The idle gate is re-checked on every poll of the auto loop: input on the
-PC aborts the run (exit 5). `afk-night.sh` pipes the push into `tee` without
-`pipefail`, so the task reports 0 for every push outcome; only the wrapper's
-own exits (2/3/6, see below) reach the task result.
+PC aborts the run (exit 5). The wrapper captures both pipeline statuses after
+`tee`: a stage-push failure (including idle skip 5) reaches Task Scheduler; if
+the push succeeds, a `tee` failure is reported instead.
 
 ### Marker / idle-gate matrix
 

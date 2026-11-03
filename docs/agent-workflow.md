@@ -13,6 +13,17 @@ Stand 2026-11-03. Operationale Kurzfassung; Details in `docs/claude-wave-2-plan.
 - `scripts/bluestacks-ensure.sh` — prüft (`--check`) bzw. startet BlueStacks idle-gated; Exit 4 = Idle-Gate (offline weiterarbeiten), 5 = adb fehlt, 3 = Boot-Timeout.
 - adb: `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`, immer `-s 127.0.0.1:5555`; nie `kill-server`; nie CLI + adb parallel.
 
+## Tap-Lock (Race-Fund-Fix, 2026-11-03)
+
+Direkt laufende Bot-Scripts (`afk_dream_realm`, `afk_arena`, `afk_stage_push`,
+`afk_dailies`) erwerben `.spectre/afk-bot.lock` selbst: Fresh-Lock (< 3600 s) →
+Exit 7 (SKIP-Zeile mit Owner-PID + Age), Stale → Takeover. Die Wrapper
+(afk-bot-watch.sh / afk-night.sh) exportieren `AFK_BOT_LOCK_HELD=1`, ihre
+Kind-Scripts erben den Lock. Vor jedem direkten Lauf: Lock-Status prüfen
+(`cat .spectre/afk-bot.lock`) ODER einfach laufen lassen — das Gate blockt
+sauber vor dem ersten Tap. `afk_hero_level.py` ist (Stand des Fixes) noch
+nicht verdrahtet → vor Leveling-Läufen fremde shots-Dirs (< 2 min) prüfen.
+
 ## spectre-mcp (T59)
 
 stdio-MCP-Server mit Tools: health, find, regions, dump, dumpdiff, read, hot, hunt, search, chain, offsets, adb_tap, adb_key, adb_screencap. Einziger adb-Owner (serialisiert); Config via `.mcp.json`-env (SPECTRE_BIN, ADB_BIN, SERIAL). In Sessions: MCP-first.

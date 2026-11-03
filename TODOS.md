@@ -1023,7 +1023,7 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Pfad (Re-Location mit Struktur-Checks + Anker-Fenster) statt stiller
   Anker-Korruption. 3 neue Tests (TGuardDriftGate); Gesamtsuite 249 OK
   (22 skipped). Anker-Datei restauriert + Live-Gegenprobe: Preflight am neuen
-  Base Re-Location → **('ok', 259270)** via u64-Kandidat Offset 0xA7594
+  Base Re-Location → **('ok', 259270)** via u64-Kandidat Offset 0xA73D14
   (≥2 Kopien, Δ 580 = 0,2 % zum Alt-Anker — plausibler Drift durch heutige
   Level-Ups; zwei unabhängige Strukturen [alter Map-Entry 259850, neue u64-
   Kopien 259270] bestätigen sich gegenseitig), Zweit-Preflight 0,1 s 'ok',
@@ -1031,6 +1031,19 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Wechseln robust. Rest R15 unverändert (F1-Gegenprobe window-abhängig; Stage
   launcher/loading + adb-down Exit 2 + summary-close brauchen entsprechende
   Übergangs-Frames, die dieser Run nicht produzierte).
+  **Re-Check 17:35 CET (Queue-Driver, rein read-only):** Drift-Gate-Fix post-live
+  bestätigt — Task-Scheduler: Daily 05:10 Result 0, Progress 17:10 Result 0,
+  Night Ready → 04.11. 02:00; Idle 4774 s, kein Lock, kein aktiver Parallel-
+  Writer (letzte shots 17:15/17:16 = eigener Run). `pidof` = 5176; Direkt-Reads:
+  alter Slot (0x7964E01BD838) liest unverändert 259850 mit intakter Map-Entry-
+  Struktur; neuer-Heap-Slot liest exakt **259270** = State-File-Anker (offset
+  10960148, width 8) — Guard auf dem 'ok'-Pfad, kein Re-Location nötig.
+  **Korrektur:** die TODOS-Notiz oben nannte den Offset fälschlich 0xA7594 —
+  erneut ein Hex-Rechenfehler (dezimal 10960148 = 0xA73D14, Python-Check);
+  dritter derartiger Fehler in dieser Datei (nach 0x1BD518). Regel: Hex-Werte
+  in TODOS immer via `python -c "print(hex(...))"` verifizieren, nie mental.
+  `scripts/_idle_probe.ps1` (untracked Helper aus dem 17:12-Lauf, verifiziert
+  IDLE_SECONDS-Ausgabe) als Utility committet.
 
 ### ✅ Race-Fund-Fix (a): Tap-Lock in den Skripten — 2026-11-03 16:0x CET, Queue-Driver
 - Neues `scripts/_bot_lock.py`: PID-guarded Acquire/Release auf `.spectre/afk-bot.lock`

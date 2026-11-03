@@ -435,6 +435,11 @@ Queue-Eintrag als Task.
 - Queue-Driver-Review 01:16 CET: Keine neuen Scheduler-Logblöcke seit 00:59; die erneute Task-Abfrage bestätigt beide Aufgaben als `Ready` und zeigt zusätzlich `StartWhenAvailable=false` (neben den bestehenden Batterie-Gates). Der TaskScheduler-Operational-Kanal bleibt deaktiviert; `HD-Player.exe` läuft nicht und der AFK-Lock fehlt. Ursache für `0x800710E0` bleibt unbelegt; keine Task-/Batterie-Policy geändert. In P5 ist kein unbearbeiteter `⬜`-Punkt offen; keine Game-Taps.
 - Queue-Driver-Review 04:09 CET: `.spectre/logs/` fehlt und der AFK-Lock ebenfalls. `Spectre AFK Night` steht auf `Ready`, letzter Lauf 03.11. 02:00 mit `0x00000000`; das liegt vor Commit `0cc629d` (04:06) und beweist den R12-Fix nicht. Daily/Progress bleiben `Ready`, letzter Lauf 02.11. 18:36 mit `0x800710E0`, nächste Läufe 05:10/17:10; `StartWhenAvailable=false` und Batterie-Gates bleiben aktiv. TaskScheduler/Operational ist deaktiviert, daher ist der Night-Run ohne Tageslog nicht verifizierbar. Keine Policy geändert, keine Game-Taps. R12 steht auf `origin/main`; Fresh-Eyes fand einen hardcodierten Windows-Temp-Pfad im Regressionstest, der durch `TemporaryDirectory()` ersetzt wurde. Finaler Review ohne Befund; Testlauf 1/1 und Gesamtsuite 189 Tests grün (22 skipped; 139 Screenshot-Manifestframes lokal fehlend/skipped).
 - Queue-Driver-Review 04:34 CET: P5 weiterhin ohne offene `⬜`-Punkte. `.spectre/logs/` enthält nur `bluestacks-ensure.log` mit dem heutigen eigenen Read-only-Check `04:34:10 ... check: ok`; kein AFK-Tageslog und kein Lock. `Spectre AFK Night`: `Ready`, letzter Lauf 03.11. 02:00, Ergebnis `0x00000000`, nächster Lauf 04.11. 02:00 — weiterhin kein Post-R12-Livebeleg. `Spectre AFK Daily/Progress`: beide `Ready`, letzter Lauf 02.11. 18:36, Ergebnis `-2147020576` (`0x800710E0`), nächste Läufe 03.11. 05:10/17:10. Keine neuen Logdaten erklären die Ablehnung; Batterie-Policy und TaskScheduler/Operational unverändert gelassen. Keine weitere Scheduler-Codeänderung aus diesem Befund gerechtfertigt.
+- Queue-Driver-Review 12:45 CET 2026-11-03: keine neuen Logblöcke seit dem
+  05:10-Daily; 17:10-Progress (erster Post-Fix-Livebeleg) steht aus. Die wieder-
+  kehrenden „team_power guard disabled“-Zeilen im Daily-Log sind erklärt: die
+  Anker-Datei `power-state.json` fiel dem .spectre-Teardown zum Opfer — Anker
+  wiederhergestellt, Guard wieder online (siehe T44-Nachtrag). Kein Code-Change.
 
 - Queue-Driver-Review ca. 06:12 CET: Der Daily-Log vom 03.11. 05:10 (`.spectre/logs/afk-bot-2026-11-03.log`) bestätigt Chest-Claim, Gift-Warnung und Fehler in Arena (`STUCK`), Dream Realm (World nicht erreicht) und Stage-Push (unerwarteter BATTLE-State). Task Scheduler meldet dennoch Last Result `0`; der Lauf startete um 05:10 und liegt vor Commit `da9f411` (05:47 CET), daher ist das kein Gegenbeweis zum Phase-Exit-Fix und kein Post-Fix-Livebeleg. Keine weitere Scheduler-Änderung gerechtfertigt; Daily-Verifikation steht beim nächsten Daily-Lauf 04.11. 05:10 aus.
 - Queue-Driver-Review 07:29 CET: P5 hat keinen offenen `⬜`-Punkt; seit dem 05:10-Daily-Log kam kein weiterer AFK-Logblock hinzu. Task Scheduler bestätigt Daily `03.11. 05:10`, Last Result `0`, obwohl das Log Arena=`STUCK`, Dream Realm=World nicht erreicht und Stage-Push=unerwarteter `BATTLE` meldet; dieser Lauf liegt vor `da9f411` (05:47 CET). Progress bleibt `Ready`, letzter Lauf `02.11. 18:36`, Result `0x800710E0`, nächster Lauf heute 17:10. Night meldet `03.11. 02:00`, Result `0`, aber das war vor `00cc629d` (04:06 CET); kein eigener AFK-Night-Log vorhanden. Regressionstest des Daily-Exit-Fixes ist durch die Gesamtsuite bestätigt: 191 Tests ausgeführt, davon 22 übersprungen (169 bestanden); Frame-Regression übersprang alle 139 Einträge wegen fehlender lokaler Screenshots. Kein weiterer Code-/Task-Policy-Eingriff gerechtfertigt; Batterie-Gates unverändert, keine Game-Taps. Post-Fix-Livebelege stehen bei Night 04.11. 02:00 und Daily 04.11. 05:10 aus.
@@ -542,11 +547,27 @@ Implementiert in `afk_claim_vision.memory_preflight` (alle 5 Skripte erben es):
 - **Live verifiziert:** Re-Location 11,7 s → ('ok', 259850) via offset 0x2FE8/
   width 4; Zweit-Preflight 0,1 s. Der Guard ist damit nach dem 2026-11-01-
   Restart WIEDER ONLINE.
-- Einschränkung (dokumentiert): HUD-Gegenprobe (Resonating Hall „Power 2xxK")
+- Einschränkung (dokumentiert): HUD-Gegenprobe (Resonating Hall „Power 2xxK“)
   wurde NICHT gezogen — PC in Benutzung (idle 0,05 s) + aktiver paralleler
   Writer zur Messzeit. Der gefundene Slot ist anker-verifiziert (exakter Wert =
   letzter verifizierter Memory-Wert, stabile Map-Entry-Struktur); ein falscher
   Kandidat mit exakt diesem Wert + Pointer-Struktur ist unwahrscheinlich.
+- ✅ **T44-Nachtrag (2026-11-03 12:47 CET, Queue-Driver): Anker-Datei nach dem
+  .spectre-Teardown wiederhergestellt — Guard für PID 5176 wieder ONLINE.**
+  Root Cause: `power-state.json` fiel dem Junction-Teardown (R13) zum Opfer;
+  ohne `power`-Anker geht `memory_preflight` direkt auf 'disabled' (Re-Location
+  überspringt sich selbst) → jeder 05:10-Lauf loggte „guard disabled“. Fix
+  (read-only, kein Game-Code-Change): Idle 223 s + Lock-frei verifiziert →
+  Screenshot/OCR (Homestead ohne Power-HUD) → Resonating-Hall-Tap (1000,1030)
+  liest **Power 259K** (konsistent mit dem letzten verifizierten exakten Wert
+  259850) → Panel per Back geschlossen, WORLD verifiziert → State-File mit
+  Anker 259850 geschrieben → `memory_preflight('5176','0x7964E0000000')`:
+  **Re-Location ('ok', 259850) in 11,7 s** (u32 Map-Entry, offset 0x1BD518,
+  width 4, base 0x7964E0000000) → Zweitread 10 s später unverändert 259850,
+  Preflight-2 in 0,13 s ('ok'-Pfad). Der 17:10-Progress-Run hat den Guard damit
+  wieder scharf; bei einem weiteren Game-Restart re-lokaliert die Maschine jetzt
+  wieder aus einem frischen Anker. Belege: .spectre/shots-5176/anchor-*.png,
+  .spectre/power-state.json.
 - Scheduler-Nebennotiz erledigt: `--retry-defeats` an beide Stage-Push-Aufrufe
   in `afk-bot-watch.sh` (Progress-Run + Daily-Run) — afk-night.sh ist committed
   (cc68503), Kollisionsfenster vorbei.

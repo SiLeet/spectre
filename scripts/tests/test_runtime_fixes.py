@@ -167,11 +167,11 @@ class R8PruneCalled(unittest.TestCase):
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 
-    def run_sp(self, frames, *argv):
+    def run_sp(self, frames, *argv, ocr=lambda png: []):
         dev = FakeDevice(self, frames)
         log = Path(__file__).resolve().parent / '.artifacts' / 'wall-report.test.log'
         log.parent.mkdir(exist_ok=True)
-        for patch in (mock.patch.object(sp, 'ocr_text', lambda png: []),
+        for patch in (mock.patch.object(sp, 'ocr_text', ocr),
                       mock.patch.object(sp, 'WALL_LOG', log),
                       mock.patch.object(sys, 'argv', ['afk_stage_push.py', *argv])):
             patch.start()
@@ -247,6 +247,28 @@ class R11TryShot(unittest.TestCase):
         with mock.patch.object(v, 'shot', side_effect=RuntimeError('screencap failed')),              mock.patch.object(v, 'prune_shot_dirs', return_value=0),              mock.patch('time.sleep'),              mock.patch.object(sys, 'argv', ['afk_stage_push.py']):
             self.assertEqual(sp.main(), 2)
         self.assertIn('adb down', sys.stdout.getvalue())
+
+
+
+class R12PopupFallback(StagePushCase):
+    def test_level_popup_closed_via_centre(self):
+        popup = ['Level Up!', 'Tap to close']
+        dev, rc = self.run_sp(['SP_PREP', 'SP_BATTLE', 'UNKNOWN', 'SP_PREP', 'SP_PREP',
+                               'SP_PREP'], '--auto',
+                              ocr=lambda png: popup if 'sp_auto_' in str(png) and 'start'
+                              not in str(png) and 'confirm' not in str(png) else [])
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps, [sp.AUTO_BATTLE_BTN, sp.SPEED_X2_BTN, (960, 540)])
+
+    def test_one_recovery_before_abort(self):
+        dev, rc = self.run_sp(['SP_PREP', 'SP_BATTLE'] + ['UNKNOWN'] * 30 + ['UNKNOWN'], '--auto')
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [sp.AUTO_BATTLE_BTN, sp.SPEED_X2_BTN, v.BACK, (960, 540)])
+
+    def test_is_closable_popup(self):
+        self.assertTrue(sp.is_closable_popup(['New Perk unlocked']))
+        self.assertFalse(sp.is_closable_popup(['Leveling', 'Records']))
+        self.assertFalse(sp.is_closable_popup([]))
 
 
 if __name__ == '__main__':

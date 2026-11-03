@@ -157,6 +157,13 @@ def is_auto_complete(lines: list[str]) -> bool:
     return "auto battle complete" in joined
 
 
+def is_closable_popup(lines: list[str]) -> bool:
+    """Routine post-fight popups (level-up / perk / reward card) that the
+    victory-card close point dismisses (runtime review R12)."""
+    joined = " ".join(lines).lower()
+    return "tap to close" in joined or bool(re.search(r"\b(level|perk)\b", joined))
+
+
 def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
     """Screenshot -> OCR -> JSONL line in .spectre/wall-report.log.
 
@@ -407,6 +414,7 @@ def _run() -> int:
             skipped = 0
             retries = 0
             unknowns = 0
+            recovered = False
             while time.time() - t0 < args.auto_minutes * 60:
                 if args.min_idle > 0:
                     idle = v.idle_seconds()
@@ -422,7 +430,8 @@ def _run() -> int:
                     wall_report(f'auto_launcher_after_{int(time.time()-t0)}s')
                     print('    ERROR: game crashed (launcher) mid-chain — aborting', flush=True)
                     return 3
-                if st in ('UNKNOWN', 'POPUP') and is_auto_complete(ocr_text(v.TMP / f'{tag}.png')):
+                lines = ocr_text(v.TMP / f'{tag}.png') if st in ('UNKNOWN', 'POPUP') else []
+                if is_auto_complete(lines):
                     # the chain ended by itself: close the summary card and
                     # restart Auto Battle while the time window is open
                     print('    auto battle complete — closing summary, restarting', flush=True)
@@ -529,7 +538,21 @@ def _run() -> int:
                 else:
                     # UNKNOWN/POPUP without the summary card: tolerated briefly,
                     # but a persistent unknown screen must not spin silently.
+                    if is_closable_popup(lines):
+                        print('    popup (level/perk/reward) — closing via the card centre',
+                              flush=True)
+                        v.tap((960, 540), 2.0)
+                        unknowns = 0
+                        continue
                     unknowns += 1
+                    if unknowns >= 15 and not recovered:
+                        # one recovery before giving up: BACK, then the centre
+                        print(f'    {st} persists — one BACK + centre tap before aborting',
+                              flush=True)
+                        v.tap(v.BACK, 1.5)
+                        v.tap((960, 540), 2.0)
+                        recovered, unknowns = True, 0
+                        continue
                     if unknowns >= 15:
                         wall_report(f'auto_unknown_streak_{int(time.time()-t0)}s')
                         print(f'    ERROR: {st} persists ({unknowns} polls) — aborting',

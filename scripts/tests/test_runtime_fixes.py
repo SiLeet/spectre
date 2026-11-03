@@ -187,6 +187,26 @@ class R13DreamReachWorld(unittest.TestCase):
         self.assertNotIn(v.BACK, dev.taps)
 
 
+class R19BattleModesEscape(unittest.TestCase):
+    """A8 live fund #1 (shots-77148): a run ending on the Battle-Modes menu
+    read as a running fight -> reach_world waited 150 s and aborted, and the
+    next run inherited the block. Now: is_fight negative-gates the menu,
+    reach_world BACKs out of it explicitly (verified live: BACK -> WORLD)."""
+
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_battle_modes_is_not_a_fight(self):
+        self.assertFalse(dr.is_fight(frame('DR_BATTLE_MODES')))   # old: True
+
+    def test_reach_world_backs_out_of_battle_modes(self):
+        dev = FakeDevice(self, ['DR_BATTLE_MODES', 'WORLD'])
+        self.assertTrue(dr.reach_world('dr_world'))               # old: 150 s -> False
+        self.assertEqual(dev.taps, [v.BACK])
+
+
 
 class R14HeroMarginAndLastRound(unittest.TestCase):
     def setUp(self):

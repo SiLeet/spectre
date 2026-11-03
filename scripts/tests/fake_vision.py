@@ -53,6 +53,12 @@ _SPEC = {
     # afk_dream_realm (A8; values from the dream docstrings / runtime review)
     'DR_BOSS': ((60, 60, 80), {(960, 1040): (109, 154, 100), (1280, 1010): (109, 154, 100)}),
     'DR_PREP': ((60, 60, 80), {(960, 1040): (240, 240, 240), (1280, 1010): (160, 192, 152)}),
+    # A8 live fund #1: the Battle-Modes menu inside the dream entry flow — its
+    # dark body read (109,93,93)/(108,92,92) at the dream probes and used to
+    # classify as a running fight (shots-77148/dr_world_0.png)
+    'DR_BATTLE_MODES': ((40, 40, 40), {(480, 270): (240, 235, 225), (890, 934): (240, 240, 240),
+                                       (500, 920): (173, 85, 46), (1160, 940): (149, 82, 78),
+                                       (960, 1040): (109, 93, 93), (1280, 1010): (108, 92, 92)}),
     'DR_FIGHT': ((90, 100, 130), {(960, 1040): (40, 60, 110), (1280, 1010): (22, 32, 72),
                                   (474, 1010): (137, 137, 137)}),
     'DR_BLACK': ((29, 29, 29), {}),

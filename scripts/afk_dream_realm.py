@@ -195,7 +195,12 @@ def is_fight(img) -> bool:
     shots-1752/dr_f1_w*): the bottom-centre (960,1040) is neither the white
     SKIP nor a green Battle button and the prep-Battle spot (1280,1010) is
     dark (~(22,32,72)). Uniform-dark transitions match that too, so they are
-    excluded explicitly; ready/end screens never count."""
+    excluded explicitly; ready/end screens never count. The Battle-Modes menu
+    is excluded too (A8 live fund #1: its dark body reads (109,93,93) at both
+    probes — neither white nor green — and used to classify as a running
+    fight, blocking reach_world for 150 s)."""
+    if v.is_battle_modes(img):
+        return False
     centre = v.avg(img, BATTLE_BTN_BOSS)
     if v.lum(centre) > 200 or _green(centre) or v.lum(v.avg(img, BATTLE_BTN_PREP)) >= 120:
         return False
@@ -361,6 +366,11 @@ def reach_world(tag: str) -> bool:
         if state == 'WORLD':
             return True
         if state == 'UNKNOWN':
+            if v.is_battle_modes(img):
+                print(f'    {tag}: Battle Modes menu -> BACK (A8 fund #1)',
+                      flush=True)
+                v.tap(v.BACK, 2.0)
+                continue
             if is_fight(img):
                 print(f'    {tag}: fight running — waiting for its end', flush=True)
                 end = wait_for_fight_end(f'{tag}_fight{i}', FIGHT_WAIT)

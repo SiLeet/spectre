@@ -11,8 +11,14 @@ Policy (Sergej-approved defaults): gold/EXP/essence only — never diamonds;
 cap 10 levels per hand per run; abort when the x10 button is disabled or when
 a level-up fails to register twice.
 
-Usage: python scripts/afk_hero_level.py [--target 95] [--dry-run]
-Exit codes: 0 done, 1 stuck (unknown screen / hand unreadable or not found / hall lost).
+Daily mode (T67, rule T33 approved): --level = exactly ONE x1 level charge per
+run on the lowest hand (scan of all five; fallback: last known hand), gold/EXP
+only — OCR gate before, read-back (+1) after; afk-bot-watch.sh runs it once a day.
+
+Usage: python scripts/afk_hero_level.py [--target 95] [--dry-run] [--level]
+Exit codes: 0 done / charged, 1 stuck (unknown screen / hand unreadable or not
+found / hall lost), 4 (--level) skipped today: resources short, no effect or a
+purchase dialog (cancelled).
 """
 from __future__ import annotations
 
@@ -177,12 +183,111 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
     return lvl, taps
 
 
+# --- T67: daily leveling - exactly ONE level charge per day (rule T33, approved) ---
+LEVEL_X1 = (1460, 1065)            # LIVE: single 'Level Up' tap (assumes the x10 mode is off)
+LAST_HAND = v.REPO / ".spectre" / "level-last-hand.txt"   # last scanned lowest hand (fallback)
+_RES_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([KkMm]?)\s*/\s*(\d+(?:[.,]\d+)?)\s*([KkMm]?)")
+
+
+def _amount(num: str, suffix: str) -> float:
+    return float(num.replace(",", ".")) * {"k": 1e3, "m": 1e6}.get(suffix.lower(), 1)
+
+
+def resources_ok(lines):
+    """Gold/EXP gate from the detail screen's 'have/need' cost lines (real OCR:
+    '5104K/2780', '02985/1100'). False = something is short, True = all shown
+    costs covered, None = no cost line read (LIVE: layout). Small pairs without
+    K/M ('3/4' affinity, '0/1' ascend) are ignored."""
+    seen = False
+    for ln in lines:
+        for m in _RES_RE.finditer(ln):
+            have, need = _amount(m.group(1), m.group(2)), _amount(m.group(3), m.group(4))
+            if not (m.group(2) or m.group(4)) and need < 100:
+                continue
+            seen = True
+            if have < need:
+                return False
+    return True if seen else None
+
+
+def scan_hands():
+    """{hand_x: level} for every hand whose detail reads a level (hall re-verified between)."""
+    levels = {}
+    for i, x in enumerate(HAND_XS):
+        if i > 0 and not in_hall(f"hl_scan_hall_{x}"):
+            break
+        v.tap((x, HANDS_Y), 3.0)
+        lines = snap(f"hl_scan_{x}")
+        lvl = read_level(lines) if is_detail(lines) else None
+        if lvl is not None:
+            levels[x] = lvl
+        print(f"    scan hand {x}: level {lvl}", flush=True)
+        key(4)
+    return levels
+
+
+def daily_charge() -> int:
+    """One x1 level charge on the lowest hand. Exit: 0 charged (read-back +1),
+    4 skipped for today (resources short / no effect / purchase dialog),
+    1 failed (screen not as expected). Never spends diamonds."""
+    levels = scan_hands()
+    if levels:
+        x = min(levels, key=levels.get)
+        try:
+            LAST_HAND.parent.mkdir(parents=True, exist_ok=True)
+            LAST_HAND.write_text(str(x), encoding="utf-8")
+        except OSError:
+            pass
+        print(f"    lowest hand: {x} (level {levels[x]})", flush=True)
+    else:
+        try:
+            x = int(LAST_HAND.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            x = HAND_XS[0]
+        print(f"    LIVE: hand scan read no level — using last known hand {x}", flush=True)
+    if not in_hall("hl_daily_hall"):
+        print("    ERROR: lost the Resonating Hall before the charge", flush=True)
+        return 1
+    v.tap((x, HANDS_Y), 3.0)
+    lines = snap("hl_daily_pre")
+    before = read_level(lines) if is_detail(lines) else None
+    if before is None:
+        print("    ERROR: hero detail / level not readable — no charge", flush=True)
+        key(4)
+        return 1
+    res = resources_ok(lines)
+    if res is False:
+        print(f"    SKIP: resources short for hand {x} (level {before}) — no charge today", flush=True)
+        key(4)
+        return 4
+    if res is None:
+        print("    LIVE: cost lines not read — charging, read-back decides", flush=True)
+    v.tap(LEVEL_X1, 3.0)
+    if v.is_confirm_dialog(v.shot("hl_daily_post")):
+        v.tap(v.CONFIRM_CANCEL, 1.5)          # a 'use diamonds?' prompt: never confirm
+        print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)
+        key(4)
+        return 4
+    after = read_level(v.ocr_lines("hl_daily_post"))
+    key(4)
+    if after == before + 1:
+        print(f"    charged: hand {x} level {before} -> {after}", flush=True)
+        return 0
+    if after == before:
+        print(f"    SKIP: charge had no effect (level {before}) — resources out", flush=True)
+        return 4
+    print(f"    WARN: unexpected read-back {before} -> {after} (LIVE: x1 vs x10 mode?)", flush=True)
+    return 0 if after is not None and after > before else 1
+
+
 def main():
     ap = argparse.ArgumentParser(description="Level the lowest Hands of Resonance.")
     ap.add_argument("--target", type=int, default=TARGET_DEFAULT,
                     help=f"level to reach per hand (default {TARGET_DEFAULT})")
     ap.add_argument("--dry-run", action="store_true",
                     help="open the hall only; no hand / x10 taps")
+    ap.add_argument("--level", action="store_true",
+                    help="daily mode (T67): exactly one x1 level charge on the lowest hand")
     args = ap.parse_args()
     target, dry = args.target, args.dry_run
 
@@ -198,6 +303,8 @@ def main():
         lines = v.ocr_lines("hl_entry_retry_reenter") or v.ocr_lines("hl_entry_retry")
     bar = next((ln for ln in lines if "Resonance Level" in ln), "")
     print(f"    hall open: {bar}", flush=True)
+    if args.level and not dry:
+        return daily_charge()
 
     results = []
     stop_flag: list[bool] = []

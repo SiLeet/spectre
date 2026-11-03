@@ -956,6 +956,31 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   prüfen und abwarten. Dream-Retry ÜBERSPRUNGEN, solange der Livecheck-
   Writer aktiv ist (Idle 0 s, hl_entry 15:34:53) — Chances 4/7
   unverbraucht, Boss-Page „King Croaker" steht weiter bereit.
+- ✅ Race-Fund-Fix (a) abgeschlossen + Dream-Retry nachgeholt (16:19–16:37
+  CET, Queue-Driver, idle-gated): (1) Lock-Wiring jetzt auch in
+  `afk_hero_level.py` — der Parallel-Writer hat den Stand committet
+  (1504750), Gate sitzt VOR dem Hall-Tap, Exit 7 dokumentiert; Wiring-Test
+  erweitert (hero_level in der gated-Liste + Gate-Reihenfolge-Check,
+  Anker „# navigate:" statt v.tap(HALL_BTN — der Helper in_hall tippt
+  denselben Button später, erster Index wäre falsch). Suite 246 Tests OK
+  (22 skipped). Live: Exit-7-Pfad mit Fremd-Fresh-Lock bewiesen (SKIP-Zeile,
+  0 Game-Taps, Lock sauber entfernt), Commit 3084384. Damit sind ALLE 5
+  direkt-laufbaren Entry-Points gelockt — der afk_hero_level-Caveat in
+  docs/agent-workflow.md ist gegenstandslos. (2) Dream-Retry: 4/4 Kämpfe
+  sauber (wall 109.8/98.0/110.2/109.8 s, mean 107 s), Chances 4/7 → 0/7
+  (Battle-Modes-Karte liest ×0/7), Exit 0; Endzustand Battle-Modes-Menü,
+  read-only verifiziert. Dream Realm heute 7/7 erschöpft. (3) A8-Live-Fund
+  #1 (reach_world blockiert auf Battle Modes) ist im gemergten A8-Stand
+  BEREITS gefixt (is_fight-Negativ-Gate + reach_world-BACK, Docstrings
+  zitieren den Fund) — TODOS-Vermerk „Fix-Kandidat" überholt; LIVE
+  bewiesen: `--fights 0`-Run startete AUF Battle Modes, loggt
+  „dr_world: Battle Modes menu -> BACK (A8 fund #1)", erreicht WORLD →
+  Dream → Exit 0 (kein Chance-Verbrauch). Dry-Run nach dem 0-Fight-Exit:
+  boss=True/ready=True = Dream-Boss-Page, der Folgelauf nimmt
+  „already inside Dream Realm" — UNKNOWN ist nur das classify-Label,
+  kein Blocker. Rest R15: F1-Cancel-Tap-Gegenprobe, F7-Chip-Marge
+  (braucht Standard-Town-Kamera), Stage launcher/loading, adb-down
+  Exit 2, summary-close.
 
 
 ### ✅ Race-Fund-Fix (a): Tap-Lock in den Skripten — 2026-11-03 16:0x CET, Queue-Driver

@@ -292,3 +292,16 @@ Key-Gate `--use-keys`.
 
 > Dieser Plan ist bewusst als Datei im Repo (`docs/claude-wave-2-plan.md`) —
 > Claude Code liest ihn direkt als Kontext statt Kopier-Rauschen.
+
+---
+
+## 5. Hermes-Zusatz (03.11., nach Plan-Freeze)
+
+- **T59 (Brief in `CLAUDE-TASKS.md`; Branch `feature/T59-spectre-mcp`):** `spectre-mcp` —
+  stdio-MCP-Server, der Agenten die Live-Pipeline als Tools gibt (find/regions/dump/
+  hot/hunt/search/read/adb_taps; EINZIGER adb-Owner). Registrierung via `.mcp.json`;
+  Live-Smoke durch Hermes nach Merge.
+- **`scripts/bluestacks-ensure.sh`:** prüft/startet BlueStacks idle-gated (Exit 4 =
+  Idle-Gate). Queue-Driver nutzt es bei fehlendem Device statt "Sergej startet manuell".
+- **Agent-Docs:** `CLAUDE.md`, `AGENTS.md`, `docs/agent-workflow.md`,
+  `.claude/settings.json` (Model-Pin), `.mcp.json` (projekt-scope).

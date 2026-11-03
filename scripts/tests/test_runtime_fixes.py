@@ -195,5 +195,19 @@ class R3LauncherLoading(StagePushCase):
         self.assertEqual(dev.taps, [sp.BATTLE_BTN])
 
 
+
+class R9StaleResult(StagePushCase):
+    def test_stale_card_is_no_win(self):
+        dev, rc = self.run_sp(['SP_RESULT', 'SP_RESULT', 'SP_RESULT', 'SP_RESULT'])
+        self.assertEqual(rc, 0)
+        self.assertIn('not counted', dev.out.getvalue())
+        self.assertIn('pushed 0/1', dev.out.getvalue())
+        self.assertEqual(dev.taps, [sp.BATTLE_BTN, sp.BATTLE_BTN])
+
+    def test_retap_then_real_fight_counts(self):
+        dev, rc = self.run_sp(['SP_RESULT', 'SP_RESULT', 'SP_BATTLE', 'SP_RESULT', 'SP_RESULT'])
+        self.assertIn('pushed 1/1', dev.out.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

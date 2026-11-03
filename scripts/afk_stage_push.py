@@ -523,14 +523,22 @@ def main() -> int:
         v.tap(BATTLE_BTN, 3.0)
         st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}')
         print(f'    battle {i}: started ({st})', flush=True)
-        if st == 'PREP':
-            # the Battle tap was swallowed by a transition frame: one re-tap
-            # before declaring the fight a failure (review finding)
+        if st in ('PREP', 'RESULT'):
+            # PREP: the Battle tap was swallowed by a transition frame;
+            # RESULT: the previous card is still up (stale). One re-tap
+            # before judging (review finding / runtime review R9).
             v.tap(BATTLE_BTN, 3.0)
             st, _ = wait_for({'BATTLE', 'LOADING', 'RESULT', 'DEFEAT'}, 25, f'sp_start_{i}b')
             print(f'    battle {i}: restarted ({st})', flush=True)
-        if st in ('BATTLE', 'LOADING'):
+        fought = st in ('BATTLE', 'LOADING')
+        if fought:
             st, _ = wait_for({'RESULT', 'PREP', 'DEFEAT'}, args.max_battle_seconds, f'sp_end_{i}')
+        if st == 'RESULT' and not fought:
+            # a result card without any battle phase is the old card, not a win
+            wall_report(f'battle_{i}_stale_result')
+            print(f'    battle {i}: result card without a battle phase — not counted, '
+                  'stopping', flush=True)
+            break
         if st == 'RESULT':
             wins += 1
             print(f'    battle {i}: VICTORY (AFK progress +1)', flush=True)

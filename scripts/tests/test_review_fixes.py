@@ -452,6 +452,33 @@ class F30GiftNoBlindDismiss(unittest.TestCase):
 
 
 
+class PruneWiring(unittest.TestCase):
+    """F16 wiring: main() must call the prune once per real run, not on --dry-run.
+
+    FakeDevice stubs prune_shot_dirs with a no-op; this re-patches it into a
+    spy on top, asserting the CALL (the prune itself is covered above)."""
+
+    def _run_with_spy(self, frames, *argv):
+        calls = []
+        FakeDevice(self, frames)
+        spy = mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: calls.append(1) or 0)
+        spy.start()
+        self.addCleanup(spy.stop)
+        with mock.patch.object(sys, 'argv', ['afk_claim_vision.py', *argv]):
+            rc = v.main()
+        return rc, calls
+
+    def test_prune_called_on_real_run(self):
+        rc, calls = self._run_with_spy(['WORLD', 'PANEL', 'POPUP', 'POPUP', 'PANEL'])
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 1, 'prune_shot_dirs must run once per real claim round')
+
+    def test_prune_skipped_on_dry_run(self):
+        rc, calls = self._run_with_spy(['WORLD'], '--dry-run')
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [])
+
+
 class F16PruneToTrash(unittest.TestCase):
     def setUp(self):
         import os

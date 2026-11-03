@@ -22,7 +22,7 @@ that the screen CHANGED between fight start and fight end before counting
 an attempt. Reaching Battle Modes is v.open_battle_modes (classify-gated).
 
 Usage: python scripts/afk_arena.py [--fights 4] [--dry-run]
-Exit codes: 0 = all attempts done, 1 = stuck / unknown, 2 = adb error.
+Exit codes: 0 = all attempts done (incl. the attempts-exhausted stop), 1 = stuck / unknown / aborted with no fight, 5 = idle-gate skip.
 """
 from __future__ import annotations
 

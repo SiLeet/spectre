@@ -12,13 +12,13 @@ $ python -m unittest discover -s scripts/tests -v
 ...
 frame regression: checked=139 skipped=0 manifest=139
 ...
-Ran 103 tests in 11.317s
+Ran 105 tests (Branch-Tip e93a8ea; die 2 F16-Prune-Tests kamen mit e93a8ea selbst dazu)
 
 OK
 ```
 
 Pro Modul: test_frame_regression 1 (139 Frames), test_parsers 25, test_flows 17,
-test_wall_dash 15, test_review_fixes 45 — alle ok, 0 skipped, 0 expected failures.
+test_wall_dash 15, test_review_fixes 47 — alle ok, 0 skipped, 0 expected failures.
 
 ---
 

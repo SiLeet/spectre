@@ -1,7 +1,8 @@
 """Replay frame_manifest.json: classifier verdicts on real frames must not drift.
 
 Frames live under .spectre/ (local, gitignored). A missing or replaced frame
-(rotation/prune) is skipped with a warning, never a failure.
+(rotation/prune) is skipped with a warning, never a failure. Pruned dirs are
+re-found under .spectre/trash (F16 moves them there) until trash is emptied.
 """
 from __future__ import annotations
 
@@ -24,8 +25,12 @@ class FrameRegression(unittest.TestCase):
         for e in entries:
             path = REPO / e['relpath']
             if not path.exists():
-                skipped.append(f"missing {e['relpath']}")
-                continue
+                # F16 prune moves old shots-* dirs to .spectre/trash - keep
+                # coverage until trash is emptied instead of skipping blind
+                path = REPO / '.spectre' / 'trash' / Path(e['relpath']).relative_to('.spectre')
+                if not path.exists():
+                    skipped.append(f"missing {e['relpath']}")
+                    continue
             if sha16(path) != e['sha16']:
                 skipped.append(f"changed {e['relpath']}")
                 continue

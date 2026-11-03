@@ -741,3 +741,12 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   sich; Frame-Manifest skippt bis zur Neugenerierung). Teardown-Anleitung in
   docs/agent-workflow.md. → Nach den Abend-Läufen 03.11.: make_frame_manifest.py
   neu generieren + committen. Queue-Driver: ziehen.
+- ✅ R14 [2026-11-03, Review-Nachlauf]: Unabhängige Wave-2-Verifikation durch 2
+  Fresh-Eyes-Agents: alle F1–F32 = FIXED (mit File:Line-Evidence), KEIN FAIL;
+  Tests per Reversion-Experiment als scharf bewiesen (Fix zurückdrehen → genau
+  die zugehörigen Tests fallen). In diesem Nachtrag behoben: Prune-Call-Test
+  (Coverage-Gap), Trash-Fallback im Frame-Test (Manifest-Decay), Arena-Docstring,
+  Report-Zahlen. OFFEN für nächsten Batch: F10-Rest (Zweitpixel-Probe; Recon),
+  F25 (Lobby→PREP; Recon), N2/A8 (stage_push LAUNCHER-Kreuzklassifikation,
+  dream start_fight-Fight-Marker + wait_re-arm). Live-Gegenproben: F1-Cancel-Tap
+  (1014,710) auf echten row-729-Dialogen, F7-Chip-Marge (103 vs 100).

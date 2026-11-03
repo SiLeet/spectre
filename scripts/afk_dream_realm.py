@@ -38,14 +38,13 @@ Exit codes: 0 done, 1 stuck, 2 adb error, 5 skipped (PC in use).
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
-
-REPO = Path(__file__).resolve().parent.parent
 
 BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
@@ -69,9 +68,12 @@ HERO_PROBE2 = (1450, 850)        # second hero-card probe (T38 #5: the PANEL
                                  # back-arrow lum ~178 is too close to a
                                  # single-probe threshold)
 HERO_DISMISS = (100, 100)        # verified live: corner tap closes the hero card
+SPEED_X2 = (1092, 788)           # 2x speed toggle in a running fight (b69fbc4)
 DIM_DISMISS = (480, 300)
 
 POLL = 5.0
+FIGHT_WAIT = 150.0               # same as the --wait-fight default
+MAX_UNKNOWN = 20                 # back_to_ready: ~60 s of unrecognised frames
 MAX_DISMISS_TAPS = 24            # global dismiss budget (T38 #12)
 
 _dismiss_taps = 0
@@ -101,9 +103,11 @@ def is_hero_card(img) -> bool:
 
     Two positive probes: a single threshold at ~180 sat right where the
     PANEL back-arrow reads (~178), so one probe alone was too tight (T38 #5).
+    HERO_PROBE threshold 180: every archived boss page reads 171.2 there, the
+    old 170 left 1.2 lum of margin (runtime review R14).
     """
     return (not is_battle_ended(img)
-            and v.lum(v.avg(img, HERO_PROBE)) > 170
+            and v.lum(v.avg(img, HERO_PROBE)) > 180
             and v.lum(v.avg(img, HERO_PROBE2)) > 150
             and v.lum(v.avg(img, CORNER)) > 140)
 
@@ -116,11 +120,14 @@ def _dim_probes(img) -> bool:
     boss page:    bottom bar ~228                            -> no match
     night world:  back-arrow ~47, bottom bar bright          -> no match
     black loading frame: corner ~0 (no glow)                 -> no match
+    fight-start transition: back ~4, bar ~4, blue corner ~67 -> DID match
+      (shots-1752/dr_f1_resolve_0, runtime review R4): a dim popup still
+      shows its card, a transition is dark at every other probe -> excluded
     """
     back = v.lum(v.avg(img, BACK_ARROW))
     bar = v.lum(v.avg(img, BOTBAR))
     glow = v.lum(v.avg(img, CORNER))
-    return back < 25 and bar < 25 and 30 < glow < 100
+    return back < 25 and bar < 25 and 30 < glow < 100 and not is_uniform_dark(img)
 
 
 def is_dim_popup(img) -> bool:
@@ -166,6 +173,27 @@ def is_ready(img) -> bool:
     if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
         return False
     return is_boss_page(img) or is_prep(img)
+
+
+FRAME_PROBES = ((960, 540), (480, 300), (1440, 300), (960, 100), BACK_ARROW)
+
+
+def is_uniform_dark(img) -> bool:
+    """Black/near-black transition frame (shots-33128: uniform (29,29,29))."""
+    return all(v.lum(v.avg(img, p)) < 40 for p in FRAME_PROBES)
+
+
+def is_fight(img) -> bool:
+    """Positive in-fight marker (runtime review A8a-1, profile from
+    shots-1752/dr_f1_w*): the bottom-centre (960,1040) is neither the white
+    SKIP nor a green Battle button and the prep-Battle spot (1280,1010) is
+    dark (~(22,32,72)). Uniform-dark transitions match that too, so they are
+    excluded explicitly; ready/end screens never count."""
+    centre = v.avg(img, BATTLE_BTN_BOSS)
+    if v.lum(centre) > 200 or _green(centre) or v.lum(v.avg(img, BATTLE_BTN_PREP)) >= 120:
+        return False
+    return not (is_uniform_dark(img) or is_ready(img) or is_battle_ended(img)
+                or is_hero_card(img) or _dim_probes(img))
 
 
 def is_world(img) -> bool:
@@ -217,17 +245,22 @@ def resolve_end_states(img, tag: str):
         else:
             return img
         img = v.shot(f'{tag}_{i}')
-    return None   # still cycling end states after 8 rounds -> give up
+    # the 8th action may have closed the last card: judge that frame too
+    if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+        return None   # still cycling end states after 8 rounds -> give up
+    return img
 
 
 def back_to_ready(tag: str, attempts: int = 10) -> bool:
     """Get back to the boss page / prep screen from wherever we are.
 
     Never taps blindly: unknown frames are waited out (a fight may be
-    running), and only recognised panels are dismissed.
+    running), and only recognised panels are dismissed. A frame with the
+    fight marker hands over to wait_for_fight_end (a fight lasts ~90 s; the
+    old 4-unknown limit gave up after ~12 s — runtime review R5).
     """
     unknown = 0
-    for i in range(attempts):
+    for i in range(attempts + MAX_UNKNOWN):
         img = v.shot(f'{tag}_{i}')
         if is_ready(img):
             return True
@@ -243,8 +276,17 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
                 return False
             unknown = 0
             continue
+        if is_fight(img):
+            print(f'    {tag}: fight running — waiting for its end', flush=True)
+            end = wait_for_fight_end(f'{tag}_fight{i}', FIGHT_WAIT)
+            img = resolve_end_states(end, f'{tag}_fend{i}') if end is not None else None
+            if img is None:
+                return False
+            if is_ready(img):
+                return True
+            continue
         unknown += 1
-        if unknown >= 4:
+        if unknown >= MAX_UNKNOWN:
             print(f'    {tag}: giving up, {unknown} unrecognised frames',
                   flush=True)
             return False
@@ -255,13 +297,35 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
 def wait_for_fight_end(tag: str, max_wait: float):
     """Poll while the timed fight runs. Returns the screenshot of the first
     end state, else None on timeout. The shot taken at/after the deadline is
-    still classified before giving up (T38 #9)."""
+    still classified before giving up (T38 #9).
+
+    Ready re-arm (A8a-2): if the boss page / prep screen stands for 3 polls
+    and no fight marker was seen yet, the fight never started — Battle is
+    re-tapped once (budgeted) and the wait window restarts.
+    """
     deadline = time.time() + max_wait
     n = 0
+    ready_run = 0
+    fought = rearmed = False
     img = v.shot(f'{tag}_w0')
     while time.time() < deadline:
-        if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+        if is_battle_ended(img) or is_hero_card(img) or dim_confirmed(f'{tag}_w{n}', img):
             return img
+        if is_fight(img):
+            fought, ready_run = True, 0
+        elif is_ready(img):
+            ready_run += 1
+            if ready_run >= 3 and not fought and not rearmed:
+                if not _budget():
+                    return None
+                cls = 'prep' if is_prep(img) else 'boss'
+                print(f'    {tag}: still on the {cls} screen, no fight marker — '
+                      're-tapping Battle once', flush=True)
+                v.tap(PREP_TAP if cls == 'prep' else BOSS_TAP, 4.0)
+                rearmed, ready_run = True, 0
+                deadline = time.time() + max_wait
+        else:
+            ready_run = 0
         time.sleep(POLL)
         n += 1
         img = v.shot(f'{tag}_w{n}')
@@ -272,9 +336,12 @@ def wait_for_fight_end(tag: str, max_wait: float):
 
 
 def reach_world(tag: str) -> bool:
-    """BACK-tap back to the world view. UNKNOWN frames abort instead of
-    tapping blind (T38 #3)."""
-    for i in range(6):
+    """BACK-tap back to the world view. UNKNOWN frames never get a BACK
+    (T38 #3): a running fight is waited out, other unknowns are polled a few
+    times before aborting (runtime review R13 — every fight frame is UNKNOWN,
+    so starting mid-fight used to exit 1 at once)."""
+    unknown = 0
+    for i in range(6 + 4):
         img = v.shot(f'{tag}_{i}')
         state = v.classify(img)
         if state == 'WORLD':
@@ -286,19 +353,34 @@ def reach_world(tag: str) -> bool:
         if state == 'WORLD':
             return True
         if state == 'UNKNOWN':
-            print(f'    {tag}: unknown frame -- refusing to tap BACK blind',
-                  flush=True)
-            return False
+            if is_fight(img):
+                print(f'    {tag}: fight running — waiting for its end', flush=True)
+                end = wait_for_fight_end(f'{tag}_fight{i}', FIGHT_WAIT)
+                if end is None or resolve_end_states(end, f'{tag}_fend{i}') is None:
+                    return False
+                continue
+            unknown += 1
+            if unknown >= 4:
+                print(f'    {tag}: unknown frame -- refusing to tap BACK blind',
+                      flush=True)
+                return False
+            time.sleep(3)
+            continue
         v.tap(v.BACK, 1.5)
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 
-def start_fight(fight: int, attempts_max: int = 4) -> bool:
+def start_fight(fight: int, attempts_max: int = 4) -> str | None:
     """Tap Battle on the boss page / prep screen until the fight is underway.
 
-    Never re-taps while the same ready screen still stands (T38 #6): after
-    every Battle tap the driver waits until the screen leaves that exact
-    ready state, so no tap can land inside the fight-start transition.
+    Never re-taps while the same ready screen still stands (T38 #6). "Underway"
+    needs positive evidence (A8a-1): the in-fight marker or an end state.
+    Black/undecided transition frames keep polling — accepting them left the
+    driver on the pre-fight screen for 153 s (shots-33128).
+
+    Returns 'started' (fight marker or end card seen), 'dialog' (a dim
+    dialog answered the tap — chance purchase / empty pool: BACK, no fight
+    counted; runtime review R7) or None (no start after attempts_max taps).
     """
     for attempt in range(attempts_max):
         img = v.shot(f'dr_f{fight}_pre{attempt}')
@@ -312,27 +394,51 @@ def start_fight(fight: int, attempts_max: int = 4) -> bool:
         btn = PREP_TAP if cls == 'prep' else BOSS_TAP
         print(f'    fight {fight}: {cls} screen -> Battle', flush=True)
         v.tap(btn, 4.0)
-        left = False
-        for k in range(6):
+        same = 0
+        for k in range(10):
             img = v.shot(f'dr_f{fight}_after{attempt}_{k}')
-            if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
-                return True
+            if is_fight(img) or is_battle_ended(img) or is_hero_card(img):
+                return 'started'
+            if dim_confirmed(f'dr_f{fight}_after{attempt}_{k}', img):
+                print(f'    fight {fight}: dim dialog after the Battle tap — BACK, '
+                      'not counted as a fight', flush=True)
+                v.tap(v.BACK, 2.0)
+                return 'dialog'
             now = 'prep' if is_prep(img) else 'boss' if is_boss_page(img) else None
-            if now != cls:
-                left = True
-                break
-            time.sleep(2.5)
-        if not left:
-            print(f'    fight {fight}: {cls} screen unchanged after tap, '
-                  're-tapping', flush=True)
-            continue
-        # The state left the tapped ready screen. Navigating boss <-> prep is
-        # fine (the next attempt taps the right button); anything else means
-        # the fight (or its loading transition) is underway.
-        img = v.shot(f'dr_f{fight}_changed{attempt}')
-        if is_prep(img) or is_boss_page(img):
-            continue
-        return True
+            if now is not None and now != cls:
+                break                       # boss <-> prep: next attempt taps the right button
+            if now == cls:
+                same += 1
+                if same >= 6:
+                    print(f'    fight {fight}: {cls} screen unchanged after tap, '
+                          're-tapping', flush=True)
+                    break
+            time.sleep(2.5)                 # dark / undecided transition: keep polling
+        else:
+            print(f'    fight {fight}: no fight marker after the tap', flush=True)
+    return None
+
+
+def parse_chances(lines: list[str]) -> int | None:
+    """Remaining chances from the boss page OCR ('Chances: 5/7')."""
+    for ln in lines:
+        m = re.search(r'chances?\W*(\d+)\s*/\s*\d+', ln, re.I)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def set_speed_x2(fight: int) -> bool:
+    """Tap 2x only on a frame that shows the fight marker (runtime review R6:
+    the blind tap 1.5 s after start_fight hit the black transition, or a
+    roster card on a pre-fight screen). One retry ~3 s later."""
+    for k in range(2):
+        if is_fight(v.shot(f'dr_f{fight}_speed{k}')):
+            v.tap(SPEED_X2, 1.5)
+            print(f'    fight {fight}: 2x speed enabled', flush=True)
+            return True
+        time.sleep(3)
+    print(f'    fight {fight}: no fight marker for the 2x tap — running at 1x', flush=True)
     return False
 
 
@@ -377,6 +483,9 @@ def main() -> int:
         print('    dry-run: no actions taken', flush=True)
         return 0
 
+    moved = v.prune_shot_dirs()        # old shots-<pid> dirs -> .spectre/trash (R8)
+    if moved:
+        print(f'    moved {moved} old shot dirs to .spectre/trash/', flush=True)
     try:
         return run(args)
     except RuntimeError as exc:
@@ -407,15 +516,27 @@ def run(args) -> int:
         if not back_to_ready(f'dr_pre{fight}'):
             print('    ERROR: Dream Realm boss page not reachable', flush=True)
             return 1
-        if not start_fight(fight):
+        img = v.shot(f'dr_f{fight}_chances')
+        if is_boss_page(img):
+            chances = parse_chances(v.ocr_lines(f'dr_f{fight}_chances'))
+            print(f'    fight {fight}: chances left = '
+                  f'{"unreadable" if chances is None else chances}', flush=True)
+            if chances == 0:
+                print('    STOP: no Dream Realm chances left', flush=True)
+                break
+        started = start_fight(fight)
+        if started == 'dialog':
+            print('    STOP: Battle opened a dialog instead of a fight '
+                  '(chance purchase / empty pool?)', flush=True)
+            break
+        if started is None:
             print('    ERROR: fight did not start after 4 battle taps',
                   flush=True)
             return 1
 
         # fight is running: set 2x speed (same damage per game-second,
         # half the real wall-clock time; x4 is premium-locked)
-        v.tap((1092, 788), 1.5)
-        print(f'    fight {fight}: 2x speed enabled', flush=True)
+        set_speed_x2(fight)
 
         end_img = wait_for_fight_end(f'dr_f{fight}', args.wait_fight)
         if end_img is None:

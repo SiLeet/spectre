@@ -858,6 +858,13 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   der Fallback bleibt OFF, classify trotzdem WORLD über die anderen Probes
   (sicheres Verhalten: kein Fallback ≠ falsche Taps; deckt T30-Fund 2).
   F7 bleibt offen: eigentliche Marge-Messung braucht die Standard-Town-Kamera.
+  🟢 F7-Datenpunkt 2 (16:4x CET, Queue-Driver, read-only, Standard-Welt nach
+  BACK aus Dream): chip (1390,704) = (61,121,193), lum 111 — WORLD liest
+  BLAU, chip[2]=193 verletzt die <120-Bedingung um 73 Einheiten; der
+  PANEL-Fallback (orange ~240/191/52 nötig) kann auf Welt-Frames beider
+  gemessener Kameras nicht false-firen. Marge damit ausreichend belegt;
+  F7-Verhalten (Fallback bleibt OFF, classify WORLD über die anderen
+  Probes) verifiziert — Rest F7 nur noch Dokumentationswert.
 - 📌 R16 [2026-11-03]: Wave-3-Plan angelegt (docs/claude-wave-3-plan.md) —
   Zielbild Voll-Auto/Optimiert + Hacking-Lane (FPS/Frida/timeScale, Memory-Map,
   Sniffing, Uhrzeit) mit Safety-Matrix. Starter-Briefs C1–C5 (T61–T65) im

@@ -1180,3 +1180,23 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   las sauber) — Preflight-Guards decken das ab (Range + Struktur), keine
   Code-Änderung. Suite 252 OK (22 skipped). Keine Game-Taps. Nächste
   Post-Fix-Evidenz: Night 04.11. 02:00, Daily 04.11. 05:10.
+- 🟢 Drift-Gate Pfad #3 live belegt (2026-11-03 20:49–20:53 CET, Queue-Driver,
+  rein read-only): Idle 16577 s, Lock frei, PID 5176, kein Parallel-Writer.
+  Der bisherige u64-Anker-Slot (0x796590000000+0xA73D14) liest jetzt
+  `ec 55 04 00 0d 00 00 00` (284140 + High-Dword 13 — kein sauberes Power-u64
+  mehr, Heap-Churn hat den Slot umgeschrieben). `memory_preflight` verwarf das
+  (Struktur-/Range-Check) und re-lokalierte OHNE Game-Restart: erster Kandidat
+  0xA67014 erwies sich als kurzlebige Display-Copy (<1 min — spectre-dump
+  Gegenprobe las dort bereits Müll), zweite Re-Location fand den stabilen Slot
+  **Offset 0xA67A54 (10910292, u64) = 259160** (Δ -16 zum Alt-Anker 259176,
+  legitimer Drift), dreifach verifiziert (read_power + 2× preflight 'ok' +
+  Direkt-Dump `58 f4 03 00 00 00 00 00`). Damit belegt: accept-drift (20:17),
+  Stale→Re-Location nach Restart (18:08) UND Struktur-gebrochener 'ok'-Slot →
+  Re-Location ohne Restart (dieser Lauf). Beobachtung (Review-Batch-Kandidat,
+  kein Inline-Fix): die u64-Anker-Slots im neuen Heap churnn offenbar im
+  Minutentakt — jeder Preflight zahlt dann ~30 s Re-Location; der u32
+  Map-Entry im ALTEN Heap (0x7964E01BD838, liest weiter stabil 259850) ist
+  die strukturell stabilere Kopie — Kandidat: Revalidator bevorzugt
+  strukturstabile Slots. Kein Code-Change in diesem Lauf. Ein weiterer
+  mentaler Hex-Slip (0xA68114 statt 0xA67A54) rechtzeitig durch den
+  Python-Check gefangen — Regel bleibt: nie Hex mental rechnen.

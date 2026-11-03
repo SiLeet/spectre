@@ -988,6 +988,16 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   kein Blocker. Rest R15: F1-Cancel-Tap-Gegenprobe, F7-Chip-Marge
   (braucht Standard-Town-Kamera), Stage launcher/loading, adb-down
   Exit 2, summary-close.
+  🟨 F1-Gegenprobe-Versuch 16:5x CET (Queue-Driver, idle-gated, Endzustand
+  WORLD wiederhergestellt): Arena-Attempts live > 0 — Schwert-Tap (760,810)
+  auf Select-Opponent ging DIREKT auf die Prep-Seite (kein Kauf-Dialog);
+  der 'Spend diamonds?'-Dialog (row 729) ist nur bei Attempts = 0
+  produzierbar. Probe verschoben bisfenster: nach dem Tages-Arena-Verbrauch
+  des Bots ODER wenn ein Run-Log natürlich ein CONFIRM-Abfangen zeigt
+  ('Turn off Auto Battle?' im Stage-Push — 17:10-Run liefert evtl. Evidenz).
+  Kein Kampf verbraucht, kein Kauf, Prep nie bestätigt (BACK-Pfeil auf
+  Select-Opponent sitzt bei (714,1010), nicht bei BACK=(474,1010) — nur
+  Recherche-Notiz, afk_arena nutzt BACK nicht im Fight-Chain).
 
 
 ### ✅ Race-Fund-Fix (a): Tap-Lock in den Skripten — 2026-11-03 16:0x CET, Queue-Driver

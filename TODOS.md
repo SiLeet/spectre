@@ -817,9 +817,13 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 - ✅ R8 [MED]: Login-Popup („Esperia Monthly / Daily Rewards") — erledigt
   (7e80fb4): resolve_startup_popup() mit OCR-Gate, verdrahtet in Claim-Flow +
   Stage-Push; nie blind (nur OCR-erkannte Popups werden geclaimt).
-- ⬜ R9 [LOW, offen → als Task A4/T48 im Wave-2-Plan]: scripts/_level_hands.py
-  ist redundant zu afk_hero_level.py → wird im Dedup-Batch gelöscht
-  (docs/claude-wave-2-plan.md, A4).
+- ✅ R9 [LOW, 2026-11-03 17:5x CET, Queue-Driver]: scripts/_level_hands.py
+  redundant zu afk_hero_level.py → bereits ERLEDIGT durch den Wave-2-Batch
+  A4/T48 (Report docs/reviews/../claude-wave-2-run.md §A4: Datei gelöscht in
+  Commit `621451a`, F32 bestätigt; afk_hero_level nutzt die claim_vision-Helfer).
+  Verifiziert: Datei existiert nicht mehr (`ls` leer), Repo-Suche nach
+  `_level_hands` findet nur historische Docs (Wave-2/4-Reports, Review-Artefakte).
+  Offener R9-Punkt war stale — geschlossen ohne Code-Change.
 - ✅ R12 [LOW, 2026-11-03]: `afk-night.sh` now captures both `PIPESTATUS` values
   after `tee`, propagating the stage-push result (including idle SKIP=5) and
   surfacing a `tee` error when the push succeeds. Regression test

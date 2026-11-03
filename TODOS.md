@@ -1135,3 +1135,21 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   nicht produzierbar, Gegenprobe erneut inkonklusiv. Stage LAUNCHER/LOADING +
   Summary-Close brauchen die jeweiligen Übergangs-Frames (dieser Test-Run
   startete auf PREP, produzierte keine).
+- ✅ F1 gelöst + exit_to_world (2026-11-03 19:4x CET, Queue-Driver):
+  Arena-Attempt-Mechanik live aufgeklärt (Idle-Fenster 10885 s, Spiel PID 5176):
+  Battle-Modes-Karte „Arena ×2/4“ = Versuche übrig, konsistent mit dem orangen
+  Lobby-Medaillon (Stand 2 nach den 3 Kämpfen des 19:14-Laufs: 5-frei/Tag
+  (T45e) minus 3; Token-Beweis 1200 → 2100 = 3 × 300). „Spend
+  diamonds?“-Dialog nur bei Medaillon-Stand 0 produzierbar (+-Button =
+  Diamanten-Kauf, tabu). Season-UI live: Lobby-Hauptbutton „Continue“ mit
+  Countdown (läuft auf 00:00 UTC = Arena-Settlement, T45k), Position
+  (1080,1004) + grüner Lobby-Probe unverändert — keine Codeänderung nötig.
+  exit_to_world() in scripts/afk_arena.py (Commit 30d67b8): bounded
+  5 Steps, WARN-only, RESULT-Dismiss + PREP- (live shots-78504: nach dem
+  letzten Kampf steht das Spiel auf der Arena-PREP-Seite; BACK 474,1010 →
+  Select) + positive-SELECT-Erkennung vor dem Lobby-Probe (Badge 1160,1010);
+  Route Select → (714,1010) → Lobby → (474,1010) → Battle Modes → (474,1010)
+  → World, ohne Attempt-Verbrauch. E2E-Live-Run: Fight sauber (changed=True,
+  Wall 84,7 s, Exit 0). Suite 252 OK (22 skipped), 3 neue Exit-Tests +
+  aktualisierte Frame-Listen. Offen bleibt R15-Rest: Stage LAUNCHER/LOADING +
+  Summary-Close-Frames; erster Post-Fix-Night-Beleg 04.11. 02:00.

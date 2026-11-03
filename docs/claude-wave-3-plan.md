@@ -116,14 +116,66 @@ minimieren); alle conf-Edit mit Backup.
 - **R-A/R-B Research-Agents laufen** (Speed-/Hack-Landschaft; bestehende
   AFJ-Projekte + API-Sniff + Trick-Liste). Ergebnisse fließen hier ein.
 - **Live-Recon L1–L8** (nächste Live-Fenster, idle-gated):
-  L1 Frida-Frisibility auf DIESEM Setup (frida-server push/attach, AFJ-Anti-Debug-Check)
-  L2 timeScale-Kandidaten suchen (probe.js) + Effekt messen
+  L1 **speedybara-Test (NEU, höchste Prio):** natives Windows-Tool skaliert die
+     Prozess-Geschwindigkeit 0.25–8× (PC-Prozess ODER gerooteter Emulator) —
+     Download, mit/ohne BlueStacks-Root testen, Effekt via C1-Metriken messen
+     (2×/4×/8×), Stabilität beobachten. Potenziell der größte Einzel-Hebel,
+     noch vor Frida, weil fertige Software.
+  L2 Frida auf DIESEM Setup — **Machbarkeit research-bestätigt**: BS5 Pie64 +
+     x86_64-frida-server + `--realm=emulated` (frida#3497, il2cpp sichtbar);
+     Falle dokumentiert: BS ≥5.22 setzt Root-Flag je Start zurück
+     (Patch-Mode/Root-GUI nötig). Dann timeScale-Probe nach Login + Effekt messen
   L3 FPS-Test + Messung via C1
   L4 Memory-Map Runde 1 (Chances/Keys/Timer) mit OCR-Kreuzvalidierung
   L5 A8-Live-Checks (R15) + F1/F7-Gegenproben
   L6 B1–B6 RECON-Blöcke füllen (Dura's zuerst)
   L7 Frame-Manifest-Regen (R13) nach Frames
   L8 mitmproxy-Sichtung (liest überhaupt was mit?)
+
+## 6a. RESEARCH-ERGEBNISSE (2026-11-03, 2 Agents — Details in den Transkripten)
+
+### Speed-/Hack-Landschaft (Agent A, 63 Quellen)
+- **GG-Speedhack:** braucht x86-Libs des Spiels; AFKJ ist arm64-only → GG-eigener
+  Speedhack scheitert voraussichtlich; Workaround-Scripts (Unity timeScale-Finder)
+  existieren. **Frida (bestätigt):** BS5 Pie64 + x86_64-server + `--realm=emulated`
+  → il2cpp-Module sichtbar, Interceptor.attach OK (frida#3497, il2cpp-bridge
+  #613: BlueStacks=Yes, MuMu/LDPlayer=Nein). Root: BS ≥5.22 Patch-Mode-Falle.
+- **speedybara:** 0.25–8× Prozess-Speed skaliert, supportet gerootete Emulatoren
+  + PC-Client, V-Sync-off nötig. → L1.
+- **FPS:** primär Smoothness; bekannte Frame-Bugs (Tab-Out Slow-Motion→VSync off;
+  „PC-Kampf halbe Geschwindigkeit"). Battle-Speed ist spielgesteuert (2×/4× client-
+  seitig) → timeScale-Hebel konzeptionell bestätigt.
+- **Anti-Cheat:** praktisch tolerant (EmuDesk: keine aktiven Bans; eine BlueStacks-
+  „accelerator"-Support-Mail bekannt). Kämpfe laufen clientseitig (Offline-Beweis),
+  Energie-Double manipulierbar (Server lehnt ~1/20 ab — Werte-Injektion = Glücksspiel,
+  Playback-/Speed-Mods = sicher).
+- **Uhrzeit:** Resets strikt Server-Zeitzone (EU GMT+1, 01:00) → Geräteuhr bringt für
+  Resets nichts; GG-Time-Jump nur für client-lokale Dinge.
+
+### Projekte/API/Tricks (Agent B)
+- **Keine öffentliche API**; alle Bots (AdbAutoPlayer MIT, aktiv 10/2026 — hat
+  Module für duras_trials/legend_trial/supreme_arena/homestead/minigames; Merlin;
+  AutoAFK2) sind UI+OCR. **AdbAutoPlayer = beste Referenz für unsere B-Roadmap.**
+- **Datenquellen OHNE Client-Zugriff:** `Koko-boya/AFKJourneyData` (5.783 Tabellen-
+  JSONs, IDs/Preise/Conditions/Schedules — Basis für Team-Optimizer/Policies);
+  `tmdict/stargazer` (Arena-Simulator für Formations-Theorie).
+- **PC-Client-Cheats (später optional):** NEProtect2-Decrypt + Il2CppDumper,
+  AFKJ-Lua-Editor (Lua-Konsole), metadata_decrypt.
+- **Neue bestätigte Tricks:** Dream Realm Gold-Zusatzversuche NUR fürs Ranking +
+  Rank-Sniping um 00:00 UTC; Dura's: 1st-Clear→Sweep (Token täglich! Sweep gibt
+  2-Klassen-Essenz); Arena-Tickets (5 kaufbar) + Angriffe ans Tagesende;
+  Guild-Chest skaliert mit Rankings (Arena/SA/DREM/Labyrinth/HD hochhalten);
+  Battle-Drills-Truce-Scouting + Records-Copy; Mystic-Collection-Invest (Free
+  Instant-AFK, +Max-AFK-Time); Season-Start-Bot-Ladder-Seeding (billige Top-Ranks);
+  Season-Store vor Ende leeren; Friend-Points→Affinity-Pflanzen (Dias-Schwellen);
+  Homestead-Orders-Loop; Hourglass erst nach Push verbrauchen.
+
+## 6b. API-/Traffic-Lage (Kurzfassung)
+
+Kein öffentliches API-Writeup; Unity-HTTPS sniffbar falls kein Pinning (Status
+unverifiziert → L8 bleibt kleines Experiment). Claims/State: heute überall per
+UI; State-Reads künftig über Memory (H3) statt API. Fazit: API = Nice-to-have,
+nicht der Hebel.
 
 ## 6. Workflow
 

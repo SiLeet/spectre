@@ -33,8 +33,9 @@ from pathlib import Path
 
 from PIL import Image
 
-import afk_claim_vision as v
-from afk_claim_vision import classify  # verified WORLD check (back-arrow probes)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import afk_claim_vision as v  # noqa: E402
+from afk_claim_vision import classify  # noqa: E402  verified WORLD check (back-arrow probes)
 
 REPO = Path(__file__).resolve().parent.parent
 TMP = REPO / '.spectre' / 'shots'
@@ -51,8 +52,6 @@ CHALLENGE = (1080, 1004)    # green Challenge button, arena lobby
 OPPONENT_LEFT = (750, 500)  # left opponent card (weakest of the 3)
 ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
-
-sys.path.insert(0, str(REPO / 'scripts'))
 
 
 def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:

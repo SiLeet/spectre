@@ -9,14 +9,15 @@ repeat. Stops on DEFEAT (stage too hard) or when the requested count is reached,
 and always leaves the game on the result screen (no stray taps).
 
 Usage: python scripts/afk_stage_push.py [--battles N] [--max-battle-seconds 150]
-Exit codes: 0 finished/pushed, 1 stuck (unknown screen), 2 memory preflight,
-3 game crashed (BlueStacks launcher), 5 skipped (PC in use).
+Exit codes: 0 finished/pushed, 1 stuck (unknown screen), 2 memory preflight
+or adb down (5 screenshots in a row failed), 3 game crashed (BlueStacks launcher), 5 skipped (PC in use).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -194,16 +195,37 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
     return rec
 
 
+ADB_FAIL_CAP = 5        # consecutive failed screenshots -> adb is down, exit 2
+_shot_fails = 0
+
+
+class AdbDown(RuntimeError):
+    pass
+
+
+def try_shot(name: str, backoff: float = 3.0):
+    """v.shot that survives adb hiccups (runtime review R11): retries with a
+    backoff and raises AdbDown after ADB_FAIL_CAP consecutive failures, which
+    main() turns into exit 2 instead of a FATAL mid-chain."""
+    global _shot_fails
+    while True:
+        try:
+            img = v.shot(name)
+            _shot_fails = 0
+            return img
+        except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
+            _shot_fails += 1
+            print(f'    WARN: shot failed ({exc}) [{_shot_fails}/{ADB_FAIL_CAP}]', flush=True)
+            if _shot_fails >= ADB_FAIL_CAP:
+                raise AdbDown(f'{_shot_fails} screenshots in a row failed') from exc
+            time.sleep(backoff)
+
+
 def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
     t0 = time.time()
     last = 'UNKNOWN'
     while time.time() - t0 < timeout:
-        try:
-            img = v.shot(tag)
-        except Exception as exc:          # transient adb hiccup: retry, don't die
-            print(f'    WARN: shot failed ({exc}) - retrying', flush=True)
-            time.sleep(3.0)
-            continue
+        img = try_shot(tag)
         last = classify_battle(img)
         try:
             if last == 'STATS':
@@ -221,6 +243,14 @@ def wait_for(states: set[str], timeout: float, tag: str) -> tuple[str, object]:
 
 
 def main() -> int:
+    try:
+        return _run()
+    except AdbDown as exc:
+        print(f'    ERROR: adb down — {exc}', flush=True)
+        return 2
+
+
+def _run() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--battles', type=int, default=1)
     ap.add_argument('--auto', action='store_true',
@@ -256,7 +286,7 @@ def main() -> int:
         else:
             print(f'    preflight team_power = {power}', flush=True)
 
-    img = v.shot('sp_0_initial')
+    img = try_shot('sp_0_initial')
     st = classify_battle(img)
     print(f'    initial battle screen state: {st}', flush=True)
 
@@ -264,7 +294,7 @@ def main() -> int:
         if is_auto_complete(ocr_text(v.TMP / 'sp_0_initial.png')):
             print('    auto battle summary card open — closing it', flush=True)
             v.tap((960, 1000), 2.5)   # 'Tap to Close' sits bottom-centre
-            img = v.shot('sp_after_close')
+            img = try_shot('sp_after_close')
             st = classify_battle(img)
             print(f'    after closing summary: {st}', flush=True)
         if st == 'UNKNOWN':
@@ -274,7 +304,7 @@ def main() -> int:
         # known login popup (free monthly/daily rewards) -> claim it;
         # anything else: abort (no blind dismiss, cancelling risks a buy)
         if v.resolve_startup_popup('sp_1a_popup'):
-            st = classify_battle(v.shot('sp_1b_after_popup'))
+            st = classify_battle(try_shot('sp_1b_after_popup'))
             print(f'    after login popup: {st}', flush=True)
         if st == 'POPUP':
             print('    ERROR: popup on screen — aborting (no blind dismiss)', flush=True)
@@ -356,7 +386,7 @@ def main() -> int:
             # the 12 s wait can catch the prep->battle transition frame
             # (live: 'auto battle not available' although the chain started)
             time.sleep(3)
-            st = classify_battle(v.shot('sp_auto_start_recheck'))
+            st = classify_battle(try_shot('sp_auto_start_recheck'))
             if st == 'BATTLE':
                 print('    auto battle started (confirmed on recheck)', flush=True)
         if st in ('PREP', 'RESULT', 'DEFEAT'):
@@ -386,11 +416,7 @@ def main() -> int:
                         return 5
                 time.sleep(3)
                 tag = f'sp_auto_{int(time.time()-t0)}'
-                try:
-                    img = v.shot(tag)
-                except Exception as exc:          # transient adb hiccup
-                    print(f'    WARN: shot failed ({exc}) - retrying', flush=True)
-                    continue
+                img = try_shot(tag)
                 st = classify_battle(img)
                 if st == 'LAUNCHER':
                     wall_report(f'auto_launcher_after_{int(time.time()-t0)}s')
@@ -462,7 +488,7 @@ def main() -> int:
                     # like the wall, but the chain may already be losing —
                     # confirm with a second shot before reporting.
                     time.sleep(3)
-                    st2 = classify_battle(v.shot('sp_auto_confirm'))
+                    st2 = classify_battle(try_shot('sp_auto_confirm'))
                     if st2 == 'DEFEAT':
                         if retries == 0 or retries % 10 == 0:
                             wall_report(f'auto_defeat_after_{int(time.time()-t0)}s')
@@ -492,7 +518,7 @@ def main() -> int:
                         continue
                     if st2 != 'PREP':
                         time.sleep(3)
-                        if classify_battle(v.shot('sp_auto_confirm2')) != 'PREP':
+                        if classify_battle(try_shot('sp_auto_confirm2')) != 'PREP':
                             continue
                     wall_report(f'auto_prep_stop_{skipped}skipped_{int(time.time()-t0)}s')
                     print(f'    wall reached: {skipped} fights skipped in {int(time.time()-t0)}s',
@@ -513,14 +539,14 @@ def main() -> int:
                 # leave the game clean: cancel a possibly open confirm dialog
                 # (a stray skip tap can hit the auto toggle) and close the
                 # auto-complete summary card, THEN report the resulting state.
-                img = v.shot('sp_auto_end')
+                img = try_shot('sp_auto_end')
                 end_st = classify_battle(img)
                 if end_st == 'CONFIRM':
                     v.tap(v.CONFIRM_CANCEL, 2.0)
-                    end_st = classify_battle(v.shot('sp_auto_end2'))
+                    end_st = classify_battle(try_shot('sp_auto_end2'))
                 elif end_st in ('UNKNOWN', 'POPUP') and is_auto_complete(ocr_text(v.TMP / 'sp_auto_end.png')):
                     v.tap((960, 1000), 2.5)
-                    end_st = classify_battle(v.shot('sp_auto_end2'))
+                    end_st = classify_battle(try_shot('sp_auto_end2'))
                 wall_report(f'auto_timeout_{skipped}skipped_end_{end_st.lower()}')
                 print(f'    still fighting after {args.auto_minutes:.0f} min ({skipped} skipped)',
                       flush=True)

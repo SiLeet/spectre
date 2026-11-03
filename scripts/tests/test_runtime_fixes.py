@@ -228,5 +228,26 @@ class R10PrepDebounce(StagePushCase):
         self.assertIn('sp_auto_confirm2', dev.shots)
 
 
+
+class R11TryShot(unittest.TestCase):
+    def setUp(self):
+        for patch in (mock.patch.object(sp, '_shot_fails', 0),
+                      mock.patch.object(sys, 'stdout', __import__('io').StringIO())):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_hiccups_are_retried_with_backoff(self):
+        img = frame('SP_PREP')
+        with mock.patch.object(v, 'shot', side_effect=[RuntimeError('screencap failed'),
+                                                       OSError('pipe'), img]),              mock.patch('time.sleep') as sleep:
+            self.assertIs(sp.try_shot('x'), img)
+        self.assertEqual([c.args[0] for c in sleep.call_args_list], [3.0, 3.0])
+
+    def test_adb_down_exits_2_not_fatal(self):
+        with mock.patch.object(v, 'shot', side_effect=RuntimeError('screencap failed')),              mock.patch.object(v, 'prune_shot_dirs', return_value=0),              mock.patch('time.sleep'),              mock.patch.object(sys, 'argv', ['afk_stage_push.py']):
+            self.assertEqual(sp.main(), 2)
+        self.assertIn('adb down', sys.stdout.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

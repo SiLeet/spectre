@@ -885,3 +885,35 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   offen: LEVEL_X1 +1-vs+10, Dura's-Komplettnavigation, (480,300)-Karten-Dismiss,
   + 7er-Liste im Bericht docs/reports/claude-wave-4-run.md. Hinweis: T66-Nummer
   doppelt (feature/T66-tray-icon existiert in spectre-tray).
+- 🟢 A8-Live-Checks Teil 1 (2026-11-03 15:0x CET, Queue-Driver, idle-gated,
+  PID 5176, Guard 'ok' 259850): Dream-Flow live verifiziert — Fight 1
+  (--fights 1) sauber: Re-Tap nach unverändertem Boss-Screen (R1-Rearm
+  sichtbar im Log), `2x speed enabled` erst im Kampf (R6), `chances left
+  = 7` stimmte mit der Anzeige (R7), Battle-Ended-Card resolved (R16-
+  Pfad), Exit 0; Fight-Shots wanderten nach .spectre/trash (R8-Prune).
+  Chance 7→6 verbraucht (Battle-Modes-Karte las 6/7).
+  **A8-Live-Fund #1 (HIGH): `is_fight()` false-positive auf dem Battle-
+  Modes-Screen** — Probes (960,1040)=(109,93,93) / (1280,1010)=(108,92,92),
+  lum je ~97, weder weiß noch grün, kein Endzustand/Dim/Ready →
+  is_fight=True bei classify=UNKNOWN. Folge: reach_world() an Entry
+  wartet 150 s auf ein „laufendes Fight" und bricht ab (Exit 1; Beleg
+  shots-77148/dr_world_0.png). Weil Battle Modes für classify() UNKNOWN
+  ist und reach_world BACK auf UNKNOWN verweigert, kann das Script diesen
+  Screen nicht selbst verlassen — ein Lauf, der auf Battle Modes endet,
+  blockiert damit den Folgelauf. Fix-Kandidat für den nächsten Fix-Batch
+  (NICHT inline): reach_world um is_battle_modes-Probe → BACK erweitern;
+  ggf. is_fight zusätzlich auf das Battle-Modes-Layout negativ gateen.
+  Workaround heute: manueller BACK (474,1010) aus Battle Modes → WORLD
+  OCR-verifiziert → Re-Run grün.
+  **Op-Notiz:** Dream-Läufe >3 min nie foreground starten (180-s-Clamp
+  killt das Script mitten im Kampf — live passiert: Chance verbraucht,
+  Ergebnis unresolved; der In-Game-Fight lief autonom weiter, der Re-Run
+  übernahm den Ready-State sauber über back_to_ready) → background+poll.
+  Dream-Stand heute: 3/7 Chances verbraucht (2 completed verifiziert + 1
+  beim Timeout-Kill gestartet); Rest beim nächsten idle-gated Fenster —
+  Boss-Page „King Croaker, Elite Challenge, Highest Damage 1,076,922"
+  steht bereit (Beleg shots-77148/readonly-state-1513.png); der direkte
+  Re-Run dazwischen SKIPpte korrekt (Idle 63 s, Exit 5).
+  R13-Manifest-Regen (Teil 2 von R15): plain Rebuild → 28 Frames (vorher
+  19), Frame-Regression `checked=28 skipped=0`, Gesamtsuite 230 Tests OK
+  (22 skipped). Manifest committet.

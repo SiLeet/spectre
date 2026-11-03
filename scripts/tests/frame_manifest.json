@@ -100,6 +100,26 @@
   "battle_class": "WORLD"
  },
  {
+  "relpath": ".spectre/shots-50916/dr_enter0_bm0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "856c841fb5e14424",
+  "classify": "UNKNOWN",
+  "battle_class": "RESULT"
+ },
+ {
+  "relpath": ".spectre/shots-50916/dr_world_0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "ecb31cbffed3e1fc",
+  "classify": "WORLD",
+  "battle_class": "WORLD"
+ },
+ {
   "relpath": ".spectre/shots-51424/arena_1_lobby.png",
   "size": [
    1920,
@@ -116,6 +136,46 @@
    1080
   ],
   "sha16": "2d1e3e4a3a394dcc",
+  "classify": "WORLD",
+  "battle_class": "WORLD"
+ },
+ {
+  "relpath": ".spectre/shots-5176/anchor-hud.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "3e37209c0831e906",
+  "classify": "WORLD",
+  "battle_class": "WORLD"
+ },
+ {
+  "relpath": ".spectre/shots-5176/anchor-world-back.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "087ec50e543e8657",
+  "classify": "WORLD",
+  "battle_class": "WORLD"
+ },
+ {
+  "relpath": ".spectre/shots-56176/dr_enter0_bm0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "efb2e817d84601ee",
+  "classify": "UNKNOWN",
+  "battle_class": "RESULT"
+ },
+ {
+  "relpath": ".spectre/shots-56176/dr_world_0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "89b67df40933fe14",
   "classify": "WORLD",
   "battle_class": "WORLD"
  },
@@ -138,6 +198,16 @@
   "sha16": "b95a6df8100db1a4",
   "classify": "POPUP",
   "battle_class": "BATTLE"
+ },
+ {
+  "relpath": ".spectre/shots-67528/dev_0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "aafe2d344b13a91f",
+  "classify": "WORLD",
+  "battle_class": "WORLD"
  },
  {
   "relpath": ".spectre/shots-69448/r1_0_initial.png",
@@ -176,6 +246,26 @@
    1080
   ],
   "sha16": "38463822b63ed3f6",
+  "classify": "UNKNOWN",
+  "battle_class": "UNKNOWN"
+ },
+ {
+  "relpath": ".spectre/shots-77148/dr_start.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "25cacf156907f666",
+  "classify": "UNKNOWN",
+  "battle_class": "RESULT"
+ },
+ {
+  "relpath": ".spectre/shots-77148/readonly-state-1513.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "d3f6438a53c2fb48",
   "classify": "UNKNOWN",
   "battle_class": "UNKNOWN"
  },

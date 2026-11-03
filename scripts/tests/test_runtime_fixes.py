@@ -40,5 +40,31 @@ class R1FightMarker(unittest.TestCase):
         self.assertEqual(dev.taps, [dr.BOSS_TAP])
 
 
+
+class R2ReadyRearm(unittest.TestCase):
+    """A8a-2: a ready screen that keeps standing gets one Battle re-tap."""
+
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_prep_standing_is_retapped_once(self):
+        dev = FakeDevice(self, ['DR_PREP'] * 3 + ['DR_FIGHT', 'DR_ENDED'])
+        img = dr.wait_for_fight_end('dr_f1', 150)
+        self.assertTrue(dr.is_battle_ended(img))
+        self.assertEqual(dev.taps, [dr.PREP_TAP])
+
+    def test_only_one_rearm(self):
+        dev = FakeDevice(self, ['DR_BOSS'] * 6 + ['DR_ENDED'])
+        dr.wait_for_fight_end('dr_f1', 150)
+        self.assertEqual(dev.taps, [dr.BOSS_TAP])
+
+    def test_ready_after_a_seen_fight_is_not_retapped(self):
+        dev = FakeDevice(self, ['DR_FIGHT', 'DR_BOSS', 'DR_BOSS', 'DR_BOSS', 'DR_ENDED'])
+        dr.wait_for_fight_end('dr_f1', 150)
+        self.assertEqual(dev.taps, [])
+
+
 if __name__ == '__main__':
     unittest.main()

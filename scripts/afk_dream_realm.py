@@ -276,13 +276,35 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
 def wait_for_fight_end(tag: str, max_wait: float):
     """Poll while the timed fight runs. Returns the screenshot of the first
     end state, else None on timeout. The shot taken at/after the deadline is
-    still classified before giving up (T38 #9)."""
+    still classified before giving up (T38 #9).
+
+    Ready re-arm (A8a-2): if the boss page / prep screen stands for 3 polls
+    and no fight marker was seen yet, the fight never started — Battle is
+    re-tapped once (budgeted) and the wait window restarts.
+    """
     deadline = time.time() + max_wait
     n = 0
+    ready_run = 0
+    fought = rearmed = False
     img = v.shot(f'{tag}_w0')
     while time.time() < deadline:
         if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
             return img
+        if is_fight(img):
+            fought, ready_run = True, 0
+        elif is_ready(img):
+            ready_run += 1
+            if ready_run >= 3 and not fought and not rearmed:
+                if not _budget():
+                    return None
+                cls = 'prep' if is_prep(img) else 'boss'
+                print(f'    {tag}: still on the {cls} screen, no fight marker — '
+                      're-tapping Battle once', flush=True)
+                v.tap(PREP_TAP if cls == 'prep' else BOSS_TAP, 4.0)
+                rearmed, ready_run = True, 0
+                deadline = time.time() + max_wait
+        else:
+            ready_run = 0
         time.sleep(POLL)
         n += 1
         img = v.shot(f'{tag}_w{n}')

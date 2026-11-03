@@ -136,10 +136,21 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
         lines2 = snap(f"{tag}_{x}_check{taps}")
         lvl2 = read_level(lines2) if lines2 else None
         if lvl2 is not None and lvl2 == new_lvl:
-            print(f"    [{tag} {x}] level unchanged after x10 ({lvl2}) — resources exhausted, stopping run", flush=True)
-            key(4)
-            stop_flag.append(True)
-            return lvl2, taps
+            # one unchanged read can be a missed tap (adb hiccup, animation):
+            # only two unchanged x10 taps in a row mean the resources are out
+            if taps >= MAX_X10_PER_HAND:
+                print(f"    [{tag} {x}] level unchanged after x10 ({lvl2}) at the tap cap — not concluding", flush=True)
+                key(4)
+                return lvl2, taps
+            print(f"    [{tag} {x}] level unchanged after x10 ({lvl2}) — confirming with one more tap", flush=True)
+            v.tap(LEVEL_X10, 3.0)
+            taps += 1
+            lvl3 = read_level(snap(f"{tag}_{x}_check{taps}"))
+            if lvl3 is not None and lvl3 == new_lvl:
+                print(f"    [{tag} {x}] level unchanged after 2 x10 taps ({lvl3}) — resources exhausted, stopping run", flush=True)
+                key(4)
+                stop_flag.append(True)
+                return lvl3, taps
     key(4)
     return lvl, taps
 

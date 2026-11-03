@@ -102,9 +102,7 @@ class F6BattleModes(unittest.TestCase):
 
 
 
-class F2HeroLevel(unittest.TestCase):
-    """Hall re-verify between hands + exit 1 on any failed hand."""
-
+class HeroCase(unittest.TestCase):
     def run_hl(self, frames, ocr, hands=(710, 840)):
         dev = FakeDevice(self, frames, ocr=ocr)
         keys = []
@@ -114,6 +112,10 @@ class F2HeroLevel(unittest.TestCase):
             patch.start()
             self.addCleanup(patch.stop)
         return dev, hl.main()
+
+
+class F2HeroLevel(HeroCase):
+    """Hall re-verify between hands + exit 1 on any failed hand."""
 
     def test_hall_lost_is_reentered_from_town(self):
         lvl95 = ['Affinity', 'Lvl. 95']
@@ -318,6 +320,29 @@ class F11GiftClaimSignal(unittest.TestCase):
             self.assertEqual(gift.main(), 0)
         self.assertIn('claimed row y=260 (Rewards Obtained, classify POPUP)', dev.out.getvalue())
         self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), (700, 500), v.BACK])
+
+
+
+class F12HeroExhaustion(HeroCase):
+    """Exhaustion needs two unchanged x10 taps in a row."""
+
+    def test_missed_tap_is_not_exhaustion(self):
+        dev, rc = self.run_hl(['UNKNOWN'] * 5,
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80'],
+                               'hl_710_check1': ['Lvl. 80'], 'hl_710_check2': ['Lvl. 90'],
+                               'hl_710_1': ['Affinity', 'Lvl. 90']}, hands=(710,))
+        self.assertEqual(rc, 0)
+        self.assertNotIn('resources exhausted', dev.out.getvalue())
+        self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), hl.LEVEL_X10, hl.LEVEL_X10, ('key', 4)])
+
+    def test_two_unchanged_taps_stop_the_run(self):
+        dev, rc = self.run_hl(['UNKNOWN'] * 4,
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80'],
+                               'hl_710_check1': ['Lvl. 80'], 'hl_710_check2': ['Lvl. 80']},
+                              hands=(710, 840))
+        self.assertEqual(rc, 0)
+        self.assertIn('resources exhausted', dev.out.getvalue())
+        self.assertNotIn((840, hl.HANDS_Y), dev.taps)
 
 
 if __name__ == '__main__':

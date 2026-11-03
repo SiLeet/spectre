@@ -190,8 +190,12 @@ def main():
     v.tap(HALL_BTN, 4.0)
     lines = snap("hl_entry")
     if not is_hall(lines):
-        print("    ERROR: Resonating Hall did not open (no 'Resonance Level' line)", flush=True)
-        return 1
+        # one guarded retry (missed tap / slow open): in_hall re-taps only
+        # from the town view, never blind
+        if not in_hall("hl_entry_retry"):
+            print("    ERROR: Resonating Hall did not open (no 'Resonance Level' line)", flush=True)
+            return 1
+        lines = v.ocr_lines("hl_entry_retry_reenter") or v.ocr_lines("hl_entry_retry")
     bar = next((ln for ln in lines if "Resonance Level" in ln), "")
     print(f"    hall open: {bar}", flush=True)
 

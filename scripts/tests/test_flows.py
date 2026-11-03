@@ -104,12 +104,26 @@ class ClaimFlow(unittest.TestCase):
 class HeroLevelEntry(unittest.TestCase):
     """afk_hero_level runs on the shared claim_vision helpers (T48)."""
 
-    def test_hall_not_open_aborts_after_one_tap(self):
-        dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': ['Battle Modes']})
+    def test_hall_not_open_aborts_after_one_guarded_retry(self):
+        # entry tap, still town (WORLD) -> one re-tap from the town -> still no hall
+        dev = FakeDevice(self, ['WORLD', 'WORLD', 'WORLD'], ocr={'hl_entry': ['Battle Modes']})
+        with mock.patch.object(sys, 'argv', ['afk_hero_level.py']):
+            self.assertEqual(hl.main(), 1)
+        self.assertEqual(dev.taps, [(972, 1034), (972, 1034)])
+        self.assertEqual(dev.shots, ['hl_entry', 'hl_entry_retry', 'hl_entry_retry_reenter'])
+
+    def test_unknown_screen_after_entry_tap_no_retry(self):
+        dev = FakeDevice(self, ['UNKNOWN', 'UNKNOWN'], ocr={'hl_entry': []})
         with mock.patch.object(sys, 'argv', ['afk_hero_level.py']):
             self.assertEqual(hl.main(), 1)
         self.assertEqual(dev.taps, [(972, 1034)])
-        self.assertEqual(dev.shots, ['hl_entry'])
+
+    def test_slow_hall_open_recovered(self):
+        dev = FakeDevice(self, ['WORLD', 'WORLD', 'UNKNOWN'],
+                         ocr={'hl_entry': [], 'hl_entry_retry_reenter': ['Resonance Level: 80']})
+        with mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--dry-run']):
+            self.assertEqual(hl.main(), 0)
+        self.assertIn('hall open: Resonance Level: 80', dev.out.getvalue())
 
     def test_dry_run_reads_hall_only(self):
         dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': ['Resonance Level: 80']})

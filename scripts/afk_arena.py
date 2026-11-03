@@ -177,6 +177,7 @@ def main() -> int:
     print(f'    select-opponent signature: {screen_signature(img)}', flush=True)
 
     wins = 0
+    failed = False
     for fight in range(1, args.fights + 1):
         print(f'--- arena fight {fight}/{args.fights}', flush=True)
         if v.is_confirm_dialog(shot(f'arena_p{fight}_pre')):
@@ -189,6 +190,7 @@ def main() -> int:
             return 0
         if st != 'PREP':
             print(f'    ERROR: could not reach a fight ({st}) — aborting', flush=True)
+            failed = True
             break
         sig_before = screen_signature(shot(f'arena_{fight}_start'))
         time.sleep(args.wait_fight)
@@ -198,11 +200,14 @@ def main() -> int:
         print(f'    changed={changed} {sig_before} -> {sig_after}', flush=True)
         if not changed:
             print('    WARN: screen unchanged after the fight — aborting', flush=True)
+            failed = True
             break
         wins += 1
 
     print(f'done: {wins} arena fights driven', flush=True)
-    return 0
+    # exit 1 when nothing was fought: afk-bot-watch.sh writes the once-per-day
+    # arena marker on exit 0, so a failed run must not burn the day
+    return 1 if failed and wins == 0 else 0
 
 
 if __name__ == '__main__':

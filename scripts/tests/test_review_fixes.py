@@ -131,5 +131,31 @@ class F2HeroLevel(unittest.TestCase):
         self.assertIn('with failures', dev.out.getvalue())
 
 
+
+class F5ArenaExitCodes(unittest.TestCase):
+    """A run that fought nothing must exit 1 (watch.sh burns the marker on 0)."""
+    TO_SELECT = ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY', 'UNKNOWN']
+
+    def run_arena(self, frames):
+        dev = FakeDevice(self, frames, also=(ar,))
+        with mock.patch.object(sys, 'argv', ['afk_arena.py']):
+            return dev, ar.main()
+
+    def test_stuck_chain_exits_1(self):
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN'] + ['UNKNOWN'] * 6)
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT] * 6)
+
+    def test_unchanged_screen_exits_1(self):
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'UNKNOWN'])
+        self.assertEqual(rc, 1)
+        self.assertIn('screen unchanged', dev.out.getvalue())
+
+    def test_fought_exits_0(self):
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY'])
+        self.assertEqual(rc, 0)
+        self.assertIn('done: 1 arena fights driven', dev.out.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

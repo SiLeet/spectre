@@ -640,6 +640,7 @@ grün/rot pro Lauf, oder max X Batches/Woche. Tooling: OCR-Pipeline läuft
   🟨 Queue-Driver 03:34 CET 2026-11-03: MCP-`health`/`find` erfolgreich (BlueStacks + ADB erreichbar, Spiel-PID 4392). Read-only-Screenshot `.spectre/shots-4392/readonly-season-20261103-0334.png` zeigt erneut Battle Modes, keinen Season-Banner/Kalender/Endtimer; „Results in 21h“ ist der Dream-Realm-Timer. `.spectre/afk-bot.lock` fehlt; Windows-`GetLastInputInfo` meldet 0 s Idle (<180-s-Gate), daher keine Game-Taps. T45j bleibt offen.
   🟨 Queue-Driver 04:34 CET 2026-11-03: BlueStacks/ADB erreichbar, Spiel-PID 4392, AFK-Lock fehlt; Windows-Idle >180 s vor den sicheren Navigationstaps. Events → Stormbound Seas zeigt `Ends in 15d 20h`, aber nur Event-Quests/Claims (nichts geclaimt). Events → District Preview OCR bestätigt `Server District opens in 12d` und `Veil of Memories Season: September 23, 2026 - January 2027`; `Event Time: No Limit` gehört zum District-Preview-Event. `Season Modes Reset`-Infokarte nennt Updates, aber keinen Season-End-Tag/-Timer. Belege: `.spectre/shots-4392/readonly-season-20261103-043509.png` (Events), `...-043539.png` (Stormbound Seas), `...-043645.png` (District Preview/Seasonzeitraum), `...-043709.png` (Season Modes Reset). Zurück zum World-Screen; keine Belohnungen oder Ressourcen angefasst. Der sichtbare Januar-Zeitraum und der 15d20h-Eventtimer liefern keinen exakten Season-End-Cutoff; Scheduler-Arbitrage bleibt bis zu einem echten Season-End-Timer/Kalender-Timer offen.
   🟨 Queue-Driver ca. 06:12 CET 2026-11-03: Lock fehlte, Windows-Idle >180 s; MCP `health`/`find` bestätigten BlueStacks und PID 4392. Der Live-Check startete auf „Select Opponent“ nach dem Daily-Run; sichere Navigation blieb zwischen Arena-Lobby und Gegnerliste, daher kein Season-Kalender/Endtimer erreichbar. Kein Gegner-, Challenge- oder Claim-Button angetippt und keine Tickets/Belohnungen verbraucht. T45j bleibt blockiert bis ein echter Cutoff-Banner/Kalendertimer sichtbar ist.
+  🟨 Queue-Driver 12:28 CET 2026-11-03: Live-Fenster (Idle 2208 s, Lock frei, Emulator via bluestacks-ensure gestartet). Events-Screen live gelesen: Golden Supplier 6d 12h, Routines 8d 12h, Stormbound Seas/District Preview/Baden Rate Up 15d 12h, Arcane Atelier 51d 12h. District Preview: „Server District opens in 12d“, „Veil of Memories Season: September 23, 2026 - January 2027“, Feature-Karten (Advancement Cap/One Tap Level Boost/Season Modes Reset) ohne Enddatum. KEIN exakter Season-End-Timer sichtbar — Arbitrage-Fenster (≤6 h) weit entfernt; nächster Check, wenn Stormbound-Seas-Timer unter ~2 Tage fällt oder ein Season-Cutoff-Banner auftaucht. Keine Claims/Käufe/Keys; Spiel sauber in WORLD zurückgelassen. Belege: .spectre/shots-readonly-122730.png (Events-Liste), -122800.png (Crescent Offering), -122830.png (District Preview).
 - ✅ T45k: Supreme Arena Settlement-Slot wählerisch (12:00–24:00 UTC, 10-min-Fenster,
   15-min-Lockout letzte 30 min) → Off-Peak-Slot wählen (late-game Feature).
   ✅ Queue-Driver 03:4x: als operational Note in `docs/afk-journey-guide.md`
@@ -752,11 +753,17 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   rc 7 became wrapper rc 0) and GREEN after (wrapper rc 7). No post-fix live
   Night run was forced; Task Scheduler result will verify on the next scheduled
   run.
-- 📌 R13 [MED, 2026-11-03]: .spectre beim Worktree-Teardown über die Junction
-  geleert (779 Frames/1,3 GB, Logs, wall-report — alles Runtime, regeneriert
-  sich; Frame-Manifest skippt bis zur Neugenerierung). Teardown-Anleitung in
-  docs/agent-workflow.md. → Nach den Abend-Läufen 03.11.: make_frame_manifest.py
-  neu generieren + committen. Queue-Driver: ziehen.
+- ✅ R13: Frame-Manifest-Regen nach dem Junction-Teardown — erledigt 2026-11-03 12:3x CET (Queue-Driver).
+  `make_frame_manifest.py` plain Rebuild über die post-teardown Frames: 19 Einträge
+  (vorher 139, alle auf gelöschte Dateien zeigend → Regression checkte 0). Suite:
+  191 Tests OK (22 skipped); Frame-Regression jetzt `checked=19 skipped=0`.
+  Manifest committet. Nach künftigen Live-Läufen (z. B. 17:10-Progress) erneut
+  regenerieren, um frische Frames aufzunehmen (Verfahren: docs/agent-workflow.md).
+  Beobachtung (nicht gefixt, Review-Kandidat): `classify()` liest den Arena-
+  Select-Opponent-Screen als POPUP (dr_world_final, readonly-season-060730 —
+  dunkler Hintergrund, Back-Probe 54/26/24); afk_arena nutzt eigene Probes,
+  aber ein Dailies-/Claim-Flow an dieser Stelle würde „dismissen“. Für den
+  nächsten Fresh-Eyes-/A-Batch queueen.
 - ✅ R14 [2026-11-03, Review-Nachlauf]: Unabhängige Wave-2-Verifikation durch 2
   Fresh-Eyes-Agents: alle F1–F32 = FIXED (mit File:Line-Evidence), KEIN FAIL;
   Tests per Reversion-Experiment als scharf bewiesen (Fix zurückdrehen → genau
@@ -771,6 +778,12 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Live-Fenster: F1-Cancel-Tap-Gegenprobe + F7-Chip-Marge (aus R14) + A8-Live-
   Checks (dream start/re-arm/chances, stage launcher/loading, popup-close,
   adb-down exit 2, summary-close). Danach Frame-Manifest-Regen (R13).
+  🟨 Queue-Driver 12:3x CET: Teilbeobachtung zu F7 (read-only, Live-Frame):
+  die Chip-Probe (1390,704) ist kameraabhängig — auf der aktuellen Homestead-
+  Kamera liest sie (70,135,210) (blau, Gates chip>200/150/<120 verletzen) und
+  der Fallback bleibt OFF, classify trotzdem WORLD über die anderen Probes
+  (sicheres Verhalten: kein Fallback ≠ falsche Taps; deckt T30-Fund 2).
+  F7 bleibt offen: eigentliche Marge-Messung braucht die Standard-Town-Kamera.
 - 📌 R16 [2026-11-03]: Wave-3-Plan angelegt (docs/claude-wave-3-plan.md) —
   Zielbild Voll-Auto/Optimiert + Hacking-Lane (FPS/Frida/timeScale, Memory-Map,
   Sniffing, Uhrzeit) mit Safety-Matrix. Starter-Briefs C1–C5 (T61–T65) im

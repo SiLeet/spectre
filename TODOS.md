@@ -762,3 +762,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Paste-Prompt docs/claude-wave-3-prompt.md. Research-Agents (Speed-Landschaft,
   Projekte/Exploits) laufen; Live-Recon L1–L8 in §5. Queue-Driver: B/H-RECON
   ziehen, wenn Blöcke gefüllt.
+- ✅ R17 [2026-11-03]: A8-Reviewer-Urteil: 18/18 verifiziert (14 FIXED, 2 PARTIAL
+  mit dokumentierter Begründung, 2 bewusste Abweichungen als sinnvoll bestätigt,
+  kein HAND-WAVY; Reversion-Checks R1/R2/R9/R17 grün). Alle Rest-Concerns in
+  DIESEM Batch geschlossen: R16 OCR-gated Fallback-Tap, R12 Stuck-Close-WARN +
+  Recovery (jeder 10.), Dream-Prune pro Fight, Trash-Auto-Age (14 Tage),
+  Start-Tap zählt ins Budget. 150 Tests grün. Live-Checks bleiben (R15).

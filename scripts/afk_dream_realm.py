@@ -393,6 +393,8 @@ def start_fight(fight: int, attempts_max: int = 4) -> str | None:
                 continue
         btn = PREP_TAP if cls == 'prep' else BOSS_TAP
         print(f'    fight {fight}: {cls} screen -> Battle', flush=True)
+        if not _budget():                  # start taps count into the global budget (R14)
+            return None
         v.tap(btn, 4.0)
         same = 0
         for k in range(10):
@@ -543,6 +545,8 @@ def run(args) -> int:
             return 1
         fights += 1
         print(f'    fight {fight}: completed (chance consumed)', flush=True)
+        if v.prune_shot_dirs():            # bound the within-run dir growth (R8)
+            print('    (old shot dirs moved to .spectre/trash)', flush=True)
         final = resolve_end_states(end_img, f'dr_f{fight}_resolve')
         if final is None:
             print('    ERROR: end-state dismiss failed', flush=True)

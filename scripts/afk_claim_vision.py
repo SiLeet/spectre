@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import struct
 import subprocess
 import sys
@@ -425,13 +426,15 @@ def idle_seconds() -> float | None:
         return None
 
 
-def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30) -> int:
+def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30,
+                    trash_max_age_days: float = 14) -> int:
     """Move all but the newest `keep` shots-<pid> dirs into <root>/trash/.
 
     Every run writes a per-pid dir and nothing cleaned them up (1.3 GB in 104
-    dirs by 2026-11-03). Moved, not deleted (owner's call, 2026-11-03): the
-    trash dir is emptied by hand. This run's own dir is never touched.
-    Returns the number of dirs moved."""
+    dirs by 2026-11-03). Moved first (frames stay usable for the manifest
+    fallback); trash entries older than `trash_max_age_days` are then deleted
+    so disk is actually reclaimed without hand-emptying. This run's own dir is
+    never touched. Returns the number of dirs moved."""
     trash = root / 'trash'
     try:
         dirs = sorted((d for d in root.glob('shots-*') if d.is_dir() and d != TMP),
@@ -441,6 +444,13 @@ def prune_shot_dirs(root: Path = REPO / '.spectre', keep: int = 30) -> int:
             trash.mkdir(exist_ok=True)
     except OSError:
         return 0
+    cutoff = time.time() - trash_max_age_days * 86400
+    try:
+        for t in trash.glob('shots-*'):    # aged trash leaves the disk for good
+            if t.is_dir() and t.stat().st_mtime < cutoff:
+                shutil.rmtree(t, ignore_errors=True)
+    except OSError:
+        pass
     moved = 0
     for d in old:
         dest = trash / d.name

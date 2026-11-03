@@ -510,6 +510,17 @@ class F16PruneToTrash(unittest.TestCase):
         with mock.patch.object(v, 'TMP', self.root / 'shots-0'):
             self.assertEqual(v.prune_shot_dirs(self.root, keep=30), 0)
 
+    def test_aged_trash_is_deleted_fresh_trash_kept(self):
+        import os
+        aged = self.root / 'trash' / 'shots-77'
+        aged.mkdir()
+        os.utime(aged, (1_000, 1_000))                 # ~ancient
+        fresh = self.root / 'trash' / 'shots-1'        # from setUp (now)
+        with mock.patch.object(v, 'TMP', self.root / 'shots-0'):
+            v.prune_shot_dirs(self.root, keep=30, trash_max_age_days=7)
+        self.assertFalse(aged.exists())
+        self.assertTrue(fresh.exists())
+
 
 if __name__ == '__main__':
     unittest.main()

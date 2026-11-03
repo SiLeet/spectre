@@ -1032,9 +1032,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Level-Ups; zwei unabhängige Strukturen [alter Map-Entry 259850, neue u64-
   Kopien 259270] bestätigen sich gegenseitig), Zweit-Preflight 0,1 s 'ok',
   Werte über 8 s stabil. Guard damit wieder scharf UND gegenüber Heap-Base-
-  Wechseln robust. Rest R15 unverändert (F1-Gegenprobe window-abhängig; Stage
-  launcher/loading + adb-down Exit 2 + summary-close brauchen entsprechende
-  Übergangs-Frames, die dieser Run nicht produzierte).
+  Rest R15: F1-Gegenprobe window-abhängig; Stage launcher/loading + summary-close
+  brauchen entsprechende Übergangs-Frames; **adb-down Exit 2 inzwischen LIVE
+  verifiziert** (siehe R15-Adb-Down-Note am Dateiende, 18:0x CET).
   **Re-Check 17:35 CET (Queue-Driver, rein read-only):** Drift-Gate-Fix post-live
   bestätigt — Task-Scheduler: Daily 05:10 Result 0, Progress 17:10 Result 0,
   Night Ready → 04.11. 02:00; Idle 4774 s, kein Lock, kein aktiver Parallel-
@@ -1094,3 +1094,33 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   slot_level() per Region-Crop (rechte Zahl; live 80->81 bestaetigt), blocked-
   Skip ('within 10 levels' -> naechste Hand). E2E-Lauf: 'charged: hand 1220
   level 80 -> 81'. Manuell+auto heute 2 Level verbraucht (Cecia 81, Slot 1220 81).
+
+### ✅ R15 adb-down LIVE verifiziert (2026-11-03 18:06–18:12 CET, Queue-Driver)
+- Checklist-Punkt 10 („adb weg → Exit 2 'adb down', kein FATAL"): Mid-Run-Test
+  im freien Fenster (Idle 6796 s, Lock frei, kein Parallel-Writer — neueste
+  shots-Dirs 17:15/17:16 = eigener 17:10-Run). `afk_stage_push.py --pid 5176
+  --base 0x796590000000 --auto --auto-minutes 1` gestartet: Preflight 'ok'
+  259270, initial PREP, Auto-Battle gestartet, x2 enabled — dann
+  `adb disconnect 127.0.0.1:5555` mitten im Lauf (18:08:26). Ergebnis:
+  5× `WARN: shot failed ... [n/5]` → `ERROR: adb down — 5 screenshots in a
+  row failed` → **Exit 2**, kein FATAL-Traceback; Lock per atexit sauber
+  entfernt; `adb connect` stellt das Device wieder her. Beleg:
+  .spectre/shots-adbtest/adbdtest-run.log (RC=2) + pre/post/cancel-Shots.
+- Varianten-Notiz: getestet ist Host-Disconnect (screencap → „device not
+  found") — derselbe Failure-Pfad wie ein BlueStacks-Stopp (adbd weg,
+  ADB_FAIL_CAP-Zähler in try_shot). Vollständiger VM-Stopp mid-Kampf nicht
+  erzwungen (unnötig destruktiv, identischer Code-Pfad).
+- Anker-Sicherheit: memory_preflight schreibt bei ADB-Ausfall NICHTS
+  (read_power → None → 'fail', kein save_power_state); State-File nach dem
+  Test unverändert 259270/offset 10960148/width 8 (updated 18:08:07 durch
+  den eigenen 'ok'-Preflight VOR dem Disconnect).
+- Nachbereitung: der Kampf lief während des Disconnects autonom weiter und
+  endete → „Turn off Auto Battle mode?"-Dialog → CONFIRM_CANCEL (1014,710)
+  getippt (dokumentierter Cancel, nie confirm) → Spiel endet auf dem
+  DEFEAT/Retry-Screen (Wand-Kontext Stage 254, Power 74,986). Kein Kauf,
+  keine Keys, kein Leveling, kein Retry angetippt.
+- Rest R15: F1-Gegenprobe weiterhin window-abhängig — Arena heute „0 fights
+  driven" (Log 04:12Z, Versuche NICHT verbraucht) → „Spend diamonds?"-Dialog
+  nicht produzierbar, Gegenprobe erneut inkonklusiv. Stage LAUNCHER/LOADING +
+  Summary-Close brauchen die jeweiligen Übergangs-Frames (dieser Test-Run
+  startete auf PREP, produzierte keine).

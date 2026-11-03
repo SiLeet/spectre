@@ -674,7 +674,23 @@ Wand-Stand: Stage 254, Level-Cap 95, Resonanz 80. Die „Wand" bei 250 löst
 sich durch Auto-Battle-Retries (249→252 gemessen) + Leveling. Der
 Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 
-## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
+## P9 — Agent-Infra & MCP (Hermes, 03.11.)
+
+- ✅ T59: `spectre-mcp` (MCP-Server: Live-Pipeline als Agenten-Tools, einziger adb-Owner,
+  serialisiert) — gebaut (Claude), unabhängig verifiziert (11 Tests, clippy 0, Live-Smoke
+  health/find/regions/read/screencap gegen BlueStacks), in `main` gemergt (`13e959f`),
+  Branch `feature/T59-spectre-mcp` gepusht. Nutzung via `.mcp.json` (projekt-scope):
+  MCP-first, nie CLI+adb parallel.
+- ✅ `scripts/bluestacks-ensure.sh` + Queue-Driver-Prompt: Emulator startet idle-gated
+  selbst (Exit 4 = Idle-Gate) statt „Sergej startet manuell".
+- ⬜ Nach dem Wave-Merge nach `main`: im main-Checkout `cargo build --release -p spectre-mcp
+  -p spectre-cli` (macht den `.mcp.json`-Pfad real) + `claude mcp list`-Gegencheck.
+- ⬜ Optional (YAGNI): MCP-Tools für `search`-Refine (`--continue`) nachziehen.
+
+---
+
+## P8 — Manueller Code-Review (2026-11-03, Hermes) — Scheduler-Kette
+
 > Anlass: 2 Tage BlueStacks-Ausfall; off-game Review der Scheduler-/Wrapper-Schicht.
 > Alle HIGH/MED-Funde eingezogen (commits cde8ecd + 584ea2f).
 

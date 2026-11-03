@@ -301,6 +301,7 @@ Key-Gate `--use-keys`.
   stdio-MCP-Server, der Agenten die Live-Pipeline als Tools gibt (find/regions/dump/
   hot/hunt/search/read/adb_taps; EINZIGER adb-Owner). Registrierung via `.mcp.json`;
   Live-Smoke durch Hermes nach Merge.
+- **STATUS 03.11. 03:05: T59 gebaut (`13e959f`), unabhängig verifiziert (11 Tests grün, clippy 0 Warnings, Live-Smoke health/find/regions/read/screencap gegen BlueStacks ok), in `main` gemergt und Branch gepusht.**
 - **`scripts/bluestacks-ensure.sh`:** prüft/startet BlueStacks idle-gated (Exit 4 =
   Idle-Gate). Queue-Driver nutzt es bei fehlendem Device statt "Sergej startet manuell".
 - **Agent-Docs:** `CLAUDE.md`, `AGENTS.md`, `docs/agent-workflow.md`,

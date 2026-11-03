@@ -15,10 +15,11 @@ NOTE: the single-fight path is the verified one (3 live runs). Chaining several
 fights in one run needs the victory-card dismissal to line up, which is flaky —
 the scheduler calls this script once per attempt instead.
 
-Verification: every step takes a screenshot into .spectre/shots/ and classifies
-it via afk_stage_push.classify_battle where reliable; the arena screens have
-their own look, so the script additionally checks that the screen CHANGED
-between fight start and fight end before counting an attempt.
+Verification: every step takes a screenshot and classifies it with
+arena_state() / the shared purchase-dialog detector (v.is_confirm_dialog);
+the arena screens have their own look, so the script additionally checks
+that the screen CHANGED between fight start and fight end before counting
+an attempt. Reaching Battle Modes is v.open_battle_modes (classify-gated).
 
 Usage: python scripts/afk_arena.py [--fights 4] [--dry-run]
 Exit codes: 0 = all attempts done, 1 = stuck / unknown, 2 = adb error.
@@ -35,7 +36,6 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
-from afk_claim_vision import classify  # noqa: E402  verified WORLD check (back-arrow probes)
 
 REPO = Path(__file__).resolve().parent.parent
 TMP = REPO / '.spectre' / 'shots'
@@ -87,25 +87,6 @@ def avg(img: Image.Image, xy: tuple[int, int], r: int = 9) -> tuple[int, int, in
 
 def dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     return sum(abs(x - y) for x, y in zip(a, b))
-
-
-def at_world(img: Image.Image) -> bool:
-    """Verified world-view check via the back-arrow probes from afk_claim_vision."""
-    return classify(img) == 'WORLD'
-
-
-def reach_world(max_steps: int = 6) -> Image.Image:
-    """Navigate out of any nested panel back to the world view."""
-    img = shot('arena_0_initial')
-    for i in range(max_steps):
-        if at_world(img):
-            return img
-        tap(BACK, 1.5)
-        img = shot(f'arena_0_back{i}')
-    tap(GROUND, 0.8)          # dismiss an interact menu
-    tap(BACK, 1.0)
-    return shot('arena_0_final')
-
 
 
 def screen_signature(img: Image.Image) -> tuple[int, int, int]:

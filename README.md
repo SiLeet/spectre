@@ -155,6 +155,31 @@ spectre/
 └── examples/             # Example configs & scripts
 ```
 
+## Scripts (AFK Journey bot, `scripts/`)
+
+Python drivers need Python 3 + Pillow; every driver classifies the screen
+before tapping. Scheduler, gates and markers:
+[docs/afk-journey-guide.md → Bot operation](docs/afk-journey-guide.md#bot-operation-scheduler-gates-recovery).
+
+| Script | Purpose |
+|---|---|
+| `afk-bot-watch.sh` | Scheduler wrapper: re-discovers pid + heap base, takes the run lock, runs the claim driver and (`--scheduled` / `--scheduled-progress`) the daily phases |
+| `afk-night.sh` | Night task: 135-min Auto Battle stage push with `--retry-defeats` |
+| `afk-bot-{scheduled,progress,night}.{cmd,vbs}` | Hidden launchers for the Windows tasks Daily (05:10), Progress (17:10), Night (02:00) |
+| `afk_claim_vision.py` | AFK chest claim + shared vision helpers (`classify`, `shot`, `tap`, OCR, login-popup resolver, idle gate) |
+| `afk_stage_push.py` | Stage push (single battles or `--auto`), wall reports to `.spectre/wall-report.log` |
+| `afk_dailies.py` | Daily quests + mail |
+| `afk-daily-gift.py` | Journey's Gift login reward |
+| `afk_arena.py` | Arena attempt (never confirms a purchase dialog) |
+| `afk_dream_realm.py` | Dream Realm fights (`--fights N`) |
+| `afk_hero_level.py` | Levels the lowest Hands of Resonance (`--target`, `--dry-run`) |
+| `afk_normalize.py` | Returns the game to world/AFK panel between phases |
+| `afk-wall-dash.py` | Renders `spectre-walls.html` from the wall report |
+| `bluestacks-ensure.sh` | Starts/checks BlueStacks + adb (`--check`, `--force`, `--min-idle`) |
+| `afk-bot-soak.sh` | Repeatability test: N wrapper rounds with a pause |
+| `afk-timer-hunt.sh`, `gold-hunt*.sh`, `gold-analyze.py`, `wallet-hunt-all.py`, `ui-state-*.sh` | Memory research: dump-diff hunts for timer, gold wallet and UI-state slots |
+| `tests/` | Offline tests (no device): `python -m unittest discover -s scripts/tests -v` |
+
 ## Architecture
 
 ```
@@ -328,6 +353,12 @@ spectre/
 ├── docs/                 # Dokumentation
 └── examples/             # Beispielkonfigurationen & -skripte
 ```
+
+## Skripte (AFK-Journey-Bot, `scripts/`)
+
+Übersicht je Skript: Tabelle [Scripts](#scripts-afk-journey-bot-scripts) im
+englischen Teil. Scheduler, Gates und Marker:
+[docs/afk-journey-guide.md → Bot operation](docs/afk-journey-guide.md#bot-operation-scheduler-gates-recovery).
 
 ## Architektur
 

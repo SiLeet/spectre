@@ -108,6 +108,90 @@ Bot templates built on these actions (placeholder offsets marked `REPLACE`):
 `examples/afk-bot.lua`; the placeholder-to-real-offset walkthrough is step 5
 of [examples/README.md](../examples/README.md).
 
+## Bot operation (scheduler, gates, recovery)
+
+Derived from `scripts/afk-bot-watch.sh`, `scripts/afk-night.sh`, the
+`afk-bot-*.cmd/.vbs` launchers and the drivers' `argparse` flags (state
+2026-11-03). Every driver classifies the screen before it taps and refuses to
+tap on an unknown screen.
+
+### The three Windows tasks
+
+| Task | Time | Launcher chain | Runs |
+|---|---|---|---|
+| `Spectre AFK Night` | 02:00 | `afk-bot-night.vbs` → `afk-bot-night.cmd` → `afk-night.sh` | `afk_stage_push.py --auto --auto-minutes 135 --retry-defeats` |
+| `Spectre AFK Daily` | 05:10 | `afk-bot-scheduled.vbs` → `afk-bot-scheduled.cmd` → `afk-bot-watch.sh --scheduled` | chest claim, then all once-per-day phases (below) |
+| `Spectre AFK Progress` | 17:10 | `afk-bot-progress.vbs` → `afk-bot-progress.cmd` → `afk-bot-watch.sh --scheduled-progress` | chest claim + `afk_stage_push.py --auto --auto-minutes 6 --retry-defeats` |
+
+The `.vbs` launchers start the `.cmd` hidden (window style 0) and wait for it,
+so the task's result is the wrapper's exit code. Logs:
+`.spectre/logs/afk-bot-<UTC date>.log`.
+
+**Night task:** 135 minutes of Auto Battle with `--retry-defeats` — on DEFEAT
+the driver taps Retry (1280,1020) and keeps pushing (the retry loop wins a wall
+eventually, verified 249→252). Retry cap 200; a wall report is written on the
+first defeat and every 10th retry (`.spectre/wall-report.log`, JSONL, rendered
+by `scripts/afk-wall-dash.py`). 135 min from 02:00 ends before the 05:10 Daily
+run. The idle gate is re-checked on every poll of the auto loop: input on the
+PC aborts the run (exit 5). `afk-night.sh` pipes the push into `tee` without
+`pipefail`, so the task reports 0 for every push outcome; only the wrapper's
+own exits (2/3/6, see below) reach the task result.
+
+### Marker / idle-gate matrix
+
+`MIN_IDLE` = `AFK_MIN_IDLE` (default 180 s) for both scheduled watch modes and
+for the Night task. Markers live in `.spectre/` and hold the UTC date of the
+last successful run.
+
+| Phase | Night | Daily | Progress | Idle gate | Once-per-day marker (written when) |
+|---|---|---|---|---|---|
+| Chest claim `afk_claim_vision.py` | – | ✓ first | ✓ first | `--min-idle` | – (every run) |
+| Journey's Gift `afk-daily-gift.py` | – | ✓ | – | `--min-idle` | `daily-gift-last.txt` (exit 0) |
+| Quests + mail `afk_dailies.py` | – | ✓ | – | `--min-idle` | `dailies-last.txt` (exit 0) |
+| Normalizer `afk_normalize.py` | – | ✓ before arena, dream realm, stage push | – | none | – |
+| Arena `afk_arena.py --fights 1` ×4 | – | ✓ | – | `--min-idle` | `arena-last.txt` (attempt 1 exit 0) |
+| Dream Realm `afk_dream_realm.py --fights 7` | – | ✓ | – | `--min-idle` | `dream-last.txt` (exit 0) |
+| Stage push `afk_stage_push.py --auto` | 135 min | 6 min | 6 min | Night/Daily: `--min-idle`; Progress: none | Daily: `stage-last.txt` (exit 0); Night/Progress: none |
+
+Daily and Progress only continue past the chest claim when it exits 0 (claim
+verified) or 4 (nothing claimable yet). The arena loop stops at the first
+attempt that does not exit 0.
+
+### Phase normalizer (`afk_normalize.py`)
+
+Runs between the Daily phases so a phase that ends on an unknown screen (live
+case: a camera pan tapped into the Arcane Labyrinth card) cannot poison the
+next one. Up to 4 steps: classify → WORLD/PANEL ends the run (exit 0); a POPUP
+the login-popup resolver recognises is claimed; anything else gets one BACK
+(474,1010). A
+final classify decides exit 0/1. The wrapper logs the result but does not
+gate on it.
+
+### Login-popup resolver (`afk_claim_vision.resolve_startup_popup`)
+
+A fresh game login opens the Esperia Monthly / Daily Rewards popup, which
+blocks every flow. The resolver OCRs the frame (WinRT, `templates/ocr.ps1`)
+and only acts on a text hit (`monthly`, `gazette` or `daily rewards`): it taps
+Claim (960,930) — the rewards are free — and closes a follow-up card with one
+BACK. Without an OCR hit it does nothing and the caller falls back to its own
+handling (BACK in the claim driver and the normalizer, abort in stage push).
+Used by `afk_claim_vision.py`, `afk_stage_push.py` and `afk_normalize.py`.
+
+### Lock keeper and stale policy
+
+`afk-bot-watch.sh` and `afk-night.sh` share `.spectre/afk-bot.lock`, so two
+runs never tap at the same time:
+
+- lock present and younger than `AFK_LOCK_STALE` (default 3600 s) → the new
+  run exits 6 ("another run in progress");
+- older → treated as stale (crashed run), removed, the new run takes it;
+- while a run is alive a background keeper `touch`es the lock every 240 s, so
+  long runs (135-min Night, a full Daily round > 30 min) never look stale;
+- an `EXIT` trap stops the keeper and removes the lock.
+
+Other wrapper exits: 2 game process not found, 3 heap-base resolution
+failed, 7 no Python with PIL (the wrappers refuse the blind CLI fallback).
+
 ## Sources
 
 - Prydwen beginner guide + tips/tricks + homestead guide

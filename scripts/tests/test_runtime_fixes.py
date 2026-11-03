@@ -92,6 +92,24 @@ class R4DimVsTransition(unittest.TestCase):
         self.assertEqual(len(dev.shots), 4)          # first dim was not confirmed
 
 
+
+class R5BackToReadyMidFight(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_running_fight_is_waited_out(self):
+        dev = FakeDevice(self, ['DR_FIGHT', 'DR_FIGHT', 'DR_ENDED', 'DR_BOSS'])
+        self.assertTrue(dr.back_to_ready('dr_post1'))
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE])
+
+    def test_more_than_four_unknowns_tolerated(self):
+        dev = FakeDevice(self, ['UNKNOWN'] * 6 + ['DR_BOSS'])
+        self.assertTrue(dr.back_to_ready('dr_post1'))      # old: gave up at 4
+        self.assertEqual(dev.taps, [])
+
+
 class StagePushCase(unittest.TestCase):
     """Runs afk_stage_push.main() on FakeDevice; OCR + wall log kept offline."""
 

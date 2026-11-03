@@ -72,6 +72,8 @@ HERO_DISMISS = (100, 100)        # verified live: corner tap closes the hero car
 DIM_DISMISS = (480, 300)
 
 POLL = 5.0
+FIGHT_WAIT = 150.0               # same as the --wait-fight default
+MAX_UNKNOWN = 20                 # back_to_ready: ~60 s of unrecognised frames
 MAX_DISMISS_TAPS = 24            # global dismiss budget (T38 #12)
 
 _dismiss_taps = 0
@@ -248,10 +250,12 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
     """Get back to the boss page / prep screen from wherever we are.
 
     Never taps blindly: unknown frames are waited out (a fight may be
-    running), and only recognised panels are dismissed.
+    running), and only recognised panels are dismissed. A frame with the
+    fight marker hands over to wait_for_fight_end (a fight lasts ~90 s; the
+    old 4-unknown limit gave up after ~12 s — runtime review R5).
     """
     unknown = 0
-    for i in range(attempts):
+    for i in range(attempts + MAX_UNKNOWN):
         img = v.shot(f'{tag}_{i}')
         if is_ready(img):
             return True
@@ -267,8 +271,17 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
                 return False
             unknown = 0
             continue
+        if is_fight(img):
+            print(f'    {tag}: fight running — waiting for its end', flush=True)
+            end = wait_for_fight_end(f'{tag}_fight{i}', FIGHT_WAIT)
+            img = resolve_end_states(end, f'{tag}_fend{i}') if end is not None else None
+            if img is None:
+                return False
+            if is_ready(img):
+                return True
+            continue
         unknown += 1
-        if unknown >= 4:
+        if unknown >= MAX_UNKNOWN:
             print(f'    {tag}: giving up, {unknown} unrecognised frames',
                   flush=True)
             return False

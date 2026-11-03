@@ -185,10 +185,11 @@ dismiss-Taps classify-gaten, per-pid shot-Dirs auch in hero_level/gift,
 off-screen-Swipes clampen, `_level_hands` löschen (→ A4), tote Imports/Branches
 entfernen (arena reach_world/at_world, dailies TMP, gift struct).
 
-### A8 / T59 — Runtime-Fix-Batch (Review afk_stage_push + afk_dream_realm)
+### A8 / T60 — Runtime-Fix-Batch (Review afk_stage_push + afk_dream_realm)
 > **Voller Report: `docs/reviews/2026-11-03-runtime-review.md`** (artefakt-
 > verifiziert inkl. reproduziertem Pre-Fight-Timeout; Frames + Messwerte als
-> Beweise). Ebenfalls nach A1, 1 Finding = 1 Commit, Branch `feature/T59-runtime-fixes`.
+Claude-Batch nach A1, 1 Finding = 1 Commit, Branch `feature/T60-runtime-fixes`.
+(A8 zog als T60 um — T59 ist der spectre-mcp.)
 
 **A8a — HIGH:**
 1. `afk_dream_realm.start_fight` akzeptiert uniform-schwarze Übergangs-Frames

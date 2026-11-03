@@ -30,6 +30,8 @@ REPO = Path(__file__).resolve().parent.parent
 BATTLE_BTN = (1280, 1000)
 AUTO_BATTLE_BTN = (780, 1000)
 SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
+CARD_CLOSE = (960, 540)      # card centre closes victory + 'Auto Battle Complete' cards;
+                             # (960,1000) sat on the Auto Battle pill of the prep screen (R16)
 SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
 WALL_LOG = REPO / ".spectre" / "wall-report.log"
@@ -296,7 +298,7 @@ def _run() -> int:
     if st in ('UNKNOWN', 'POPUP'):
         if is_auto_complete(ocr_text(v.TMP / 'sp_0_initial.png')):
             print('    auto battle summary card open — closing it', flush=True)
-            v.tap((960, 1000), 2.5)   # 'Tap to Close' sits bottom-centre
+            v.tap(CARD_CLOSE, 2.5)
             img = try_shot('sp_after_close')
             st = classify_battle(img)
             print(f'    after closing summary: {st}', flush=True)
@@ -431,7 +433,7 @@ def _run() -> int:
                     # the chain ended by itself: close the summary card and
                     # restart Auto Battle while the time window is open
                     print('    auto battle complete — closing summary, restarting', flush=True)
-                    v.tap((960, 1000), 2.5)   # 'Tap to Close' sits bottom-centre
+                    v.tap(CARD_CLOSE, 2.5)
                     st, _ = wait_for({'PREP', 'RESULT', 'DEFEAT'}, 20, 'sp_auto_restart')
                     if st == 'PREP':
                         v.tap(AUTO_BATTLE_BTN, 4.0)
@@ -564,7 +566,7 @@ def _run() -> int:
                     v.tap(v.CONFIRM_CANCEL, 2.0)
                     end_st = classify_battle(try_shot('sp_auto_end2'))
                 elif end_st in ('UNKNOWN', 'POPUP') and is_auto_complete(ocr_text(v.TMP / 'sp_auto_end.png')):
-                    v.tap((960, 1000), 2.5)
+                    v.tap(CARD_CLOSE, 2.5)
                     end_st = classify_battle(try_shot('sp_auto_end2'))
                 wall_report(f'auto_timeout_{skipped}skipped_end_{end_st.lower()}')
                 print(f'    still fighting after {args.auto_minutes:.0f} min ({skipped} skipped)',

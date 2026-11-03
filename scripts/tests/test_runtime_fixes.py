@@ -315,5 +315,18 @@ class R12PopupFallback(StagePushCase):
         self.assertFalse(sp.is_closable_popup([]))
 
 
+
+class R16SummaryClose(StagePushCase):
+    def test_summary_card_closed_at_the_centre(self):
+        # initial frame = 'Auto Battle Complete' summary (UNKNOWN + OCR) -> close -> prep
+        dev, rc = self.run_sp(['UNKNOWN', 'SP_PREP', 'SP_PREP', 'SP_BATTLE', 'SP_RESULT',
+                               'SP_RESULT'],
+                              ocr=lambda png: ['Auto Battle Complete', 'Tap to Close']
+                              if 'sp_0_initial' in str(png) else [])
+        self.assertEqual(dev.taps[0], sp.CARD_CLOSE)
+        self.assertNotIn((960, 1000), dev.taps)
+        self.assertIn('pushed 1/1', dev.out.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

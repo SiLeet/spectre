@@ -17,57 +17,29 @@ Exit codes: 0 done, 1 stuck (unknown screen / hand not found).
 from __future__ import annotations
 
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
 
-ADB = r"C:\Users\Sigi\AppData\Local\Android\Sdk\platform-tools\adb.exe"
-SERIAL = "127.0.0.1:5555"
-POWERSHELL = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-OCR = r"C:\Users\Sigi\spectre\templates\ocr.ps1"
-SHOTDIR = Path(r"C:\Users\Sigi\spectre\.spectre")
-SHOTDIR.mkdir(parents=True, exist_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import afk_claim_vision as v  # noqa: E402  (shared adb/tap/shot/OCR helpers)
 
 HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
 HAND_XS = [710, 840, 970, 1100, 1220]
 LEVEL_X10 = (1460, 1065)           # Level Up x10 button on the hero detail
-BACK = (474, 1010)                 # hall: bottom bar; detail: closes it
 TARGET_DEFAULT = 95                # stage-253 level cap (rises with stages)
 MAX_X10_PER_HAND = 2               # 10 levels per hand per run
 
 
-def sh(*args, timeout=30):
-    return subprocess.run([ADB, "-s", SERIAL, *args], capture_output=True, timeout=timeout)
-
-
-def tap(x, y, wait=1.0):
-    sh("shell", "input", "tap", str(x), str(y))
-    time.sleep(wait)
-
-
 def key(keycode, wait=1.5):
-    sh("shell", "input", "keyevent", str(keycode))
+    v.adb("shell", "input", "keyevent", str(keycode))
     time.sleep(wait)
 
 
-def shot(name):
-    path = SHOTDIR / f"{name}.png"
-    with open(path, "wb") as fh:
-        subprocess.run([ADB, "-s", SERIAL, "exec-out", "screencap", "-p"], stdout=fh, timeout=60)
-    return str(path)
-
-
-def ocr(png):
-    png = str(Path(png).resolve())
-    try:
-        p = subprocess.run([POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
-                            "-File", OCR, "-Path", png],
-                           capture_output=True, timeout=20, text=True,
-                           encoding="utf-8", errors="replace")
-        return [l.strip() for l in p.stdout.splitlines() if l.strip()]
-    except Exception:
-        return []
+def snap(name):
+    """Screenshot into the per-run shots dir, then OCR it."""
+    v.shot(name)
+    return v.ocr_lines(name)
 
 
 def read_level(lines):
@@ -89,13 +61,13 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
     resources are exhausted (x10 had no effect) so the caller can skip the
     remaining hands — if one hand is out of hero EXP, the others are too."""
     taps = 0
-    tap(x, HANDS_Y, 3.0)
+    v.tap((x, HANDS_Y), 3.0)
     lvl = None
     for attempt in range(MAX_X10_PER_HAND + 1):
-        lines = ocr(shot(f"{tag}_{x}_{attempt}"))
+        lines = snap(f"{tag}_{x}_{attempt}")
         if not lines and attempt == 0:
             # retry once: dark hero art backgrounds break a single WinRT pass
-            lines = ocr(shot(f"{tag}_{x}_{attempt}b"))
+            lines = snap(f"{tag}_{x}_{attempt}b")
         if not is_detail(lines):
             print(f"    [{tag} {x}] not a hero detail (lines={len(lines)}) — back out", flush=True)
             key(4)
@@ -116,11 +88,11 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
             key(4)
             return new_lvl, taps
         print(f"    [{tag} {x}] level {new_lvl} < {target} — tapping x10", flush=True)
-        tap(*LEVEL_X10, 3.0)
+        v.tap(LEVEL_X10, 3.0)
         taps += 1
         # re-read: if the level did not move, hero EXP/gold ran out — the other
         # hands will fail identically, so stop the whole run (review lesson)
-        lines2 = ocr(shot(f"{tag}_{x}_check{taps}"))
+        lines2 = snap(f"{tag}_{x}_check{taps}")
         lvl2 = read_level(lines2) if lines2 else None
         if lvl2 is not None and lvl2 == new_lvl:
             print(f"    [{tag} {x}] level unchanged after x10 ({lvl2}) — resources exhausted, stopping run", flush=True)
@@ -139,9 +111,8 @@ def main():
     dry = "--dry-run" in sys.argv
 
     # navigate: town -> Resonating Hall
-    tap(972, 1034, 4.0)                # bottom-nav Resonating Hall
-    img = shot("hl_entry")
-    lines = ocr(img)
+    v.tap((972, 1034), 4.0)            # bottom-nav Resonating Hall
+    lines = snap("hl_entry")
     if not any("Resonance Level" in ln for ln in lines):
         print("    ERROR: Resonating Hall did not open (no 'Resonance Level' line)", flush=True)
         return 1

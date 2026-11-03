@@ -138,7 +138,7 @@ class OcrLines(unittest.TestCase):
         self.assertEqual((sp.parse_stage(lines), sp.parse_power(lines)), (254, 74986))
 
     def test_stage_push_ocr_text_rc_nonzero_is_empty(self):
-        with mock.patch.object(sp.subprocess, 'run', return_value=self.done('AFK Stage 1', rc=1)):
+        with mock.patch.object(v.subprocess, 'run', return_value=self.done('AFK Stage 1', rc=1)):
             self.assertEqual(sp.ocr_text(ARTIFACTS / 'ocr_fixture.png'), [])
 
 

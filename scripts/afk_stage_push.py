@@ -32,7 +32,6 @@ SPEED_X2_BTN = (1160, 855)   # x4 is greyed out without premium; do not tap it
 SKIP_BTN = (1220, 788)       # verified: skips the running fight instantly to PREP/RESULT
 AFK_PROGRESS = (60, 1036)
 WALL_LOG = REPO / ".spectre" / "wall-report.log"
-POWERSHELL = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 
 
 def classify_battle(img) -> str:

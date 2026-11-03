@@ -9,6 +9,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import afk_hero_level as hl  # noqa: E402
 import afk_normalize  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 
@@ -98,6 +99,23 @@ class ClaimFlow(unittest.TestCase):
         dev = FakeDevice(self, ['WORLD'])
         self.assertEqual(self.run_main('--dry-run'), 0)
         self.assertEqual(dev.taps, [])
+
+
+class HeroLevelEntry(unittest.TestCase):
+    """afk_hero_level runs on the shared claim_vision helpers (T48)."""
+
+    def test_hall_not_open_aborts_after_one_tap(self):
+        dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': ['Battle Modes']})
+        with mock.patch.object(sys, 'argv', ['afk_hero_level.py']):
+            self.assertEqual(hl.main(), 1)
+        self.assertEqual(dev.taps, [(972, 1034)])
+        self.assertEqual(dev.shots, ['hl_entry'])
+
+    def test_dry_run_reads_hall_only(self):
+        dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': ['Resonance Level: 80']})
+        with mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--dry-run']):
+            self.assertEqual(hl.main(), 0)
+        self.assertEqual(dev.taps, [(972, 1034)])
 
 
 if __name__ == '__main__':

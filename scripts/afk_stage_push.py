@@ -105,9 +105,19 @@ def classify_battle(img) -> str:
 
 # --- T41: wall report (OCR on the real screen, offline WinRT OCR) -------------
 
+_ocr_warm = False
+
+
 def ocr_text(png: Path) -> list[str]:
-    """Run templates/ocr.ps1 (Windows.Media.Ocr) on a screenshot PNG."""
-    return v.ocr_png(png, timeout=15, check_rc=True)
+    """Run templates/ocr.ps1 (Windows.Media.Ocr) on a screenshot PNG.
+
+    The first call of a process pays the cold PowerShell/WinRT start, so it
+    gets 30 s instead of 15 s (runtime review R18: the initial auto-complete
+    check could silently time out)."""
+    global _ocr_warm
+    timeout = 15 if _ocr_warm else 30
+    _ocr_warm = True
+    return v.ocr_png(png, timeout=timeout, check_rc=True)
 
 
 def parse_stage(lines: list[str]) -> int | None:
@@ -196,8 +206,8 @@ def wall_report(reason: str, tag: str = "sp_wall_report") -> dict:
         with open(WALL_LOG, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except Exception as exc:                      # noqa: BLE001 - report must not kill the run
-        rec["error"] = f"log write failed: {exc}"
-    err = f" error={rec['error']}" if rec.get("error") else ""
+        rec["log_error"] = f"log write failed: {exc}"   # keep the report error (R18)
+    err = "".join(f" {k}={rec[k]}" for k in ("error", "log_error") if rec.get(k))
     print(f"    wall report: {reason} stage={rec.get('stage')} "
           f"power={rec.get('power')}{err}", flush=True)
     return rec

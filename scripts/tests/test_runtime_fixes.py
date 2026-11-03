@@ -343,5 +343,25 @@ class R17ParsePower(unittest.TestCase):
         self.assertIsNone(sp.parse_power(['74,986', 'Auto Battle']))
 
 
+
+class R18WallReportErrors(unittest.TestCase):
+    def test_both_errors_kept(self):
+        art = Path(__file__).resolve().parent / '.artifacts'
+        art.mkdir(exist_ok=True)
+        with mock.patch.object(v, 'shot', side_effect=RuntimeError('screencap failed')), \
+             mock.patch.object(sp, 'WALL_LOG', art), \
+             mock.patch.object(sys, 'stdout', __import__('io').StringIO()):   # a dir: write fails
+            rec = sp.wall_report('battle_1_defeat')
+        self.assertIn('screencap failed', rec['error'])
+        self.assertIn('log write failed', rec['log_error'])
+
+    def test_first_ocr_call_gets_the_cold_start_timeout(self):
+        with mock.patch.object(sp, '_ocr_warm', False), \
+             mock.patch.object(v, 'ocr_png', return_value=[]) as ocr:
+            sp.ocr_text(Path('a.png'))
+            sp.ocr_text(Path('b.png'))
+        self.assertEqual([c.kwargs['timeout'] for c in ocr.call_args_list], [30, 15])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -5,6 +5,7 @@ R<n> = position of the finding in that report. Frames are synthetic
 """
 from __future__ import annotations
 
+import argparse
 import sys
 import unittest
 from pathlib import Path
@@ -205,6 +206,37 @@ class R19BattleModesEscape(unittest.TestCase):
         dev = FakeDevice(self, ['DR_BATTLE_MODES', 'WORLD'])
         self.assertTrue(dr.reach_world('dr_world'))               # old: 150 s -> False
         self.assertEqual(dev.taps, [v.BACK])
+
+
+class R20HeroDetailGate(unittest.TestCase):
+    """A8 live fund #2: the hero detail's full-width green Level-Up bar lit
+    BOTH battle probes, so is_boss_page matched, run() read the detail as
+    'already inside Dream Realm' and start_fight tapped BOSS_TAP onto the
+    Level-Up button (shots-62080, 15:32 CET). New: is_hero_detail gate."""
+
+    def setUp(self):
+        p = mock.patch.object(dr, '_dismiss_taps', 0)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_hero_detail_is_not_boss_page(self):
+        self.assertTrue(dr.is_hero_detail(frame('DR_HERO_DETAIL')))
+        self.assertFalse(dr.is_boss_page(frame('DR_HERO_DETAIL')))   # old: True
+        self.assertFalse(dr.is_ready(frame('DR_HERO_DETAIL')))
+        self.assertFalse(dr.is_fight(frame('DR_HERO_DETAIL')))
+
+    def test_real_boss_page_survives_the_gate(self):
+        self.assertFalse(dr.is_hero_detail(frame('DR_BOSS')))
+        self.assertTrue(dr.is_boss_page(frame('DR_BOSS')))
+        self.assertTrue(dr.is_ready(frame('DR_BOSS')))
+
+    def test_run_entry_refuses_the_hero_detail(self):
+        # old: 'already inside Dream Realm' -> 4 taps onto the Level-Up bar
+        dev = FakeDevice(self, ['DR_HERO_DETAIL', 'PANEL', 'WORLD',
+                                'UNKNOWN', 'UNKNOWN'])
+        self.assertEqual(dr.run(argparse.Namespace(fights=1, wait_fight=150)), 1)
+        self.assertIn('Battle Modes menu not detected', dev.out.getvalue())
+        self.assertNotIn(dr.BOSS_TAP, dev.taps)
 
 
 

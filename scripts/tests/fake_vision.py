@@ -61,6 +61,11 @@ _SPEC = {
                                        (960, 1040): (109, 93, 93), (1280, 1010): (108, 92, 92)}),
     'DR_FIGHT': ((90, 100, 130), {(960, 1040): (40, 60, 110), (1280, 1010): (22, 32, 72),
                                   (474, 1010): (137, 137, 137)}),
+    # A8 live fund #2: hero detail — the full-width green Level-Up bar lights
+    # both battle probes; the Ascend + back-arrow plates are bright cream
+    # (measured on shots-62080/dr_f1_pre3 / shots-65076/hl_daily_post)
+    'DR_HERO_DETAIL': ((90, 100, 90), {(960, 1040): (109, 154, 100), (1280, 1010): (160, 192, 152),
+                                       (620, 992): (222, 216, 211), (466, 1014): (217, 211, 207)}),
     'DR_BLACK': ((29, 29, 29), {}),
     'DR_TRANSITION': ((5, 8, 20), {(200, 270): (25, 72, 156)}),
     'DR_DIM': ((8, 8, 10), {(200, 270): (60, 62, 70), (960, 540): (180, 170, 150)}),

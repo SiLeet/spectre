@@ -158,11 +158,32 @@ def _green(c: tuple[int, int, int]) -> bool:
     return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 170
 
 
+HERO_DETAIL_PROBES = ((620, 992), (466, 1014))   # Ascend plate + back-arrow plate
+
+
+def is_hero_detail(img) -> bool:
+    """Hero-detail screen (A8 live fund #2, shots-62080/dr_f1_pre3 +
+    shots-65076/hl_daily_post): the full-width green 'Level Up' bar lights
+    BOTH battle probes, so is_boss_page used to match and start_fight fired
+    BOSS_TAP onto the Level-Up button. Both the Ascend badge plate and the
+    back-arrow plate are bright cream here (~(222,216,211) / (217,211,207))
+    while the real boss page reads dark/blue at both spots (King Croaker,
+    shots-77148/readonly-state-1513: ~(25,49,118) / (87,150,199)). A bright
+    boss-page background would be gated too — that fails SAFE (clean abort,
+    no chance consumed), never into wrong taps."""
+    return all(v.lum(v.avg(img, p)) > 190 for p in HERO_DETAIL_PROBES)
+
+
 def is_boss_page(img) -> bool:
     """Boss page: the Battle button is a FULL-WIDTH green bar, so the centre
     AND the right probe both read green (calibrated 2026-11-01 on real
     shots). A prep screen only lights the right probe, so it can never
-    classify as boss page (T38 #1: BOSS_TAP sits next to SKIP)."""
+    classify as boss page (T38 #1: BOSS_TAP sits next to SKIP). The hero
+    detail matches the green signature too — excluded explicitly (A8 live
+    fund #2); the Arena lobby carries the same false positive in real
+    frames (shots-51424/arena_1_lobby) and is fixed by the same gate."""
+    if is_hero_detail(img):
+        return False
     return (_green(v.avg(img, BATTLE_BTN_BOSS))
             and _green(v.avg(img, BATTLE_BTN_PREP)))
 

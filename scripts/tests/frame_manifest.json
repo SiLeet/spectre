@@ -120,6 +120,16 @@
   "battle_class": "WORLD"
  },
  {
+  "relpath": ".spectre/shots-51224/zz_probe2.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "0000be7f633c4235",
+  "classify": "UNKNOWN",
+  "battle_class": "BATTLE"
+ },
+ {
   "relpath": ".spectre/shots-51424/arena_1_lobby.png",
   "size": [
    1920,
@@ -160,6 +170,46 @@
   "battle_class": "WORLD"
  },
  {
+  "relpath": ".spectre/shots-54120/norm_0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "ac5925a4972f41e2",
+  "classify": "UNKNOWN",
+  "battle_class": "DEFEAT"
+ },
+ {
+  "relpath": ".spectre/shots-54120/norm_final.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "6b012de39f2495bd",
+  "classify": "UNKNOWN",
+  "battle_class": "LOADING"
+ },
+ {
+  "relpath": ".spectre/shots-55368/hl_daily_hall.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "ed596a44b6742636",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
+ },
+ {
+  "relpath": ".spectre/shots-55368/hl_scan_hall_970.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "4937de530a026166",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
+ },
+ {
   "relpath": ".spectre/shots-56176/dr_enter0_bm0.png",
   "size": [
    1920,
@@ -178,6 +228,26 @@
   "sha16": "89b67df40933fe14",
   "classify": "WORLD",
   "battle_class": "WORLD"
+ },
+ {
+  "relpath": ".spectre/shots-57452/hl_daily_hall.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "242b023f026ee407",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
+ },
+ {
+  "relpath": ".spectre/shots-57452/hl_scan_hall_970.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "9f3de799cb4dce74",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-61768/norm_0.png",
@@ -200,6 +270,46 @@
   "battle_class": "BATTLE"
  },
  {
+  "relpath": ".spectre/shots-62080/dr_f1_after0_0.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "65946c3fe06a0ddb",
+  "classify": "UNKNOWN",
+  "battle_class": "BATTLE"
+ },
+ {
+  "relpath": ".spectre/shots-62080/dr_start.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "d38f97bc828a5410",
+  "classify": "UNKNOWN",
+  "battle_class": "RESULT"
+ },
+ {
+  "relpath": ".spectre/shots-65076/hl_daily_hall.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "16272c5b232d42b7",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
+ },
+ {
+  "relpath": ".spectre/shots-65076/hl_scan_hall_970.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "8b297923db247d3e",
+  "classify": "POPUP",
+  "battle_class": "POPUP"
+ },
+ {
   "relpath": ".spectre/shots-67528/dev_0.png",
   "size": [
    1920,
@@ -208,6 +318,26 @@
   "sha16": "aafe2d344b13a91f",
   "classify": "WORLD",
   "battle_class": "WORLD"
+ },
+ {
+  "relpath": ".spectre/shots-68548/hl_entry.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "7c2738c145cf5cb1",
+  "classify": "UNKNOWN",
+  "battle_class": "PREP"
+ },
+ {
+  "relpath": ".spectre/shots-68548/hl_entry_retry.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "b2d4456a2a915aee",
+  "classify": "UNKNOWN",
+  "battle_class": "DEFEAT"
  },
  {
   "relpath": ".spectre/shots-69448/r1_0_initial.png",
@@ -228,6 +358,16 @@
   "sha16": "4ba05d0c6849db20",
   "classify": "PANEL",
   "battle_class": "AFK_PANEL"
+ },
+ {
+  "relpath": ".spectre/shots-73476/zz_probe.png",
+  "size": [
+   1920,
+   1080
+  ],
+  "sha16": "db83f40852dd8bd8",
+  "classify": "UNKNOWN",
+  "battle_class": "BATTLE"
  },
  {
   "relpath": ".spectre/shots-73652/dl_afk_0_initial.png",

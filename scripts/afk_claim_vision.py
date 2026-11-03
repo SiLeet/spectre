@@ -457,6 +457,83 @@ def classify(img: Image.Image) -> str:
     return 'UNKNOWN'
 
 
+def claim_round(tag: str, dry_run: bool = False) -> int:
+    """One verified AFK-chest claim from wherever the game is: world -> AFK
+    panel -> chest popup -> Claim -> panel (BACK). Shared by main() and
+    afk_dailies. Returns main()'s exit codes: 0 claim verified (or dry-run
+    reached its stop), 1 unreachable/unknown screen, 4 nothing claimable."""
+    state = classify(shot(f'{tag}_0_initial'))
+    print(f'    initial state: {state}', flush=True)
+
+    if state == 'WORLD':
+        if dry_run:
+            print('    [dry-run] would tap AFK progress', flush=True)
+            return 0
+        tap(GROUND, 0.8)
+        tap(AFK_PROGRESS, 3.0)
+        state = classify(shot(f'{tag}_1_panel'))
+        print(f'    after AFK tap: {state}', flush=True)
+    if state == 'POPUP':
+        # known login popup (free monthly/daily rewards) gets claimed,
+        # anything else is closed and retried from the panel
+        if resolve_startup_popup(f'{tag}_1a_popup'):
+            state = classify(shot(f'{tag}_1b_recover'))
+        else:
+            tap(BACK, 1.5)
+            state = classify(shot(f'{tag}_1b_recover'))
+        print(f'    after close: {state}', flush=True)
+    if state == 'UNKNOWN':
+        # never fire the recovery taps on an unidentified screen: that is
+        # how a blind tap ends up on a store/purchase dialog
+        print('    ERROR: unknown screen — refusing to tap blind', flush=True)
+        return 1
+    if state != 'PANEL':
+        tap(BACK, 1.0)
+        tap(BACK, 1.0)
+        tap(GROUND, 0.8)
+        tap(AFK_PROGRESS, 3.0)
+        state = classify(shot(f'{tag}_2_retry'))
+        print(f'    retry state: {state}', flush=True)
+    if state != 'PANEL':
+        print('    ERROR: could not reach the AFK panel', flush=True)
+        return 1
+    if dry_run:
+        print('    [dry-run] panel reached, would open chest + claim', flush=True)
+        return 0
+
+    tap(CHEST, 2.2)
+    state = classify(shot(f'{tag}_3_chest'))
+    print(f'    after chest tap: {state}', flush=True)
+    if state != 'POPUP':
+        # The game does not open the info popup when almost nothing has
+        # accrued (< ~2 min). One retry, then report "nothing claimable"
+        # instead of a hard error — nothing was tapped wrongly.
+        tap(CHEST, 2.5)
+        state = classify(shot(f'{tag}_3b_chest_retry'))
+        print(f'    chest retry: {state}', flush=True)
+    if state != 'POPUP':
+        print('    SKIP: nothing claimable yet (chest accrual too small)', flush=True)
+        return 4
+
+    tap(CLAIM, 2.5)
+    state = classify(shot(f'{tag}_4_after'))
+    print(f'    after claim: {state}', flush=True)
+    if state == 'POPUP':
+        # the claim popup can persist past the tap (T38 #8): retry once,
+        # then fail loudly instead of reporting a claim that never landed
+        print('    claim popup still open, retrying claim', flush=True)
+        tap(CLAIM, 2.5)
+        state = classify(shot(f'{tag}_4b_retry'))
+        print(f'    after claim retry: {state}', flush=True)
+    if state == 'PANEL':
+        tap(BACK, 1.0)
+        print('    claim verified (popup closed, panel back)', flush=True)
+    else:
+        print(f'    ERROR: unexpected state after claim: {state}', flush=True)
+        return 1
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--rounds', type=int, default=1)
@@ -491,76 +568,9 @@ def main() -> int:
 
     for rnd in range(1, args.rounds + 1):
         print(f'--- round {rnd}/{args.rounds} {time.strftime("%H:%M:%S")}', flush=True)
-        state = classify(shot(f'r{rnd}_0_initial'))
-        print(f'    initial state: {state}', flush=True)
-
-        if state == 'WORLD':
-            if args.dry_run:
-                print('    [dry-run] would tap AFK progress', flush=True)
-                continue
-            tap(GROUND, 0.8)
-            tap(AFK_PROGRESS, 3.0)
-            state = classify(shot(f'r{rnd}_1_panel'))
-            print(f'    after AFK tap: {state}', flush=True)
-        if state == 'POPUP':
-            # known login popup (free monthly/daily rewards) gets claimed,
-            # anything else is closed and retried from the panel
-            if resolve_startup_popup(f'r{rnd}_1a_popup'):
-                state = classify(shot(f'r{rnd}_1b_recover'))
-            else:
-                tap(BACK, 1.5)
-                state = classify(shot(f'r{rnd}_1b_recover'))
-            print(f'    after close: {state}', flush=True)
-        if state == 'UNKNOWN':
-            # never fire the recovery taps on an unidentified screen: that is
-            # how a blind tap ends up on a store/purchase dialog
-            print('    ERROR: unknown screen — refusing to tap blind', flush=True)
-            return 1
-        if state != 'PANEL':
-            tap(BACK, 1.0)
-            tap(BACK, 1.0)
-            tap(GROUND, 0.8)
-            tap(AFK_PROGRESS, 3.0)
-            state = classify(shot(f'r{rnd}_2_retry'))
-            print(f'    retry state: {state}', flush=True)
-        if state != 'PANEL':
-            print('    ERROR: could not reach the AFK panel', flush=True)
-            return 1
-        if args.dry_run:
-            print('    [dry-run] panel reached, would open chest + claim', flush=True)
-            continue
-
-        tap(CHEST, 2.2)
-        state = classify(shot(f'r{rnd}_3_chest'))
-        print(f'    after chest tap: {state}', flush=True)
-        if state != 'POPUP':
-            # The game does not open the info popup when almost nothing has
-            # accrued (< ~2 min). One retry, then report "nothing claimable"
-            # instead of a hard error — nothing was tapped wrongly.
-            tap(CHEST, 2.5)
-            state = classify(shot(f'r{rnd}_3b_chest_retry'))
-            print(f'    chest retry: {state}', flush=True)
-        if state != 'POPUP':
-            print('    SKIP: nothing claimable yet (chest accrual too small)', flush=True)
-            return 4
-
-        tap(CLAIM, 2.5)
-        state = classify(shot(f'r{rnd}_4_after'))
-        print(f'    after claim: {state}', flush=True)
-        if state == 'POPUP':
-            # the claim popup can persist past the tap (T38 #8): retry once,
-            # then fail loudly instead of reporting a claim that never landed
-            print('    claim popup still open, retrying claim', flush=True)
-            tap(CLAIM, 2.5)
-            state = classify(shot(f'r{rnd}_4b_retry'))
-            print(f'    after claim retry: {state}', flush=True)
-        if state == 'PANEL':
-            tap(BACK, 1.0)
-            print('    claim verified (popup closed, panel back)', flush=True)
-        else:
-            print(f'    ERROR: unexpected state after claim: {state}', flush=True)
-            return 1
-
+        rc = claim_round(f'r{rnd}', args.dry_run)
+        if rc:
+            return rc
         if rnd < args.rounds and args.pause:
             time.sleep(args.pause)
     print('done', flush=True)

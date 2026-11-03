@@ -1,7 +1,7 @@
 """Full daily routine for AFK Journey, state-checked like the other drivers.
 
 Chains the verified flows:
-  1. AFK idle-chest claim        (reuse of the chest tap sequence)
+  1. AFK idle-chest claim        (afk_claim_vision.claim_round)
   2. Main menu -> Quests -> every tab -> Quick Claim
   3. Main menu -> Mail -> Read All
 
@@ -155,44 +155,14 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
 
 
 def afk_chest_claim() -> bool:
-    """The verified chest tap sequence from afk_claim_vision, condensed."""
-    img = v.shot('dl_afk_0')
-    st = v.classify(img)
-    if st == 'WORLD':
-        v.tap((300, 250), 0.8)
-        v.tap((60, 1036), 3.0)
-        st = v.classify(v.shot('dl_afk_1'))
-    if st == 'POPUP':
-        v.tap(v.BACK, 1.2)
-        st = v.classify(v.shot('dl_afk_1b'))
-    if st == 'UNKNOWN':
-        print('    ERROR: unknown screen — refusing to tap blind', flush=True)
-        return False
-    if st != 'PANEL':
-        v.tap(v.BACK, 1.2)
-        v.tap(v.BACK, 1.2)
-        v.tap((300, 250), 0.8)
-        v.tap((60, 1036), 3.0)
-        st = v.classify(v.shot('dl_afk_2'))
-    if st != 'PANEL':
-        print('    ERROR: could not reach the AFK panel', flush=True)
-        return False
-    v.tap((975, 760), 2.2)
-    st = v.classify(v.shot('dl_afk_3'))
-    if st != 'POPUP':
-        v.tap((975, 760), 2.5)
-        st = v.classify(v.shot('dl_afk_3b'))
-    if st != 'POPUP':
-        print('    SKIP: chest empty (accrual too small)', flush=True)
-        v.tap(v.BACK, 1.2)      # normalize: leave the AFK panel
-        return True
-    v.tap((960, 602), 2.5)
-    st = v.classify(v.shot('dl_afk_4'))
-    ok = st == 'PANEL'
-    print(f'    chest claim {"verified" if ok else "state " + st}', flush=True)
-    if st == 'PANEL':
-        v.tap(v.BACK, 1.2)      # normalize: leave the panel
-    return True
+    """The shared, verified chest flow (afk_claim_vision.claim_round). True
+    when the claim landed or nothing was claimable yet; False on an unknown /
+    unreachable screen or a claim that did not confirm (the old local copy
+    reported True there)."""
+    rc = v.claim_round('dl_afk')
+    if rc == 0:
+        print('    chest claim verified', flush=True)
+    return rc in (0, 4)
 
 
 if __name__ == '__main__':

@@ -232,5 +232,24 @@ class F8DailiesImportable(unittest.TestCase):
         self.assertEqual(dev.taps, [])
 
 
+
+class F15SharedChestClaim(unittest.TestCase):
+    def test_dailies_uses_claim_round(self):
+        dev = FakeDevice(self, ['WORLD', 'PANEL', 'POPUP', 'PANEL'])
+        self.assertTrue(dl.afk_chest_claim())
+        self.assertEqual(dev.taps, [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.shots[0], 'dl_afk_0_initial')
+
+    def test_unconfirmed_claim_is_failure(self):
+        # claim popup persists through the retry: old copy returned True
+        dev = FakeDevice(self, ['PANEL', 'POPUP', 'POPUP', 'POPUP'])
+        self.assertFalse(dl.afk_chest_claim())
+        self.assertEqual(dev.taps, [v.CHEST, v.CLAIM, v.CLAIM])
+
+    def test_nothing_claimable_is_ok(self):
+        FakeDevice(self, ['PANEL', 'PANEL', 'PANEL'])
+        self.assertTrue(dl.afk_chest_claim())
+
+
 if __name__ == '__main__':
     unittest.main()

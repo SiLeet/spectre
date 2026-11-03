@@ -345,5 +345,17 @@ class F12HeroExhaustion(HeroCase):
         self.assertNotIn((840, hl.HANDS_Y), dev.taps)
 
 
+
+class F20HeroPurchaseDialog(HeroCase):
+    def test_dialog_after_x10_is_cancelled_and_stops(self):
+        dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'DIALOG'],
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80']},
+                              hands=(710, 840))
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), hl.LEVEL_X10,
+                                    v.CONFIRM_CANCEL, ('key', 4)])
+        self.assertIn('purchase/confirm dialog after x10', dev.out.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

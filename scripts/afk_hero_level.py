@@ -44,6 +44,16 @@ def snap(name):
     return v.ocr_lines(name)
 
 
+def tap_x10(name):
+    """Level Up x10, then OCR the result. None when a confirm/purchase dialog
+    came up instead (cancelled: the policy never spends diamonds)."""
+    v.tap(LEVEL_X10, 3.0)
+    if v.is_confirm_dialog(v.shot(name)):
+        v.tap(v.CONFIRM_CANCEL, 1.5)
+        return None
+    return v.ocr_lines(name)
+
+
 def read_level(lines):
     """Hero level from the detail badge: 'Lvl. 74' and the OCR variants
     'LvL99', 'LV.74', 'Lv. 74' (case-insensitive). A glued run such as
@@ -96,6 +106,13 @@ def in_hall(tag):
     return False
 
 
+def purchase_stop(tag, x, lvl, taps, stop_flag):
+    print(f"    [{tag} {x}] purchase/confirm dialog after x10 — cancelled, stopping run", flush=True)
+    key(4)
+    stop_flag.append(True)
+    return lvl, taps
+
+
 def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | None, int]:
     """Open a hand, read its level, tap x10 while below target. Returns
     (final_level_or_None, x10_taps_used). Sets stop_flag[0]=True when the
@@ -128,11 +145,12 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
             key(4)
             return new_lvl, taps
         print(f"    [{tag} {x}] level {new_lvl} < {target} — tapping x10", flush=True)
-        v.tap(LEVEL_X10, 3.0)
         taps += 1
         # re-read: if the level did not move, hero EXP/gold ran out — the other
         # hands will fail identically, so stop the whole run (review lesson)
-        lines2 = snap(f"{tag}_{x}_check{taps}")
+        lines2 = tap_x10(f"{tag}_{x}_check{taps}")
+        if lines2 is None:
+            return purchase_stop(tag, x, lvl, taps, stop_flag)
         lvl2 = read_level(lines2) if lines2 else None
         if lvl2 is not None:
             lvl = lvl2
@@ -144,9 +162,11 @@ def level_hand(x: int, target: int, tag: str, stop_flag: list) -> tuple[int | No
                 key(4)
                 return lvl2, taps
             print(f"    [{tag} {x}] level unchanged after x10 ({lvl2}) — confirming with one more tap", flush=True)
-            v.tap(LEVEL_X10, 3.0)
             taps += 1
-            lvl3 = read_level(snap(f"{tag}_{x}_check{taps}"))
+            lines3 = tap_x10(f"{tag}_{x}_check{taps}")
+            if lines3 is None:
+                return purchase_stop(tag, x, lvl, taps, stop_flag)
+            lvl3 = read_level(lines3)
             if lvl3 is not None and lvl3 == new_lvl:
                 print(f"    [{tag} {x}] level unchanged after 2 x10 taps ({lvl3}) — resources exhausted, stopping run", flush=True)
                 key(4)

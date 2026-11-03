@@ -110,6 +110,7 @@ def _mark_battle_tap() -> None:
 STAGNANT_STEPS = 2      # LIVE: unchanged steps before the zombie recovery
 STAGNANT_DIST = 40      # LIVE: screen_signature distance below which a step "did nothing"
 CARD_DISMISS = (480, 300)
+SELECT_BACK = (714, 1010)   # live 2026-11-03: the select screen's own back arrow
 
 
 def advance_to_fight(tag: str, steps: int = 6) -> str:
@@ -153,6 +154,54 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
         else:
             tap(OPPONENT_LEFT, 2.5)         # left card = lowest combat power
     return 'STUCK'
+
+
+def exit_to_world(max_steps: int = 5) -> bool:
+    """Navigate out of the arena chain after the fights (WARN-only).
+
+    A run that ends on the select screen blocks the following flows twice over
+    (both live-verified 2026-11-03): classify() reads select as POPUP (R13)
+    and the generic BACK (474,1010) cannot leave it — the select screen's own
+    back arrow sits at (714,1010). Route: select -> lobby (714) -> battle
+    modes (474) -> world (474). Result cards are dismissed on the way; an
+    unrecognised screen stops the exit (bounded), the run keeps its result.
+    """
+    for i in range(max_steps):
+        img = v.shot(f'arena_exit{i}')
+        if v.classify(img) == 'WORLD':
+            return True
+        if v.is_confirm_dialog(img):
+            tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
+            continue
+        if v.is_battle_modes(img):
+            tap(BACK, 2.0)
+            continue
+        if arena_state(img) == 'RESULT':
+            tap(CARD_DISMISS, 1.5)
+            continue
+        if arena_state(img) == 'PREP':
+            # live 2026-11-03 (shots-78504): after the LAST fight the game sits
+            # on the arena prep screen (hero grid) — its back arrow at (474,1010)
+            # goes to the select screen, not to the lobby
+            tap(BACK, 2.5)
+            continue
+        # The positive SELECT rule first: on select, the lobby probe also
+        # matches (bright bar at (1080,1004)) — only the refresh badge at
+        # (1160,1010) (bright white on real select frames) tells them apart.
+        select = arena_state(img) == 'SELECT'
+        badge = avg(img, (1160, 1010))
+        if select and badge[0] > 190 and badge[1] > 190:
+            tap(SELECT_BACK, 2.0)
+            continue
+        lobby = v.lum(avg(img, (1080, 1004))) > 150 and v.lum(avg(img, (480, 270))) < 200
+        if lobby:
+            tap(BACK, 2.0)                  # lobby back arrow -> battle modes
+            continue
+        print(f'    WARN: arena exit step {i}: unrecognised screen — stopping exit',
+              flush=True)
+        return False
+    print('    WARN: arena exit did not reach the world view', flush=True)
+    return False
 
 
 def main() -> int:
@@ -233,6 +282,8 @@ def main() -> int:
 
     print(v.wall_summary('arena', walls), flush=True)
     print(f'done: {wins} arena fights driven', flush=True)
+    if exit_to_world():
+        print('    exit: back at the world view', flush=True)
     # exit 1 when nothing was fought: afk-bot-watch.sh writes the once-per-day
     # arena marker on exit 0, so a failed run must not burn the day
     return 1 if failed and wins == 0 else 0

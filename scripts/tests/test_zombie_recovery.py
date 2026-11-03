@@ -75,13 +75,44 @@ class ArenaZombie(unittest.TestCase):
                                 'UNKNOWN',                                       # step0 SELECT
                                 'ARENA_RESULT', 'ARENA_RESULT', 'ARENA_RESULT',  # 1, 2, 3 (stagnant 2)
                                 'UNKNOWN', 'ARENA_PREP',                         # re-select, prep
-                                'UNKNOWN', 'ARENA_LOBBY'], also=(ar,))           # fight start/after
+                                'UNKNOWN', 'ARENA_LOBBY',                        # fight start/after
+                                'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'],         # exit_to_world
+                           also=(ar,))
         with mock.patch.object(sys, 'argv', ['afk_arena.py']):
             self.assertEqual(ar.main(), 0)
         self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT, ar.CARD_DISMISS, ar.CARD_DISMISS,
                                         ar.CARD_DISMISS,                         # zombie recovery
-                                        ar.OPPONENT_LEFT, ar.ARENA_BATTLE])
+                                        ar.OPPONENT_LEFT, ar.ARENA_BATTLE,
+                                        ar.BACK, ar.BACK])                       # exit: lobby, battle modes
         self.assertIn('zombie: 2 steps without progress', dev.out.getvalue())
+        self.assertIn('exit: back at the world view', dev.out.getvalue())
+
+    def test_exit_from_select_uses_its_own_back_arrow(self):
+        # 2026-11-03 live gotcha: the generic BACK (474,1010) cannot leave the
+        # select screen — its own back arrow sits at (714,1010); a run that
+        # ends on select used to block every following flow (R13 POPUP read)
+        dev = FakeDevice(self, ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY',
+                                'UNKNOWN', 'UNKNOWN',            # arena_2_select, p1_pre
+                                'UNKNOWN', 'ARENA_PREP',         # step0 select / step1 battle
+                                'UNKNOWN', 'ARENA_SELECT',       # start / after
+                                'ARENA_SELECT',                  # arena_exit0 (end state)
+                                'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'],  # exit chain
+                           also=(ar,))
+        with mock.patch.object(sys, 'argv', ['afk_arena.py']):
+            self.assertEqual(ar.main(), 0)
+        self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT, ar.ARENA_BATTLE,
+                                        ar.SELECT_BACK, ar.BACK, ar.BACK])
+
+    def test_exit_gives_up_bounded_on_unknown(self):
+        dev = FakeDevice(self, ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY',
+                                'UNKNOWN', 'UNKNOWN',            # arena_2_select, p1_pre
+                                'UNKNOWN', 'ARENA_PREP',         # step0 / step1
+                                'UNKNOWN',                       # arena_1_start
+                                'UNKNOWN',                       # arena_1_after (unchanged)
+                                'UNKNOWN'], also=(ar,))          # arena_exit0 -> give up
+        with mock.patch.object(sys, 'argv', ['afk_arena.py']):
+            self.assertEqual(ar.main(), 1)               # no fight driven -> failed
+        self.assertIn('unrecognised screen', dev.out.getvalue())
 
 
 class StageStillBattle(StagePushCase):

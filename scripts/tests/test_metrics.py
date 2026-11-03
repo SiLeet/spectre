@@ -92,7 +92,8 @@ class DreamWall(unittest.TestCase):
 class ArenaWall(unittest.TestCase):
     def test_fight_wall(self):
         dev = FakeDevice(self, ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY', 'UNKNOWN',
-                                'UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY'], also=(ar,))
+                                'UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY',
+                                'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'], also=(ar,))
         with mock.patch.object(sys, 'argv', ['afk_arena.py']), \
              mock.patch('time.monotonic', side_effect=[0.0, 81.2]):
             self.assertEqual(ar.main(), 0)

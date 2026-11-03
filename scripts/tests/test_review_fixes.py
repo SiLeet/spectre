@@ -151,7 +151,7 @@ class F5ArenaExitCodes(unittest.TestCase):
             return dev, ar.main()
 
     def test_stuck_chain_exits_1(self):
-        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN'] + ['UNKNOWN'] * 6)
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN'] + ['UNKNOWN'] * 6 + ['UNKNOWN'])
         self.assertEqual(rc, 1)
         # T66 zombie guard: two unchanged steps -> one card dismiss, the second
         # stagnation ends the chain early (was: 6 identical opponent taps)
@@ -159,14 +159,17 @@ class F5ArenaExitCodes(unittest.TestCase):
                                         ar.OPPONENT_LEFT, ar.OPPONENT_LEFT])
 
     def test_unchanged_screen_exits_1(self):
-        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'UNKNOWN'])
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'UNKNOWN',
+                                                   'UNKNOWN'])
         self.assertEqual(rc, 1)
         self.assertIn('screen unchanged', dev.out.getvalue())
 
     def test_fought_exits_0(self):
-        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY'])
+        dev, rc = self.run_arena(self.TO_SELECT + ['UNKNOWN', 'ARENA_PREP', 'UNKNOWN', 'ARENA_LOBBY',
+                                                   'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(rc, 0)
         self.assertIn('done: 1 arena fights driven', dev.out.getvalue())
+        self.assertIn('exit: back at the world view', dev.out.getvalue())
 
 
 

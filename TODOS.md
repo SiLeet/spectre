@@ -925,10 +925,20 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Fight startete nie; Exit 1 „did not start after 4 battle taps"; chances
   „unreadable" — auf dem Detail gibt es keinen Counter). Beleg:
   .spectre/shots-62080/dr_f1_pre3.png (Cecia Lv 84, Level-Up-Balken) +
-  dr_f1_after3_5.png (Lv 85). Fix-Kandidat für den nächsten Fix-Batch
-  (nicht inline): Helden-Detail-Negativ-Probe (Lv.-Badge (474,916) /
-  Ascend-Badge (620,992)) ODER OCR-Gate „Level Up"+Hero-Header; zusätzlich
-  run()-Entry-Verifikation schärfen (is_ready allein reicht nicht).
+  dr_f1_after3_5.png (Lv 85).
+  ✅ FIX EINGEZOGEN (15:4x, Commit d50c601): `is_hero_detail()`-Gate in
+  is_boss_page — Probes Ascend-Plate (620,992) + Back-Arrow-Plate
+  (466,1014), beide >190 lum auf 2 echten Helden-Details
+  (Cecia/Gwyneth), auf der echten Boss-Page dunkel/blau (25,49,118 /
+  87,150,199 — King Croaker, shots-77148). Bright-Background-Boss-Pages
+  würden fail-safe abbrechen (kein Chance-Verbrauch, keine Blind-Taps).
+  Bonus: der Gate behebt den GLEICHEN latenten False-Positive auf der
+  Arena-Lobby (shots-51424/arena_1_lobby: boss_green=True). 3 neue Tests
+  (R20); Gesamtsuite 235 Tests, 4 Failures — alle 4 aus dem UNCOMMITTETEN
+  Parallel-Writer-Stand afk_hero_level.py (HALL_BTN 972→990 bricht 3
+  test_flows-Assertions; LEVEL_X10==LEVEL_X1==(1100,985) bricht
+  test_daily_leveling) — in-flight, NICHT vom Dream-Fix. Live-Verifikation
+  des Gates steht beim nächsten Dream-Retry aus.
 - 🔴 Op-Fund Race (15:31–15:35 CET, HIGH): **Direkte Script-Läufe nehmen
   den afk-bot.lock NICHT** — der Lock schützt nur watch.sh-Wrappers. Live
   kollidierte der Dream-Lauf (shots-62080, 15:31:5x) mit der aktiven

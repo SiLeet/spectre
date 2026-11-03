@@ -1153,3 +1153,17 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Wall 84,7 s, Exit 0). Suite 252 OK (22 skipped), 3 neue Exit-Tests +
   aktualisierte Frame-Listen. Offen bleibt R15-Rest: Stage LAUNCHER/LOADING +
   Summary-Close-Frames; erster Post-Fix-Night-Beleg 04.11. 02:00.
+- ✅ R13-Manifest-Regen Teil 4 + Log-Review (2026-11-03 19:4x–20:0x CET,
+  Queue-Driver): Manifest-Regen über die neuen Arena-Frames (shots-78504 Exit-
+  Kette Select/PREP/Lobby/BattleModes/World) → 62 Frames (+14, 0 Verdict-Flips,
+  0 verworfen), Suite 252 OK (22 skipped), Commit 35951a3. exit_to_world
+ Commit 30d67b8 + TODOS-Notiz d044ca2 (Suite davor verifiziert: 252 OK).
+  Log-Review afk-bot-2026-11-03.log: 05:10-Daily zeigte die bekannte
+  Endzustand-Verschmutzung (Arena 0 fights/STUCK → Dream POPUP → Stage
+  „not on battle screen“) — exakt das, was positive-SELECT-Probe (ff6ad3d)
+  + exit_to_world (30d67b8) abdecken; erster Post-Fix-Beleg: Daily 04.11.
+  05:10, Night 04.11. 02:00. 17:10-Progress: sauber (Chest verified, wall
+  reached stage=254 power=74986); „preflight 108449240“ in der Logzeile =
+  Vor-Fix-Stand, Drift-Gate 80b8b43 fängt den Fall seit 18:08 ab (Anker
+  259270 revalidiert). R15-Rest unverändert: Stage LAUNCHER/LOADING +
+  Summary-Close-Frames sind frame-abhängig offen.

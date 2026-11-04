@@ -192,14 +192,17 @@ def frame(state: str) -> Image.Image:
 class FakeDevice:
     """Scripted screen sequence + tap/shot log."""
 
-    def __init__(self, test, frames: list, ocr: dict[str, list[str]] | None = None, also=()):
+    def __init__(self, test, frames: list, ocr: dict[str, list[str]] | None = None, also=(),
+                 boxes: dict[str, list[tuple]] | None = None):
         self.frames = [frame(f) if isinstance(f, str) else f for f in frames]
         self.ocr = ocr or {}
+        self.boxes = boxes or {}     # T103 v.ocr_boxes: shot name -> [(x, y, w, h, text)]
         self.taps: list[tuple[int, int]] = []
         self.shots: list[str] = []
         self.last = None            # frame of the latest shot (T97 world-BACK guard)
         for name, fake in (('adb', self._no_adb), ('tap', self._tap), ('swipe', self._swipe),
                            ('shot', self._shot), ('ocr_lines', self._ocr),
+                           ('ocr_boxes', lambda name: list(self.boxes.get(name, []))),
                            # real ocr_region would open v.TMP = .spectre/shots-<pid> (T82 review)
                            ('ocr_region', lambda name, box: []),
                            ('tap_seq', self._tap_seq), ('key_seq', self._key_seq),

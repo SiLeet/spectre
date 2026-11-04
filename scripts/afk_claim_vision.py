@@ -382,15 +382,16 @@ POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
 
 
-def ocr_png(png: Path, timeout: int = 20, check_rc: bool = False) -> list[str]:
+def ocr_png(png: Path, timeout: int = 20, check_rc: bool = False, boxes: bool = False) -> list[str]:
     """WinRT OCR (templates/ocr.ps1, offline) on a PNG; [] on any failure.
 
     check_rc=True also treats a non-zero exit as failure (afk_stage_push's
-    historical semantics); ocr_lines keeps its stdout-only behaviour."""
+    historical semantics); ocr_lines keeps its stdout-only behaviour.
+    boxes=True: lines come as 'x y w h text' (ocr.ps1 -Boxes, see ocr_boxes)."""
     png = Path(png).resolve()          # ocr.ps1 needs absolute native paths
     try:
         pr = subprocess.run([POWERSHELL, '-NoProfile', '-ExecutionPolicy', 'Bypass',
-                             '-File', str(OCR_PS1), '-Path', str(png)],
+                             '-File', str(OCR_PS1), '-Path', str(png)] + (['-Boxes'] if boxes else []),
                             capture_output=True, timeout=timeout, text=True,
                             encoding='utf-8', errors='replace')
         if check_rc and pr.returncode != 0:
@@ -412,6 +413,22 @@ def ocr_region(name: str, box: tuple[int, int, int, int]) -> list[str]:
     except (OSError, ValueError):
         return []
     return ocr_png(out)
+
+
+def parse_boxes(lines: list[str]) -> list[tuple[int, int, int, int, str]]:
+    """'x y w h text' lines (ocr.ps1 -Boxes) -> (x, y, w, h, text); malformed lines dropped."""
+    out = []
+    for ln in lines:
+        p = ln.split(' ', 4)
+        if len(p) == 5 and all(t.lstrip('-').isdigit() for t in p[:4]):
+            out.append((*map(int, p[:4]), p[4]))
+    return out
+
+
+def ocr_boxes(name: str) -> list[tuple[int, int, int, int, str]]:
+    """T103: like ocr_lines, with each line's pixel box (x, y, w, h, text)."""
+    png = TMP / f'{name}.png'
+    return parse_boxes(ocr_png(png, boxes=True)) if png.exists() else []
 
 
 def ocr_lines(name: str) -> list[str]:

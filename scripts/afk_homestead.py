@@ -73,9 +73,15 @@ RES_BOX = (1060, 8, 1500, 48)  # LIVE: resource bar; OCR x3 -> ['@ 653,402 3848'
 FIELD_COST = (100, 10)         # LIVE: (gold, amber) on the Field tile and the radial cost pill (12/16)
 OCR_SCALE = 3
 # --- placement mode: radial menu (hm_field_tap / hm_field_build / hm_field_confirmed) ---
-CHECK_WIN = (970, 440, 1210, 680)  # LIVE: search window for the green check; measured check disc
-                                   # centre (1090,558), r~31 (y 527..589): brief (1090,565) inside,
-                                   # (1090,520) above the disc. Green px: 226/223/241, median (1089,562)
+# T102c: the radial follows the ghost - live check discs at (1090,558) (hm_field_*), (1178,486)
+# (shots-67544/hs_b0_place), (934,544) (shots-47000/hs_b0_place: outside the old window
+# (970,440)-(1210,680) -> 'no placement radial'); the X sits 247/248 px left at the same height
+# on all three. Search band = Hermes' live band x 450-1350 / y 360-780 (check disc r~31).
+RING_BAND = (450, 360, 1350, 780)
+RING_CELL = 24                     # px grid for the green clusters (check disc ~62 px wide)
+RING_DISC_DX = 24                  # LIVE: both discs L>=237 at +-24 px on all 5 real radials
+RING_DISC_LUM = 225                # (hm_field_*, pl3, shots-47000/67544); the one band-wide false
+                                   # hit (shots-41820/dr_f1_w6, Dream Realm) reads min L 87
 CHECK_PX = (150, 600)          # LIVE: green-pixel count range of the check (226..241 measured)
 X_DX = 247                     # LIVE: red X median (842,557) = check - (247, ~5); cancel disc (842,558)
 X_PX = (150, 600)              # LIVE: red-pixel count of the X (256 on all three frames)
@@ -128,21 +134,54 @@ def production_active(img: Image.Image) -> bool:
     return _gmax(v.avg(img, PRODUCTION_TAB)) > 25
 
 
+def _clusters(pts, cell: int = RING_CELL) -> list[list[tuple[int, int]]]:
+    """Groups of points whose `cell`-px grid cells touch (8-neighbourhood)."""
+    cells: dict[tuple[int, int], list] = {}
+    for x, y in pts:
+        cells.setdefault((x // cell, y // cell), []).append((x, y))
+    seen, groups = set(), []
+    for start in cells:
+        if start in seen:
+            continue
+        seen.add(start)
+        stack, group = [start], []
+        while stack:
+            cx, cy = stack.pop()
+            group += cells[(cx, cy)]
+            for n in ((cx + dx, cy + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                if n in cells and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        groups.append(group)
+    return groups
+
+
 def find_ring(img: Image.Image):
     """Placement radial menu: (check_xy, cancel_xy) from the green check and the
-    red X found on the frame (count + geometry), else None."""
-    green = _pixels(img, CHECK_WIN, lambda r, g, b: g - max(r, b) > 50 and g > 120)
-    if not CHECK_PX[0] <= len(green) <= CHECK_PX[1]:
-        return None
-    gx, gy = _median(green)
-    red = _pixels(img, (gx - X_DX - 40, gy - 40, gx - X_DX + 40, gy + 40),
-                  lambda r, g, b: r - max(g, b) > 80 and r > 150)
-    if not X_PX[0] <= len(red) <= X_PX[1]:
-        return None
-    rx, ry = _median(red)
-    if abs(gx - rx - X_DX) > 15 or abs(gy - ry) > 10:
-        return None
-    return (gx, gy), (rx, ry)
+    red X found on the frame (count + geometry), else None. T102c: the radial sits
+    around the ghost, so every green cluster in RING_BAND is a check candidate; the
+    fixed geometry (red X 247 px left, same height) decides."""
+    green = _pixels(img, RING_BAND, lambda r, g, b: g - max(r, b) > 50 and g > 120)
+    for group in _clusters(green):
+        if not CHECK_PX[0] <= len(group) <= CHECK_PX[1]:
+            continue
+        gx, gy = _median(group)
+        red = _pixels(img, (gx - X_DX - 40, gy - 40, gx - X_DX + 40, gy + 40),
+                      lambda r, g, b: r - max(g, b) > 80 and r > 150)
+        if not X_PX[0] <= len(red) <= X_PX[1]:
+            continue
+        rx, ry = _median(red)
+        if (abs(gx - rx - X_DX) <= 15 and abs(gy - ry) <= 10
+                and _white_disc(img, (gx, gy)) and _white_disc(img, (rx, ry))):
+            return (gx, gy), (rx, ry)
+    return None
+
+
+def _white_disc(img: Image.Image, c) -> bool:
+    """Glyph on the radial's white disc: all four probes RING_DISC_DX off the centre are bright."""
+    x, y = c
+    return all(v.lum(v.avg(img, (x + dx, y + dy), r=2)) > RING_DISC_LUM
+               for dx, dy in ((RING_DISC_DX, 0), (-RING_DISC_DX, 0), (0, RING_DISC_DX), (0, -RING_DISC_DX)))
 
 
 def find_marker(img: Image.Image):

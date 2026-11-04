@@ -55,6 +55,13 @@ _SPEC = {
     'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230)}),
     'POPUP': ((40, 40, 40), {v.BACK: (62, 58, 57), (564, 1010): (100, 100, 100),
                              v.CLAIM: (233, 179, 117)}),
+    # T88 new panel palette (shots-27712/r1_0_initial): light back on cream plus
+    # the panel-only tells, green 'Battle' bar + 'AFK Rewards' badge
+    'PANEL_NEW': ((40, 40, 40), {v.BACK: (225, 219, 210), (564, 1010): (253, 250, 244),
+                                 (800, 893): (107, 157, 97), (1300, 893): (107, 157, 97),
+                                 (712, 207): (79, 148, 75)}),
+    # same light back + cream without the tells (hero hall, shots-13228/hl_scan_850)
+    'CREAM_BACK': ((40, 40, 40), {v.BACK: (230, 225, 216), (564, 1010): (253, 250, 244)}),
     'UNKNOWN': ((128, 128, 128), {}),
     # afk_arena / review fixes (T58)
     # probes follow is_battle_modes' LIVE 2026-11-04 re-calibration (dcd9772)

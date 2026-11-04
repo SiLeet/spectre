@@ -19,6 +19,11 @@ class SyntheticFrames(unittest.TestCase):
         for st in ('WORLD', 'PANEL', 'POPUP', 'UNKNOWN'):
             self.assertEqual(v.classify(frame(st)), st)
 
+    def test_new_panel_palette(self):
+        self.assertEqual(v.classify(frame('PANEL_NEW')), 'PANEL')
+        # light back on cream alone is hero hall/dailies too: never a blind CHEST tap
+        self.assertEqual(v.classify(frame('CREAM_BACK')), 'UNKNOWN')
+
 
 class Normalize(unittest.TestCase):
     def test_two_unknowns_then_world(self):

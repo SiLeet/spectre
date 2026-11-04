@@ -108,3 +108,14 @@ Die „Complete Now"-Regel (automatisch, wenn Diamanten ≥ 10× Kosten) ist **n
 | Ore Refinery | Upgrade-Kette vormerken | — | nur Notiz |
 
 LIVE offen: ob Drags die Homestead-Kamera bewegen, ob nach der Abwahl das Spire-Icon erscheint, mehrere Marker hintereinander.
+
+## Nachtrag T103d (Turm-Tap-Fallback)
+
+`feature/T103d-spire-tower-tap` @ `0543b1d` — liegt **auf T103c** (`edf23aa`), also T103c vorher oder zusammen mergen. Homestead-Tests 83 OK, volle Suite `Ran 676 tests … OK (skipped=201)`.
+
+- **Turm finden:** 4 goldene Lichtstrahlen an den Turmpfeilern (äußeres Paar 200–229 px, inneres 98–116 px auseinander, inneres 40–105 px tiefer, gemeinsame Achse ±7 px); 3 von 4 reichen (die Strahlen flackern); eigener Nacht-Pfad über R−B. Tap auf die Achse in halber Höhe der äußeren Strahlen = Turmkörper, 150–180 px über der Tür (shots-80480: (507,528), dein Live-Tap ~(520,450)).
+- **Sweep:** 358 WORLD-Frames, 162 Treffer, alle auf dem Turmkörper (Kontaktbögen; 12 zufällige Treffer von mir nachgeprüft), 0 Fehltreffer. Verpasst nur, wenn der Turm vom Rand/HUD abgeschnitten ist.
+- **Ablauf:** (a) Radial/Icon wie bisher → (b) Turm-Tap, „Interact" per OCR + Cremescheibe (tower_tap: Mitte (953,683)), ein Retry, Dialog-Prüfung „Upgrade Requirement" + „Radiant Spire" → sonst rc 1 ohne weiteren Tap. Kein Turm → T103c-Kamerasuche, auf jedem Frame Icon dann Turm.
+- **(c) Label-Tap nicht umgesetzt:** Das Label „Radiant Spire" erscheint nur, wenn der Spire schon ausgewählt ist — dann greift (a). Kein Frame zeigt, was ein Label-Tap öffnet.
+
+LIVE offen: ob der Turm-Tap den Spire wählt (und den Helden nicht laufen lässt), 2 s Wartezeit bis zur Kamerazentrierung, ob „Interact" auch ohne mögliches Upgrade den Dialog öffnet.

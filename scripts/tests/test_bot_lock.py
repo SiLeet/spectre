@@ -93,7 +93,7 @@ class BotLockWiring(unittest.TestCase):
     def test_direct_scripts_wired(self):
         for name in ('afk_dream_realm.py', 'afk_arena.py',
                      'afk_stage_push.py', 'afk_dailies.py',
-                     'afk_hero_level.py'):
+                     'afk_hero_level.py', 'afk_duras.py'):
             self._assert_wired(name)
 
     def test_hero_level_gate_precedes_navigation(self):

@@ -64,6 +64,7 @@ case "$script" in
   *afk_arena.py) exit "${FAKE_ARENA_RC:-0}" ;;
   *afk_dream_realm.py) exit "${FAKE_DREAM_RC:-0}" ;;
   *afk_stage_push.py) exit "${FAKE_STAGE_RC:-0}" ;;
+  *afk_duras.py) exit "${FAKE_DURAS_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -159,6 +160,48 @@ esac
     def test_leveling_switch_off(self):
         result, calls = self._run_wrapper(AFK_DAILY_LEVEL="0")
         self.assertFalse(any("afk_hero_level.py" in call for call in calls), calls)
+
+    # --- T84 Dura's Trials (soft daily phase after the claims, before stage push) ---
+    def test_duras_runs_once_after_claims_before_stage_push(self):
+        result, calls = self._run_wrapper()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        duras = [c for c in calls if "afk_duras.py" in c]
+        self.assertEqual(duras, ["scripts/afk_duras.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_duras.py")
+        for claim in ("afk_claim_vision.py", "afk-daily-gift.py", "afk_dailies.py", "afk_hero_level.py"):
+            self.assertLess(self._index(calls, claim), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])               # screen normalized before
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("duras-last.txt", self.markers)
+
+    def test_duras_once_per_day_over_two_runs(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(sum("afk_duras.py" in c for c in calls), 1, calls)
+        self.assertEqual(sum("afk_claim_vision.py" in c for c in calls), 2, calls)   # both runs ran
+
+    def test_duras_not_cleared_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_DURAS_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("duras-last.txt", self.markers)
+
+    def test_duras_failure_is_soft(self):
+        for rc in ("1", "5"):
+            with self.subTest(rc=rc):
+                result, calls = self._run_wrapper(runs=2, FAKE_DURAS_RC=rc)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+                self.assertNotIn("duras-last.txt", self.markers)
+                self.assertIn(f"dura's trials rc={rc} (soft phase", result.stdout)
+                # no marker -> the next run on the same day tries again
+                self.assertEqual(sum("afk_duras.py" in c for c in calls), 2, calls)
+
+    def test_duras_switch_off(self):
+        result, calls = self._run_wrapper(AFK_DURAS="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_duras.py" in call for call in calls), calls)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertNotIn("duras-last.txt", self.markers)
 
 
 if __name__ == "__main__":

@@ -46,8 +46,8 @@ class Duras(unittest.TestCase):
                'du_after_fight_1': screen(13, 2, False),                 # defeat: token refunded
                'du_after_fight_2': screen(13, 2, True),                  # cleared -> Sweep appears
                'du_after_sweep_1': screen(13, 1, True), 'du_after_sweep_2': screen(13, 0, True)}
-        frames = ENTRY + ['UNKNOWN', 'SP_DEFEAT_CARD', 'UNKNOWN',       # fight 1: prep, defeat, back
-                          'UNKNOWN', 'SP_VICTORY_CARD', 'UNKNOWN',      # fight 2: prep, victory, back
+        frames = ENTRY + ['SP_PREP', 'SP_DEFEAT_CARD', 'UNKNOWN',       # fight 1: prep, defeat, back
+                          'SP_PREP', 'SP_VICTORY_CARD', 'UNKNOWN',      # fight 2: prep, victory, back
                           'UNKNOWN'] * 1 + ['UNKNOWN'] * 3              # sweeps: 2 x (sweep, after)
         dev, rc, marker = self.run_duras(frames, ocr)
         self.assertEqual(rc, 0, dev.out.getvalue())
@@ -58,7 +58,7 @@ class Duras(unittest.TestCase):
     def test_first_clear_fails_bounded_tokens_stay(self):
         ocr = {'du_entry': screen(14, 3, False), **{f'du_after_fight_{i}': screen(14, 3, False)
                                                      for i in (1, 2, 3)}}
-        frames = ENTRY + ['UNKNOWN', 'SP_DEFEAT_CARD', 'UNKNOWN'] * du.MAX_FIGHTS
+        frames = ENTRY + ['SP_PREP', 'SP_DEFEAT_CARD', 'UNKNOWN'] * du.MAX_FIGHTS
         dev, rc, marker = self.run_duras(frames, ocr)
         self.assertEqual(rc, 4)
         # only the fights, no sweep (SWEEP_BTN shares the Challenge spot -> count taps)
@@ -82,6 +82,45 @@ class Duras(unittest.TestCase):
         dev, rc, _ = self.run_duras(ENTRY + ['DIALOG'], {'du_entry': screen(12, 3, True)})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps[-2:], [du.SWEEP_BTN, v.CONFIRM_CANCEL])
+
+    # --- T84 hardening: stuck != 'not cleared' (the Daily wrapper marks the day on rc 4) ---
+    def test_no_result_card_is_stuck_not_done(self):
+        p = mock.patch.object(du, 'FIGHT_POLLS', 2)
+        p.start()
+        self.addCleanup(p.stop)
+        dev, rc, marker = self.run_duras(ENTRY + ['SP_PREP', 'UNKNOWN', 'UNKNOWN'],
+                                         {'du_entry': screen(13, 2, False)})
+        self.assertEqual(rc, 1)
+        self.assertIn('no result card after the fight', dev.out.getvalue())
+        self.assertNotIn(du.RESULT_CLOSE, dev.taps)
+        self.assertFalse(marker.exists())
+
+    def test_unknown_screen_after_fight_is_stuck_not_done(self):
+        dev, rc, marker = self.run_duras(ENTRY + ['SP_PREP', 'SP_VICTORY_CARD', 'UNKNOWN'],
+                                         {'du_entry': screen(13, 2, False),
+                                          'du_after_fight_1': ['Battle Modes']})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps[2:], [du.CHALLENGE_BTN, du.FIGHT_BTN, du.RESULT_CLOSE])
+        self.assertFalse(marker.exists())
+
+    def test_no_prep_screen_after_challenge_never_taps_fight(self):
+        dev, rc, marker = self.run_duras(ENTRY + ['UNKNOWN'], {'du_entry': screen(13, 2, False)})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps[2:], [du.CHALLENGE_BTN])
+        self.assertNotIn(du.FIGHT_BTN, dev.taps)
+        self.assertIn('team prep screen not recognised', dev.out.getvalue())
+        self.assertFalse(marker.exists())
+
+    def test_tap_lock_held_skips_without_taps(self):
+        import _bot_lock
+        p = mock.patch.object(_bot_lock, 'acquire', lambda *a, **k: False)
+        p.start()
+        self.addCleanup(p.stop)
+        dev, rc, marker = self.run_duras([], {})
+        self.assertEqual(rc, 7)
+        self.assertEqual(dev.taps, [])
+        self.assertIn('SKIP: tap lock held', dev.out.getvalue())
+        self.assertFalse(marker.exists())
 
     def test_dry_run_reads_only(self):
         dev, rc, _ = self.run_duras(ENTRY, {'du_entry': screen(12, 6, True)}, '--dry-run')

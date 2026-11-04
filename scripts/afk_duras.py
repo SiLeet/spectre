@@ -11,18 +11,21 @@ drops 2-class essence. Flow:
     exactly 1 fight: Challenge -> Battle -> result card; defeat = refund ->
     bounded retry (MAX_FIGHTS)
   then SWEEP the highest floor until the token counter 'N/6' reads 0
-  marker .spectre/duras-last.txt after a clean finish
+  marker .spectre/duras-last.txt after a clean finish (the Daily wrapper
+  scripts/afk-bot-watch.sh owns the day gate and writes the same UTC date on
+  rc 0/4; this write only lets a direct run count for the day too)
 
 Non-blind: every step re-reads the screen and stops on anything that is not
-the Dura's screen; a confirm/purchase dialog is always CANCELLED (tokens are
+the Dura's screen (or, before the fight tap, the team prep screen); a confirm/purchase dialog is always CANCELLED (tokens are
 never bought). Navigation is not verified live yet: every coordinate and OCR
-word below carries a LIVE: marker for Hermes to correct. Not wired into
-watch/night yet.
+word below carries a LIVE: marker for Hermes to correct (constants only).
+Wired into the scheduled Daily run of scripts/afk-bot-watch.sh (T84, soft
+phase, AFK_DURAS=0 switches it off); not part of afk-night.sh.
 
 Usage: python scripts/afk_duras.py [--dry-run] [--min-idle S]
 Exit codes: 0 done (tokens 0, or none left), 1 stuck / unknown screen / sweep
 stopped, 4 first clear not achieved or Challenge answered by a dialog (tokens
-stay), 5 skipped (PC in use).
+stay), 5 skipped (PC in use), 7 skipped (tap lock held by another run).
 """
 from __future__ import annotations
 
@@ -34,12 +37,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
 import afk_claim_vision as v  # noqa: E402
 import afk_stage_push as sp  # noqa: E402  (classify_battle for the result card)
 
 DURAS_CARD = (960, 760)        # LIVE: Dura's Trials card in the Battle Modes menu
 CHALLENGE_BTN = (1500, 980)    # LIVE: 'Challenge' on the highest (uncleared) floor
 FIGHT_BTN = (1280, 1010)       # LIVE: 'Battle' on the team prep screen (same spot as AFK prep)
+PREP_GATE = True               # LIVE: tap FIGHT_BTN only when sp.classify_battle reads PREP
+                               # (green Battle button at sp.BATTLE_BTN); False = v1 (no gate)
 SWEEP_BTN = (1500, 980)        # LIVE: 'Sweep' on a cleared floor (replaces Challenge)
 RESULT_CLOSE = (960, 540)      # LIVE: closes the result / sweep reward card (card centre)
 DURAS_WORD = 'dura'            # LIVE: OCR word that proves the Dura's screen
@@ -100,15 +106,23 @@ def enter() -> list[str] | None:
     return lines
 
 
-def first_clear(floor: int | None) -> list[str] | None:
+def first_clear(floor: int | None) -> list[str] | int:
     """One fight on the uncleared highest floor; a defeat refunds the token,
-    so retry up to MAX_FIGHTS. Returns the Dura's screen lines afterwards."""
+    so retry up to MAX_FIGHTS. Returns the Dura's screen lines afterwards, or
+    the exit code: 4 = not cleared / dialog (tokens stay, day is done), 1 =
+    stuck (no result card / unknown screen) - the Daily wrapper marks the day
+    on 4, so a stuck run must not report 4 (T84)."""
     for attempt in range(1, MAX_FIGHTS + 1):
         print(f'    floor {floor}: first clear, fight {attempt}/{MAX_FIGHTS}', flush=True)
         v.tap(CHALLENGE_BTN, 3.0)
         img = v.shot(f'du_prep_{attempt}')
         if cancel_if_dialog(img, 'challenge'):
-            return None
+            return 4
+        if PREP_GATE and sp.classify_battle(img) != 'PREP':
+            # T84: the Daily run taps this unattended - never tap FIGHT_BTN blind
+            print('    ERROR: team prep screen not recognised after Challenge (LIVE: CHALLENGE_BTN '
+                  '/ prep probe) - not fighting', flush=True)
+            return 1
         v.tap(FIGHT_BTN, 3.0)
         result = None
         for n in range(FIGHT_POLLS):
@@ -121,18 +135,18 @@ def first_clear(floor: int | None) -> list[str] | None:
             time.sleep(3)
         if result is None:
             print('    ERROR: no result card after the fight', flush=True)
-            return None
+            return 1
         v.tap(RESULT_CLOSE, 2.5)
         _, lines = read(f'du_after_fight_{attempt}')
         if not is_duras(lines):
             print("    ERROR: not back on the Dura's screen after the fight", flush=True)
-            return None
+            return 1
         if result == 'RESULT':
             print(f'    floor {floor}: cleared', flush=True)
             return lines
         print(f'    floor {floor}: defeat (token refunded)', flush=True)
     print(f'    floor {floor}: not cleared in {MAX_FIGHTS} fights — stopping (tokens stay)', flush=True)
-    return None
+    return 4
 
 
 def sweep_all(lines: list[str]) -> bool:
@@ -178,6 +192,11 @@ def main(argv: list[str] | None = None) -> int:
         if idle is not None and idle < args.min_idle:
             print(f'    SKIP: PC is in use (idle {idle:.0f}s)', flush=True)
             return 5
+    if not _bot_lock.acquire():
+        print(f'    SKIP: tap lock held ({_bot_lock.describe()}) — '
+              'another bot run is tapping (exit 7)', flush=True)
+        return 7
+    _bot_lock.release_at_exit()
     lines = enter()
     if lines is None:
         return 1
@@ -190,8 +209,8 @@ def main(argv: list[str] | None = None) -> int:
             print('    no tokens left today', flush=True)
             return 0
         lines = first_clear(floor)
-        if lines is None:
-            return 4
+        if isinstance(lines, int):
+            return lines
     if not sweep_all(lines):
         return 1
     try:

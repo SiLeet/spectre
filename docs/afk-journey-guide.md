@@ -151,6 +151,7 @@ last successful run.
 | Normalizer `afk_normalize.py` | – | ✓ before arena, dream realm, stage push | – | none | – |
 | Arena `afk_arena.py --fights 1` ×4 | – | ✓ | – | `--min-idle` | `arena-last.txt` (attempt 1 exit 0) |
 | Dream Realm `afk_dream_realm.py --fights 7` | – | ✓ | – | `--min-idle` | `dream-last.txt` (exit 0) |
+| Dura's Trials `afk_duras.py` (T84, `AFK_DURAS=0` = off) | – | ✓ before stage push (soft) | – | `--min-idle` | `duras-last.txt` (exit 0 or 4) |
 | Stage push `afk_stage_push.py --auto` | 135 min | 6 min | 6 min | Night/Daily: `--min-idle`; Progress: none | Daily: `stage-last.txt` (exit 0); Night/Progress: none |
 
 Daily and Progress only continue past the chest claim when it exits 0 (claim

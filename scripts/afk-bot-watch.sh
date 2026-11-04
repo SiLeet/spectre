@@ -273,6 +273,24 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         *) echo "afk-bot-watch: hero leveling rc=$lv_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
+    # T84: Dura's Trials once per day (first clear + sweep all tokens; never
+    # buys tokens). Soft phase like leveling: rc 0 done / 4 first clear not
+    # achieved -> done for today; any other rc (1 stuck, 5 PC in use, 7 lock)
+    # is logged, no marker, chain continues, Daily exit code unchanged.
+    # AFK_DURAS=0 switches it off.
+    if [ "${AFK_DURAS:-1}" = "1" ] && \
+       [ "$(cat "$OUT_DIR/duras-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "dura's trials"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) dura's trials"
+        "$PY" scripts/afk_duras.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      du_rc="${PIPESTATUS[0]}"
+      case "$du_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/duras-last.txt" ;;
+        *) echo "afk-bot-watch: dura's trials rc=$du_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     normalize_or_abort "stage push"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \

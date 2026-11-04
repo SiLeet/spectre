@@ -976,9 +976,18 @@ def classify(img: Image.Image) -> str:
     # livecheck/after_norm, shots-40348/dg_cam_*); <=36 on every lb<100
     # non-world frame (hall_test2, shots-readonly-1226xx; r1_1a_popup family 1).
     # lbar>172 stays an unconditional POPUP (shots-60424/r1_1a_popup).
+    # T99: ...except under a bright HUD bar — a drifting white world cloud on
+    # CLAIM lit lbar 178-235 on plain world frames (hud 106-115: shots-42960/
+    # norm_pop3 = hermes world_banner_frame, shots-80396/norm_2..final,
+    # shots-77496/dl_menu_*, shots-44432/dg_*) -> BACK opened the exit confirm.
+    # LIVE (1280 frames incl. trash): every lbar>172 POPUP that is not a world
+    # reads hud <= 42 (exit confirm shots-42960/norm_2, login popups r1_1a_popup
+    # 41228/72752/20856; chest popups <= 3; 60424 -27); the Battle Modes
+    # fade-in shots-73788/bm_1 reads 87 and stays POPUP. Cut 95.
     t = avg(img, AFK_BAR, r=4)
-    hud = min(t[1], t[2]) - t[0] > 80
-    if lb < 100 and (lbar > 172 or (lb - lg < -8 and not hud)):
+    tell = min(t[1], t[2]) - t[0]
+    hud = tell > 80
+    if lb < 100 and ((lbar > 172 and tell <= 95) or (lb - lg < -8 and not hud)):
         return 'POPUP'
     # WORLD also needs that tell: the back-arrow probes alone said WORLD on 110
     # non-world frames — battles, Battle Modes, a store bundle popup, a 'Use

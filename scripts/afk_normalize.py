@@ -13,6 +13,10 @@ POPUP, a bounded escape ladder runs — login resolver -> BACK -> empty ground
 is always cancelled, the ground tap is skipped when OCR shows purchase words.
 It ends with one clear marker line: 'ESCAPE: recovered ...' or 'ESCAPE: gave up ...'.
 
+Dream Realm result screens (T93: Victory Rewards overlay / BATTLE ENDED card,
+both UNKNOWN) get dr.CARD_CLOSE instead of BACK (BACK on the card hits Replay),
+at most DR_END_TAPS times, one extra step each; never BACK there.
+
 Exit: 0 world/panel reached, 1 still unknown after the cap.
 """
 import sys
@@ -34,6 +38,12 @@ PURCHASE_WORDS = ('purchase', 'buy', 'recharge', 'top up', 'top-up', 'diamond', 
 # LIVE: button extent measured on shots-66808/dr_f1_prewait1 + shots-80660/norm_0
 # ((535,1000) reads (199,188,187) on both); (535,1000) not yet tapped live.
 DR_PREP_BACK = (535, 1000)
+# T93: a Dream Realm fight left on its result screens (Victory Rewards overlay
+# over the BATTLE ENDED card, both UNKNOWN). BACK there is unsafe: on the
+# overlay it only reveals the card (shots-69680/norm_0 -> norm_1), on the card
+# (474,1010) hit Replay and restarted the fight (norm_1 -> norm_2 'Battle
+# Begins', norm_final 'Replaying...'). Each gets dr.CARD_CLOSE instead.
+DR_END_TAPS = 2         # overlay + card; one extra step each
 
 
 def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
@@ -78,17 +88,25 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
 
 
 def main() -> int:
-    popups, steps, i = 0, 4, 0
+    import afk_dream_realm as dr    # lazy: afk_dream_realm imports this module
+    popups, steps, i, ends = 0, 4, 0, 0
     while i < steps:
-        st = v.classify(v.shot(f'norm_{i}'))
+        img = v.shot(f'norm_{i}')
+        st = v.classify(img)
         print(f'    normalize {i}: {st}', flush=True)
         if st in ('WORLD', 'PANEL'):
             return 0
         popups = popups + 1 if st == 'POPUP' else 0
-        if st == 'DR_PREP' and steps == 4:
+        if st == 'DR_PREP' and steps == 4 + ends:   # T93 result taps add steps too
             steps += 1                  # T91: once — the prep BACK gets its own step
             print('    normalize: Dream Realm prep -> BACK', flush=True)
             v.tap(DR_PREP_BACK, 2.5)    # boss page loads behind it (norm_1 was mid-load)
+        elif st == 'UNKNOWN' and (dr.is_victory_rewards(img) or dr.is_battle_ended(img)):
+            if ends == DR_END_TAPS:
+                break                   # never BACK here (Replay); norm_final decides
+            ends, steps = ends + 1, steps + 1
+            print('    normalize: Dream Realm result screen -> tap to close', flush=True)
+            v.tap(dr.CARD_CLOSE, 2.5)
         elif st == 'POPUP' and v.resolve_startup_popup(f'norm_pop{i}'):
             time.sleep(1.0)
         else:

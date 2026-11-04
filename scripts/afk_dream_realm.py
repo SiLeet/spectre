@@ -12,8 +12,10 @@ daily chances; every fight consumes one chance. Live-verified sequence
      misread the running fight as a defeat.
   5. End state: a bright "BATTLE ENDED" results card ("Tap to close" at the
      bottom centre, orange top banner). Closing it returns to the boss page.
-     A dim Victory-Rewards popup and/or a full-screen hero card may also
-     appear and must be dismissed.
+     A full-screen hero card may also appear and must be dismissed. T93:
+     closing the card can open the letterboxed tap-to-close 'Victory
+     Rewards' overlay (is_victory_rewards) -> CARD_CLOSE (<= VR_MAX_TAPS)
+     -> card again / boss page.
 
 State detection uses colour probes only (no OCR; uiautomator fails on this
 UI). Unknown states never trigger blind taps: while a fight may be running
@@ -66,6 +68,11 @@ BOSS_BAR_LEFT = (700, 1000)      # T91: boss bar spans x 595-1655 -> green here;
                                  # _green's G>130 missed it by 0 -> boss read as prep
 CARD_CLOSE = (960, 1035)         # "Tap to close" strip on the BATTLE ENDED card
 CARD_BANNER = (960, 90)          # orange banner of the BATTLE ENDED card
+CARD_BANNER_WIDE = ((600, 60), (1500, 60))   # T93: banner spans the card width.
+                                 # LIVE: card shots-72816/dr_f1_w8 + shots-69680/norm_1
+                                 # (202..226, 120..132, 3..48); the main menu matched
+                                 # the 3 old probes (Honor Duel tile at (960,90)) and
+                                 # reads cream (236,231,220) here (shots-58752/norm_1)
 CORNER = (200, 270)              # ambient-glow probe: dim overlays keep a
                                  # faint glow (58-69), black loading frames
                                  # read ~0 (T38 #2, calibrated on real shots)
@@ -80,6 +87,19 @@ HERO_PROBE2 = (1450, 850)        # second hero-card probe (T38 #5: the PANEL
 HERO_DISMISS = (100, 100)        # verified live: corner tap closes the hero card
 SPEED_X2 = (1092, 788)           # 2x speed toggle in a running fight (b69fbc4)
 DIM_DISMISS = (480, 300)
+# T93 'Victory Rewards' overlay (tap-to-close, over the dimmed BATTLE ENDED
+# card; opens on the card's close tap). LIVE: shots-72816/dr_f1_resolve_0,
+# dr_post1_0, dr_post1_fight0_w0..27, shots-69680/norm_0 (all 31 identical):
+# letterbox L<=5.8 (best other frame 17.2, AFK chest popups), centre
+# (113,77,41) L 83.7, title band >=200 share 0.156-0.173 (0.0 on every
+# other frame with dark sides). CARD_CLOSE (960,1035) reads dark (49,49,45)
+# on the overlay, under 'Tap to close' (1066,1013), with the card's own close
+# strip beneath; not yet tapped live on the overlay (only BACK seen closing
+# it: shots-69680/norm_0 -> norm_1).
+VR_SIDES = ((60, 540), (1860, 540), (60, 200), (1860, 900))
+VR_CENTRE = (960, 540)
+VR_TITLE = (780, 95, 1360, 175)  # 'Victory Rewards' title box
+VR_MAX_TAPS = 2                  # per resolve_end_states call
 
 POLL = 5.0
 FIGHT_WAIT = 150.0               # same as the --wait-fight default
@@ -107,11 +127,24 @@ def _budget(n: int = 1) -> bool:
 
 
 def is_battle_ended(img) -> bool:
-    """Bright results card with orange banner on a dark backdrop."""
-    b = v.avg(img, CARD_BANNER)
+    """Bright results card with a full-width orange banner on a dark backdrop."""
     close = v.avg(img, CARD_CLOSE)
     corner = v.avg(img, CORNER)
-    return b[0] > 160 and b[2] < 110 and v.lum(close) > 200 and v.lum(corner) < 90
+    return (all(b[0] > 160 and b[2] < 110
+                for b in (v.avg(img, p) for p in (CARD_BANNER, *CARD_BANNER_WIDE)))
+            and v.lum(close) > 200 and v.lum(corner) < 90)
+
+
+def is_victory_rewards(img) -> bool:
+    """T93: black letterbox + warm dim centre + bright title band. Old
+    is_fight read it as a running fight (all its probes dark: centre
+    (48,49,45), prep spot L 49, (960,540) L 84 so not uniform-dark) and
+    waited 150 s on it."""
+    c = v.avg(img, VR_CENTRE)
+    h = img.crop(VR_TITLE).convert('L').histogram()
+    return (all(v.lum(v.avg(img, p)) < 12 for p in VR_SIDES)
+            and 50 < v.lum(c) < 130 and c[0] - c[2] > 40
+            and sum(h[200:]) / sum(h) > 0.08)
 
 
 def is_hero_card(img) -> bool:
@@ -243,7 +276,7 @@ def is_fight(img) -> bool:
     if v.lum(centre) > 200 or _green(centre) or v.lum(v.avg(img, BATTLE_BTN_PREP)) >= 120:
         return False
     return not (is_uniform_dark(img) or is_ready(img) or is_battle_ended(img)
-                or is_hero_card(img) or _dim_probes(img))
+                or is_victory_rewards(img) or is_hero_card(img) or _dim_probes(img))
 
 
 def is_world(img) -> bool:
@@ -265,16 +298,25 @@ def enter_dream(tag: str) -> bool:
 
 
 def resolve_end_states(img, tag: str):
-    """Dismiss any sequence of battle-ended card / dim popup / hero card.
+    """Dismiss any sequence of battle-ended card / Victory Rewards overlay /
+    dim popup / hero card.
 
     Returns the final screenshot once none of those states remain, or None
     when the dismiss budget is exhausted or a popup refuses to close.
     """
+    vr = 0
     for i in range(8):
         if is_battle_ended(img):
             if not _budget():
                 return None
             print(f'    {tag}: battle ended card -> tap to close', flush=True)
+            v.tap(CARD_CLOSE, 3.0)
+        elif is_victory_rewards(img):
+            if vr >= VR_MAX_TAPS or not _budget():
+                print(f'    {tag}: Victory Rewards overlay persists', flush=True)
+                return None
+            vr += 1
+            print(f'    {tag}: Victory Rewards overlay -> tap to close', flush=True)
             v.tap(CARD_CLOSE, 3.0)
         elif dim_confirmed(f'{tag}_d{i}', img):
             if not _budget():
@@ -296,7 +338,7 @@ def resolve_end_states(img, tag: str):
             return img
         img = v.shot(f'{tag}_{i}')
     # the 8th action may have closed the last card: judge that frame too
-    if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+    if is_battle_ended(img) or is_victory_rewards(img) or is_hero_card(img) or _dim_probes(img):
         return None   # still cycling end states after 8 rounds -> give up
     return img
 
@@ -314,7 +356,7 @@ def back_to_ready(tag: str, attempts: int = 10) -> bool:
         img = v.shot(f'{tag}_{i}')
         if is_ready(img):
             return True
-        if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+        if is_battle_ended(img) or is_victory_rewards(img) or is_hero_card(img) or _dim_probes(img):
             img = resolve_end_states(img, f'{tag}_end{i}')
             if img is None:
                 return False
@@ -359,7 +401,8 @@ def wait_for_fight_end(tag: str, max_wait: float):
     fought = rearmed = False
     img = v.shot(f'{tag}_w0')
     while time.time() < deadline:
-        if is_battle_ended(img) or is_hero_card(img) or dim_confirmed(f'{tag}_w{n}', img):
+        if (is_battle_ended(img) or is_victory_rewards(img) or is_hero_card(img)
+                or dim_confirmed(f'{tag}_w{n}', img)):
             return img
         if is_fight(img):
             fought, ready_run = True, 0
@@ -380,7 +423,7 @@ def wait_for_fight_end(tag: str, max_wait: float):
         time.sleep(POLL)
         n += 1
         img = v.shot(f'{tag}_w{n}')
-    if is_battle_ended(img) or is_hero_card(img) or _dim_probes(img):
+    if is_battle_ended(img) or is_victory_rewards(img) or is_hero_card(img) or _dim_probes(img):
         return img
     print(f'    {tag}: fight did not end within {max_wait:.0f}s', flush=True)
     return None

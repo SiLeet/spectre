@@ -65,6 +65,7 @@ case "$script" in
   *afk_dream_realm.py) exit "${FAKE_DREAM_RC:-0}" ;;
   *afk_stage_push.py) exit "${FAKE_STAGE_RC:-0}" ;;
   *afk_duras.py) exit "${FAKE_DURAS_RC:-0}" ;;
+  *afk_homestead.py) exit "${FAKE_HOMESTEAD_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -202,6 +203,37 @@ esac
         self.assertFalse(any("afk_duras.py" in call for call in calls), calls)
         self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
         self.assertNotIn("duras-last.txt", self.markers)
+
+    # --- T102 homestead build (soft daily phase after dura's, before stage push) ---
+    def test_homestead_runs_once_after_duras_before_stage_push(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        hs = [c for c in calls if "afk_homestead.py" in c]
+        self.assertEqual(hs, ["scripts/afk_homestead.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_homestead.py")
+        self.assertLess(self._index(calls, "afk_duras.py"), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("homestead-last.txt", self.markers)
+
+    def test_homestead_nothing_to_do_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_HOMESTEAD_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("homestead-last.txt", self.markers)
+
+    def test_homestead_failure_is_soft(self):
+        result, calls = self._run_wrapper(runs=2, FAKE_HOMESTEAD_RC="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertNotIn("homestead-last.txt", self.markers)
+        self.assertIn("homestead build rc=1 (soft phase", result.stdout)
+        self.assertEqual(sum("afk_homestead.py" in c for c in calls), 2, calls)
+
+    def test_homestead_switch_off(self):
+        result, calls = self._run_wrapper(AFK_HOMESTEAD="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_homestead.py" in call for call in calls), calls)
+        self.assertNotIn("homestead-last.txt", self.markers)
 
 
 if __name__ == "__main__":

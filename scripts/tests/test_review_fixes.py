@@ -235,6 +235,30 @@ class F7WorldNeedsChip(unittest.TestCase):
         self.assertEqual(v.classify(img), 'UNKNOWN')
 
 
+class T88NewPanelPalette(unittest.TestCase):
+    """The re-skinned AFK Rewards panel is PANEL; cream lookalikes are not."""
+
+    def test_real_panel(self):
+        img = real('shots-27712/r1_0_initial.png')
+        self.assertEqual(v.classify(img), 'PANEL')
+        self.assertEqual(sp.classify_battle(img), 'AFK_PANEL')   # stage push lost it too
+        self.assertEqual(v.classify(real('shots-65688/r1_1b_recover.png')), 'PANEL')
+
+    def test_real_popup_over_new_panel(self):
+        # rule order: the dimmed AFK Time/Claim popup over the new panel stays POPUP
+        self.assertEqual(v.classify(real('shots-65688/r1_1_panel.png')), 'POPUP')
+
+    def test_real_cream_lookalikes(self):
+        for rel in ('shots-13228/hl_scan_850.png', 'shots-13228/hl_daily_pre0_w3.png'):
+            with self.subTest(rel):
+                self.assertNotEqual(v.classify(real(rel)), 'PANEL')
+                self.assertNotEqual(sp.classify_battle(real(rel)), 'AFK_PANEL')
+
+    def test_synthetic(self):
+        self.assertEqual(sp.classify_battle(frame('PANEL_NEW')), 'AFK_PANEL')
+        self.assertNotEqual(sp.classify_battle(frame('CREAM_BACK')), 'AFK_PANEL')
+
+
 
 class F8DailiesImportable(unittest.TestCase):
     def test_run_dailies_without_main_globals(self):

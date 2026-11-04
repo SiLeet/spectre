@@ -692,6 +692,23 @@ def tick_delta(tick: int, last: int) -> int:
     return (tick - last) & 0xFFFFFFFF
 
 
+def is_afk_panel(img: Image.Image) -> bool:
+    """Re-skinned AFK Rewards panel (no orange chip at (1390,704) any more).
+
+    LIVE 2026-11-04 (shots-27712/r1_0_initial): back (225,219,210) on cream
+    (253,250,244). Light back + cream also sit on hero hall/dailies
+    (shots-13228/hl_*), so the green 'Battle' bar (107,157,97) and the green
+    'AFK Rewards' badge (79,148,75) must both be lit; lb>190 excludes POPUP.
+    Badge is ratio-only: lum 119 sits near any floor, but G-max 69 vs best
+    non-panel 30 (all .spectre frames). shortcut: probe sits in the English
+    title's green tail; a shorter title fails safe (UNKNOWN) -> re-probe then."""
+    gmax = lambda c: c[1] - max(c[0], c[2])
+    bar = lambda c: gmax(c) > 35 and lum(c) > 110
+    return (lum(avg(img, BACK)) > 190 and lum(avg(img, (BACK[0] + 90, BACK[1]))) > 230
+            and bar(avg(img, (800, 893))) and bar(avg(img, (1300, 893)))
+            and gmax(avg(img, (712, 207), r=4)) > 35)
+
+
 def classify(img: Image.Image) -> str:
     """Classify the screen. Thresholds use luminance/contrast, not absolute RGB,
     because AFK Journey tints the world with a day/night cycle (a night homestead
@@ -703,6 +720,8 @@ def classify(img: Image.Image) -> str:
     lb, lg, lbar = lum(back), lum(bg), lum(bar)
 
     if close_to(back, (184, 176, 174), 22) and lg > 190:
+        return 'PANEL'
+    if is_afk_panel(img):
         return 'PANEL'
     # POPUP before WORLD: a dimmed popup used to satisfy the WORLD predicate
     # (|lb-lg| < 15 also matched lb-lg in (-15,-8]), which then tapped the world

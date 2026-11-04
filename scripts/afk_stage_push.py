@@ -64,6 +64,10 @@ def classify_battle(img) -> str:
     claim = v.avg(img, (1390, 704))
     if claim[0] > 200 and claim[1] > 150 and claim[2] < 110:
         return 'AFK_PANEL'
+    # T88: the re-skinned panel lost that chip (UNKNOWN -> push refused);
+    # (960,910) still lands on its green Battle bar (107,157,96)
+    if v.is_afk_panel(img):
+        return 'AFK_PANEL'
     # Cross-check with the calibrated vision classifier BEFORE any brightness
     # heuristic: the open world reads as a bright centre (card ~121-200) or a
     # dark uniform frame depending on camera/time-of-day, which made pushes

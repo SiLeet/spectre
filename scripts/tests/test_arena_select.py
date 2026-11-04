@@ -92,6 +92,18 @@ class RealFrames(unittest.TestCase):
         self.assertEqual(ar.advance_to_fight('arena_f1'), 'PREP')
         self.assertEqual(dev.taps, [ar.SWORD_LEFT, ar.ARENA_BATTLE])
 
+    def test_advance_presses_challenge_on_the_detail_view(self):
+        # live f1_step0..5: select <-> detail toggled until STUCK; the detail
+        # view now gets its own Challenge! bar (green on every detail frame)
+        dev = FakeDevice(self, [real(SELECT[1]), real(DETAIL[0]), 'ARENA_PREP'], also=(ar,))
+        self.assertEqual(ar.advance_to_fight('arena_f1'), 'PREP')
+        self.assertEqual(dev.taps, [ar.SWORD_LEFT, ar.DETAIL_CHALLENGE, ar.ARENA_BATTLE])
+        for rel in DETAIL:
+            c = ar.avg(real(rel), ar.DETAIL_CHALLENGE, r=4)
+            self.assertGreater(c[1] - max(c[0], c[2]), 35, rel)
+        c = ar.avg(real(SELECT[0]), ar.DETAIL_CHALLENGE, r=4)
+        self.assertLess(c[1] - max(c[0], c[2]), 0)
+
     def test_exit_from_select(self):
         # old: 'unrecognised screen', no tap
         dev = FakeDevice(self, [real(SELECT[2]), real(LOBBY[0]), 'BATTLE_MODES', 'WORLD'],

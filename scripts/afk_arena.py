@@ -83,6 +83,11 @@ SELECT_PLATES = ((760, 1000), (1300, 1000))   # back plate, Refresh plate (probe
 # AFK-stage DEFEAT card (trash/shots-6048/rw_0, 77760/sp_auto_25: cream stats
 # plate L 250 + green Retry G-max 55) matched.
 DETAIL_GAP = (720, 1000)
+# Detail view's green 'Challenge!' bar (x ~995-1385), left of the label. LIVE:
+# f1_step1|3|5 G-max 55 here (label centre (1190,1000) only 15: white text);
+# select frames read floor (-33). The old card tap opened this view and the next
+# card tap closed it again (f1_step0..5) — its Challenge! was never pressed.
+DETAIL_CHALLENGE = (1050, 1000)
 
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
@@ -219,6 +224,8 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
             return 'PREP'
         elif is_select(img):
             tap(SWORD_LEFT, 2.5)            # T95: the sword button starts the challenge
+        elif is_detail(img):
+            tap(DETAIL_CHALLENGE, 3.0)      # T95: detail view (sword or card tap) -> its Challenge!
         else:
             tap(OPPONENT_LEFT, 2.5)         # old layout; closes a T95 detail view (f1_step1 -> 2)
     return 'STUCK'

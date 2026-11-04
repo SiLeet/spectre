@@ -682,22 +682,33 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
     uncounted BACK on a verified Battle Modes menu; black / UI-less frames (and
     any unknown frame after one of its own taps or waits) are waited out, a
     UI-less frame still up after a wait gets ONE neutral tap (counted). Returns (state, name of the last shot); the
-    name is unchanged when the frame was none of these (nothing done)."""
+    name is unchanged when the frame was none of these (nothing done).
+    T96: arena leftovers (select / detail -> SELECT_ARROW, lobby -> LOBBY_BACK)
+    get one counted tap per screen kind; a repeat is waited out, never re-tapped
+    ((793,1000) on the lobby is its Challenge bar, as in afk_normalize)."""
     import afk_dream_realm as dr    # lazy: both import this module
     import afk_normalize
+    import afk_arena as ar          # lazy: afk_arena imports this module
     taps = waits = 0
     prev_ui_less = ui_tapped = modes = False
+    arena: set[str] = set()
     while True:
         st = classify(img)
         if st in ('WORLD', 'PANEL'):
             return st, name
         ui_less = st == 'UNKNOWN' and is_ui_less(img)
+        kind = ('select' if ar.is_select(img) else 'detail' if ar.is_detail(img)
+                else 'lobby' if ar.is_lobby(img) else '')
         if dr.is_battle_ended(img) or dr.is_victory_rewards(img):
             what, xy = 'Dream Realm result screen -> tap to close', dr.CARD_CLOSE
         elif is_dr_boss(img):
             what, xy = f'Dream Realm boss page ({st}) -> back plate', DR_BOSS_BACK
         elif st == 'DR_PREP':
             what, xy = 'Dream Realm prep -> BACK', afk_normalize.DR_PREP_BACK
+        elif kind and kind not in arena:
+            arena.add(kind)
+            what, xy = f'arena {kind} ({st}) -> back', (ar.LOBBY_BACK if kind == 'lobby'
+                                                        else ar.SELECT_ARROW)
         elif is_battle_modes(img):
             if modes:
                 return st, name         # the one BACK did not leave it
@@ -710,7 +721,8 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
         elif ui_less and prev_ui_less and not ui_tapped and not ocr_lines(name):
             ui_tapped = True
             what, xy = 'UI-less transition persists -> one neutral tap', TRANSITION_TAP
-        elif (st == 'UNKNOWN' and (taps or waits or modes or ui_less or dr.is_uniform_dark(img))
+        elif (((st == 'UNKNOWN' and (taps or waits or modes or ui_less or dr.is_uniform_dark(img)))
+               or kind)             # arena repeat (pressed lobby reads POPUP): its tap is done
               and waits < RECOVER_WAITS):
             waits, prev_ui_less = waits + 1, ui_less
             print(f'    recovery: transition, waiting ({waits}/{RECOVER_WAITS})', flush=True)
@@ -968,7 +980,7 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
     state = classify(img)
     print(f'    initial state: {state}', flush=True)
     if state not in ('WORLD', 'PANEL'):
-        # T94: Dream Realm leftovers get <= RECOVER_BUDGET state-proven taps;
+        # T94/T96: Dream Realm + arena leftovers get <= RECOVER_BUDGET state-proven taps;
         # anything else is untouched and handled below as before
         state, now = recover_leftover(tag, img, last)
         if now != last:

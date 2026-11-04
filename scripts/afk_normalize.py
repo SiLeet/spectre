@@ -24,6 +24,13 @@ made, transitions waited out instead of BACK. It ends WORLD/PANEL -> 0; POPUP ->
 normalize's own pass goes on (login resolver / escape ladder) but a Dream
 leftover after it -> 1; anything else -> 1.
 
+T95: an arena leftover (select screen / lobby UNKNOWN, detail view POPUP; the lobby with
+its back arrow mid-press reads POPUP and its 'Daily Rewards' widget fooled
+the login resolver into LOGIN_CLAIM on Battle Modes, shots-15028|17920/norm_pop1)
+gets its own back button, once per screen (select / detail / lobby; a stale
+repeat must not re-tap: (793,1000) on the lobby is its Challenge bar), one
+extra step each.
+
 Exit: 0 world/panel reached, 1 still unknown after the cap.
 """
 import sys
@@ -96,7 +103,8 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
 
 def main() -> int:
     import afk_dream_realm as dr    # lazy: afk_dream_realm imports this module
-    popups, steps, i, ends, rec = 0, 4, 0, 0, False
+    import afk_arena as ar          # lazy, like dr: only normalize needs the arena tells
+    popups, steps, i, ends, rec, arena = 0, 4, 0, 0, False, set()
     while i < steps:
         img = v.shot(f'norm_{i}')
         st = v.classify(img)
@@ -122,7 +130,7 @@ def main() -> int:
                 return 1
             i += 1                      # login/promo popup: normalize's own pass resolves it
             continue
-        if st == 'DR_PREP' and steps == 4 + ends:   # T93 result taps add steps too
+        if st == 'DR_PREP' and steps == 4 + ends + len(arena):   # T93/T95 taps add steps too
             steps += 1                  # T91: once — the prep BACK gets its own step
             print('    normalize: Dream Realm prep -> BACK', flush=True)
             v.tap(DR_PREP_BACK, 2.5)    # boss page loads behind it (norm_1 was mid-load)
@@ -132,6 +140,16 @@ def main() -> int:
             ends, steps = ends + 1, steps + 1
             print('    normalize: Dream Realm result screen -> tap to close', flush=True)
             v.tap(dr.CARD_CLOSE, 2.5)
+        elif (kind := 'select' if ar.is_select(img) else 'detail' if ar.is_detail(img)
+              else 'lobby' if ar.is_lobby(img) else ''):
+            if kind in arena:           # still mid-transition: wait, never the resolver/BACK
+                print(f'    normalize: arena {kind} after its back tap — waiting', flush=True)
+                time.sleep(2.5)
+            else:
+                arena.add(kind)
+                steps += 1              # T95: counts toward the T94 budget
+                print(f'    normalize: arena {kind} -> back', flush=True)
+                v.tap(ar.LOBBY_BACK if kind == 'lobby' else ar.SELECT_ARROW, 2.5)
         elif st == 'POPUP' and v.resolve_startup_popup(f'norm_pop{i}'):
             time.sleep(1.0)
         else:

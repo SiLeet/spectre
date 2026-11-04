@@ -27,7 +27,7 @@ def bash_path(path) -> str:
 
 @unittest.skipUnless(BASH, 'bash not available')
 class EnsureWiring(unittest.TestCase):
-    def run_wrapper(self, script: str, *args: str, game_up=False, **env_over):
+    def run_wrapper(self, script: str, *args: str, game_up=False, extra_files=None, **env_over):
         with tempfile.TemporaryDirectory(prefix='afk-ensure-wiring-') as temp:
             root = Path(temp)
             for d in ('scripts', 'examples', 'target/release', 'bin'):
@@ -59,6 +59,7 @@ class EnsureWiring(unittest.TestCase):
                     'if [ "${1:-}" = "-" ]; then echo 0x724DD0000000; exit 0; fi\n'
                     'exit 0\n',
             }
+            files.update(extra_files or {})
             for rel, body in files.items():
                 p = root / rel
                 p.write_text('#!/usr/bin/env bash\n' + body, encoding='utf-8', newline='\n')
@@ -109,6 +110,23 @@ class EnsureWiring(unittest.TestCase):
     def test_switch_off(self):
         result, ensure = self.run_wrapper('afk-night.sh', AFK_DEVICE_ENSURE='0')
         self.assertEqual((result.returncode, ensure), (2, []))
+
+    # --- T70 (review gap): the timeout VALUE must be passed, not just 'timeout' ---
+    HANG = {'scripts/device-ensure.sh': 'sleep 3600\n',             # ensure never answers
+            'bin/timeout': 'printf \'timeout: %s\\n\' "$*" >> "$ENSURE_CALLS"\nexit 124\n'}
+
+    def test_ensure_timeout_value_is_pinned(self):
+        for script, args, tail in (('afk-night.sh', (), '--min-idle 180'),
+                                   ('afk-bot-watch.sh', ('--scheduled',), '--min-idle 180')):
+            with self.subTest(script):
+                result, calls = self.run_wrapper(script, *args, extra_files=self.HANG)
+                self.assertEqual(calls, [f'timeout: 600 bash scripts/device-ensure.sh {tail}'])
+                self.assertIn('WARN device-ensure rc=124', result.stdout)
+                self.assertEqual(result.returncode, 2)            # normal check still decides
+
+    def test_ensure_timeout_env_override(self):
+        result, calls = self.run_wrapper('afk-night.sh', extra_files=self.HANG, AFK_ENSURE_TIMEOUT='45')
+        self.assertEqual(calls, ['timeout: 45 bash scripts/device-ensure.sh --min-idle 180'])
 
     def test_manual_watch_run_forces(self):
         result, ensure = self.run_wrapper('afk-bot-watch.sh')

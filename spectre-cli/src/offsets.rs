@@ -38,24 +38,7 @@ pub fn run_offsets(args: OffsetsArgs) -> Result<()> {
         return Ok(());
     };
 
-    let candidates = [
-        format!("games/{game}/offsets.yaml"),
-        format!("games/{game}.yaml"),
-        format!("games/{game}.yml"),
-        format!("games/{game}"),
-        game.clone(),
-    ];
-    let path = candidates
-        .iter()
-        .find(|p| Path::new(p).is_file())
-        .cloned()
-        .ok_or_else(|| {
-            anyhow!(
-                "no offsets file for '{game}' (looked for {})",
-                candidates.join(", ")
-            )
-        })?;
-
+    let path = resolve_offsets_path(&game)?;
     let file = read_yaml_file(&path)?;
     let issues = validate(&file);
 
@@ -92,6 +75,28 @@ pub fn run_offsets(args: OffsetsArgs) -> Result<()> {
         bail!("{path}: {errors} validation error(s)");
     }
     Ok(())
+}
+
+/// games/<game>/offsets.yaml, games/<game>.yaml|.yml, games/<game>, or a
+/// plain path - shared by `offsets` and `read-batch`.
+pub(crate) fn resolve_offsets_path(game: &str) -> Result<String> {
+    let candidates = [
+        format!("games/{game}/offsets.yaml"),
+        format!("games/{game}.yaml"),
+        format!("games/{game}.yml"),
+        format!("games/{game}"),
+        game.to_owned(),
+    ];
+    candidates
+        .iter()
+        .find(|p| Path::new(p).is_file())
+        .cloned()
+        .ok_or_else(|| {
+            anyhow!(
+                "no offsets file for '{game}' (looked for {})",
+                candidates.join(", ")
+            )
+        })
 }
 
 fn print_table(path: &str, file: &YamlGameFile) {

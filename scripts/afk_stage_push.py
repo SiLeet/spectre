@@ -101,7 +101,11 @@ def classify_battle(img) -> str:
     back = v.lum(v.avg(img, v.BACK))
     if back > 150 and v.lum(v.avg(img, (549, 846))) < 110 and v.lum(v.avg(img, (780, 1000))) < 120:
         return 'STATS'
-    if v.avg(img, BATTLE_BTN)[1] > 150:
+    btn = v.avg(img, BATTLE_BTN)
+    # green-dominant, not just bright: the T86 welcome cinematic sparkles there
+    # (fix_intro_3: 201,177,172). LIVE: margin from offline real frames only —
+    # PREP buttons 101,156,91 / 134,176,125, 11 bright non-PREP frames g-r -30..0
+    if btn[1] > 150 and btn[1] > btn[0] + 20:
         return 'PREP'
     return 'UNKNOWN'
 
@@ -349,10 +353,12 @@ def _run() -> int:
                     return 1
 
     if st in ('UNKNOWN', 'POPUP'):
+        last = 'sp_0_initial'            # the shot `st` was read from (intro OCR)
         if is_auto_complete(ocr_text(v.TMP / 'sp_0_initial.png')):
             print('    auto battle summary card open — closing it', flush=True)
             v.tap(CARD_CLOSE, 2.5)
-            img = try_shot('sp_after_close')
+            last = 'sp_after_close'
+            img = try_shot(last)
             st = classify_battle(img)
             print(f'    after closing summary: {st}', flush=True)
         if st == 'UNKNOWN' and is_auto_complete(ocr_text(v.TMP / 'sp_after_close.png')):
@@ -360,8 +366,16 @@ def _run() -> int:
             # so one fallback tap (old close position) is safe (reviewer concern)
             print('    summary close missed — one fallback tap', flush=True)
             v.tap((960, 1000), 2.5)
-            st = classify_battle(try_shot('sp_after_close2'))
+            last = 'sp_after_close2'
+            st = classify_battle(try_shot(last))
             print(f'    after fallback close: {st}', flush=True)
+        if st == 'UNKNOWN' and v.intro_hint(ocr_text(v.TMP / f'{last}.png')):
+            # T86: the season/login welcome cinematic (see v.intro_hint); BACK
+            # closes it, once only — the gate below catches a second one
+            print('    welcome/intro screen — BACK', flush=True)
+            v.tap(v.BACK, 2.0)
+            st = classify_battle(try_shot('sp_0b_intro'))
+            print(f'    after intro BACK: {st}', flush=True)
         if st == 'UNKNOWN':
             print('    ERROR: unknown screen — refusing to tap blind', flush=True)
             return 1

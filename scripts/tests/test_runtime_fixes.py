@@ -409,6 +409,39 @@ class R16SummaryClose(StagePushCase):
 
 
 
+class T86StagePushIntro(StagePushCase):
+    INTRO = ['Willkommen in', 'Esperia!']
+
+    def test_intro_back_then_world_flow(self):
+        dev, rc = self.run_sp(['UNKNOWN', 'WORLD', 'SP_PREP', 'SP_PREP', 'SP_BATTLE',
+                               'SP_RESULT', 'SP_RESULT'],
+                              ocr=lambda png: self.INTRO if 'sp_0_initial' in str(png) else [])
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps[:2], [v.BACK, sp.AFK_PROGRESS])
+        self.assertIn('pushed 1/1', dev.out.getvalue())
+
+    def test_unknown_without_intro_words_refuses(self):
+        dev, rc = self.run_sp(['UNKNOWN'], ocr=lambda png: ['Welcome back!'])
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [])
+
+    def test_intro_still_up_after_one_back(self):
+        dev, rc = self.run_sp(['UNKNOWN', 'UNKNOWN'], ocr=lambda png: self.INTRO)
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [v.BACK])
+
+    def test_intro_read_from_the_frame_after_the_summary_close(self):
+        complete = ['Auto Battle Complete', 'Tap to Close']
+        dev, rc = self.run_sp(['UNKNOWN', 'UNKNOWN', 'WORLD', 'SP_PREP', 'SP_PREP',
+                               'SP_BATTLE', 'SP_RESULT', 'SP_RESULT'],
+                              ocr=lambda png: complete if 'sp_0_initial' in str(png)
+                              else self.INTRO if 'sp_after_close.png' in str(png) else [])
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps[:3], [sp.CARD_CLOSE, v.BACK, sp.AFK_PROGRESS])
+        self.assertIn('pushed 1/1', dev.out.getvalue())
+
+
+
 class R17ParsePower(unittest.TestCase):
     def test_upward_before_below(self):
         self.assertEqual(sp.parse_power(['74,986', 'Battle', '12,345']), 74986)   # old: 12345

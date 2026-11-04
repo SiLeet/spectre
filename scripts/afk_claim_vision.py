@@ -38,6 +38,9 @@ TMP = REPO / '.spectre' / f'shots-{os.getpid()}'   # per-run dir: concurrent run
 # created lazily in shot(): importing this module (--help, dry-run) must not touch the disk
 ADB = Path.home() / 'AppData/Local/Android/Sdk/platform-tools/adb.exe'
 SERIAL = '127.0.0.1:5555'
+# T86 welcome/intro screen: place AND greeting (see intro_hint)
+INTRO_PLACE = 'esperia'
+INTRO_GREETINGS = ('willkommen', 'welcome')   # LIVE: 'welcome' (EN client) unverified; 'willkommen' verified shots-77952/fix_intro_0..3
 
 # --- team_power guard (T44) -------------------------------------------------
 # The offset is valid for ONE process lifetime only: after a game restart the
@@ -723,12 +726,23 @@ def classify(img: Image.Image) -> str:
     return 'UNKNOWN'
 
 
+def intro_hint(lines: list[str]) -> bool:
+    """The season/login welcome screen ('Willkommen in Esperia!'): no world
+    tells, classifies UNKNOWN — its OCR words are the only tell.
+
+    Greeting AND 'esperia' together: a bare 'welcome'/'willkommen' also sits on
+    event/returner offer pages, a bare 'esperia' on the Esperia Monthly popup."""
+    low = ' '.join(lines).lower()
+    return INTRO_PLACE in low and any(w in low for w in INTRO_GREETINGS)
+
+
 def claim_round(tag: str, dry_run: bool = False) -> int:
     """One verified AFK-chest claim from wherever the game is: world -> AFK
     panel -> chest popup -> Claim -> panel (BACK). Shared by main() and
     afk_dailies. Returns main()'s exit codes: 0 claim verified (or dry-run
     reached its stop), 1 unreachable/unknown screen, 4 nothing claimable."""
-    state = classify(shot(f'{tag}_0_initial'))
+    last = f'{tag}_0_initial'          # the shot `state` was read from (intro OCR)
+    state = classify(shot(last))
     print(f'    initial state: {state}', flush=True)
 
     if state == 'WORLD':
@@ -736,7 +750,8 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
             print('    [dry-run] would tap AFK progress', flush=True)
             return 0
         tap_seq([(*GROUND, 0.8), (*AFK_PROGRESS, 3.0)], tolerate=False)   # T75: 1 round trip
-        state = classify(shot(f'{tag}_1_panel'))
+        last = f'{tag}_1_panel'
+        state = classify(shot(last))
         print(f'    after AFK tap: {state}', flush=True)
     if state == 'POPUP':
         # known login popup (free monthly/daily rewards) gets claimed,
@@ -746,7 +761,16 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         else:
             tap(BACK, 1.5)
             state = classify(shot(f'{tag}_1b_recover'))
+        last = f'{tag}_1b_recover'
         print(f'    after close: {state}', flush=True)
+    if state == 'UNKNOWN' and intro_hint(ocr_lines(last)):
+        # live 2026-11-04 (daily 05:10): the season/login welcome cinematic
+        # classifies UNKNOWN and used to stop the daily; BACK closes it
+        # (verified live). Once only — the gate below catches a second one.
+        print('    welcome/intro screen — BACK', flush=True)
+        tap(BACK, 2.0)
+        state = classify(shot(f'{tag}_1c_intro'))
+        print(f'    after intro BACK: {state}', flush=True)
     if state == 'UNKNOWN':
         # never fire the recovery taps on an unidentified screen: that is
         # how a blind tap ends up on a store/purchase dialog

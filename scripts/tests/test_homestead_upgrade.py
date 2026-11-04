@@ -32,6 +32,13 @@ SPECTRE = Path(__file__).resolve().parents[3] / 'spectre' / '.spectre'
 ICON_FRAMES = [HERMES / 'spire_sel.png', SPECTRE / 'shots-8632' / 'hu_world.png',   # T103b live
                HERMES / 'b16b.png', HERMES / 'end1.png']
 ICON = (915, 171)
+# T103c: real WinRT boxes of shots-80480/hu_world (Kitchen selected after 'Go'; 'Level U' as read)
+KITCHEN_BOXES = [(1761, 17, 67, 13, '3000/3000'), (1033, 326, 57, 13, 'Kitchen'),
+                 (938, 731, 43, 15, 'Cook'), (1028, 755, 46, 11, 'Level U'), (25, 781, 36, 15, 'Build'),
+                 (180, 901, 63, 20, 'Refinery'), (53, 921, 74, 22, 'p Level 5.')]
+KITCHEN = SPECTRE / 'shots-80480' / 'hu_world.png'
+EXIT_GAME = SPECTRE / 'shots-9308' / 'hu_world.png'
+DRAGS = [('swipe', *d, hu.CAMERA_MS, 1.5) for d in hu.CAMERA_DRAGS]
 
 
 def real(path):
@@ -82,6 +89,32 @@ class Detectors(unittest.TestCase):
         self.assertIsNone(hu.find_radial(hermes('hm_confirmed2.png'), WORLD_BOXES))
         # the dialog's own 'Level Up' is outside the radial window
         self.assertIsNone(hu.find_radial(hermes('hm_up3.png'), DIALOG_BOXES))
+
+    def test_kitchen_radial_is_not_the_spire(self):
+        # T103c live: the Kitchen's radial ('Cook' + 'Level Up') after the operator's 'Go'
+        img = real(KITCHEN)
+        self.assertEqual(v.classify(img), 'WORLD')
+        self.assertIsNone(hu.find_radial(img, KITCHEN_BOXES))
+        self.assertIsNone(hu.spire_icon(img))                            # no icon on this frame
+        # OCR reading 'Level Up' in full plus a 'Radiant Spire' line in the quest tracker / at the
+        # Kitchen label's place: the label must stand above THIS radial
+        lu = [(*b[:4], 'Level Up') if b[4] == 'Level U' else b for b in KITCHEN_BOXES]
+        self.assertIsNone(hu.find_radial(img, lu + [(56, 901, 200, 20, 'Upgrade the Radiant Spire')]))
+        self.assertIsNone(hu.find_radial(img, lu + [(1600, 950, 120, 17, 'Radiant Spire')]))  # below
+
+    def test_label_pairing_keeps_the_spire_radial(self):
+        img = hermes('hm_requests.png')
+        quest = (56, 901, 200, 20, 'Upgrade the Radiant Spire')
+        self.assertEqual(hu.find_radial(img, [quest] + WORLD_BOXES), DISC)   # first label is not it
+        far = [(*b[:4], b[4]) if 'Spire' not in b[4] else (300, 173, 97, 17, b[4]) for b in WORLD_BOXES]
+        self.assertIsNone(hu.find_radial(img, far))                          # label 650 px left
+
+    def test_exit_game_dialog_start_frame(self):
+        img = real(EXIT_GAME)                                            # live 22:28 start frame
+        self.assertTrue(v.is_confirm_dialog(img))
+        self.assertGreater(v.lum(v.avg(img, v.CONFIRM_CANCEL)), 140)       # white X disc (dark glyph inside)
+        ok = v.avg(img, (1142, 710))                                     # the check = EXIT, never tapped
+        self.assertGreater(ok[1], ok[0] + 20)
 
     def test_spire_icon_on_the_live_frames(self):
         for path in ICON_FRAMES:
@@ -169,7 +202,8 @@ class OcrBoxes(unittest.TestCase):
 
 class Flow(unittest.TestCase):
     def run_hu(self, frames, boxes, *argv):
-        dev = FakeDevice(self, [hermes(f) if f.endswith('.png') else f for f in frames], boxes=boxes)
+        dev = FakeDevice(self, [hermes(f) if isinstance(f, str) and f.endswith('.png') else f
+                                for f in frames], boxes=boxes)
         rc = hu.main(list(argv))
         self.assertNotIn(NO_BACK_KEY, dev.taps)       # keyevent BACK opens the exit-game dialog here
         return dev, rc
@@ -220,10 +254,56 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps, [DISC, hu.LEVEL_UP_BTN])
 
     def test_spire_not_selected_is_nothing_to_do(self):
-        dev, rc = self.run_hu(['hm_confirmed2.png'], {'hu_world': WORLD_BOXES[1:]})
+        # T103c: deselect + the bounded drags first, the icon re-searched after each
+        dev, rc = self.run_hu(['hm_confirmed2.png'] * 4, {'hu_world': WORLD_BOXES[1:]})
+        self.assertEqual(rc, 4)
+        self.assertEqual(dev.taps, [v.GROUND, *DRAGS])
+        self.assertEqual(dev.shots, ['hu_world', 'hu_cam0', 'hu_cam1', 'hu_cam2'])
+        self.assertIn('no upgrade icon, also after the camera search', dev.out.getvalue())
+
+    def test_drags_stay_off_the_hud(self):
+        for x1, y1, x2, y2 in hu.CAMERA_DRAGS:
+            for x, y in ((x1, y1), (x2, y2)):
+                self.assertTrue(120 < x < 1800 and 80 < y < 1000, (x, y))
+                self.assertGreater(abs(x - 960) + abs(y - 835), 200)    # joystick
+            self.assertGreaterEqual(((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5, 300)
+
+    def test_camera_search_finds_the_icon(self):
+        dev, rc = self.run_hu(['hm_confirmed2.png', 'hm_confirmed2.png', 'spire_sel.png', 'spire_sel2.png',
+                               'spire_sel2.png', 'hm_confirmed2.png'],
+                              {'hu_world': [], 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, DRAGS[0], ICON, hu.BACK_PLATE])
+
+    def test_kitchen_selected_live_frame(self):
+        # T103c live (shots-80480): no Spire radial/icon -> camera search, never the Kitchen's Level Up
+        k = real(KITCHEN)
+        dev, rc = self.run_hu([k, k, k, k], {'hu_world': KITCHEN_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, *DRAGS])
+
+    def test_camera_search_off_the_world_stops(self):
+        dev, rc = self.run_hu(['hm_confirmed2.png', 'hm_confirmed2.png', 'UNKNOWN'], {'hu_world': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, DRAGS[0]])
+
+    def test_selected_spire_without_level_up_skips_the_camera(self):
+        dev, rc = self.run_hu(['hm_requests.png'], {'hu_world': WORLD_BOXES[:2]})
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps, [])
-        self.assertIn('no upgrade icon', dev.out.getvalue())
+        self.assertIn('Spire selected', dev.out.getvalue())
+
+    def test_exit_game_dialog_on_the_start_frame_is_cancelled(self):
+        # T103c live (shots-9308): X, re-shoot, continue - never the green check (exits the game)
+        dev, rc = self.run_hu(['DIALOG', 'hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],
+                              {'hu_world_c': WORLD_BOXES, 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.CONFIRM_CANCEL, DISC, hu.BACK_PLATE])
+
+    def test_exit_game_dialog_cancelled_once_only(self):
+        dev, rc = self.run_hu(['DIALOG', 'DIALOG'], {})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [v.CONFIRM_CANCEL])
 
     def test_unselected_spire_via_the_upgrade_icon(self):
         # T103b live: spire_sel (icon, no radial) -> tap -> spire_sel2 (dialog 5/7)

@@ -19,6 +19,12 @@ directly (spire_sel2.png) -> spire_icon() searches it in the upper screen when n
 is up. A start frame that already IS the Spire dialog (shots-82892/hu_world) is read
 as is - no world needed.
 
+T103c (operator live 22:28): a start frame showing 'exit the game?' (shots-9308) is cancelled
+via its X; no radial and no icon (shots-80480: Kitchen selected after a 'Go', Spire bottom-left)
+-> camera_search() (deselect + 2 bounded drags, LIVE-unverified); find_radial only takes a
+'Level Up' whose 'Radiant Spire' label stands above it (never the Kitchen's radial).
+Not implemented, noted: quest 'Upgrade the Ore Refinery to Level 5' = a further upgrade chain.
+
 LIVE-open (no frame): the icon with the Spire elsewhere on screen / off screen, the
 same icon on other buildings (topmost wins; OCR rejects their dialog), what 'Go'
 opens (the missing-requirement recursion is NOT implemented), a 7/7 dialog, the screen after
@@ -32,7 +38,7 @@ unrecognised screen stops the run (rc 1) without a tap.
 
 Usage: python scripts/afk_homestead_upgrade.py [--dry-run] [--min-idle S]
 Exit codes: 0 upgrade started (dialog closed after Level Up), 1 stuck / unknown
-screen, 4 nothing to do (no Level Up radial and no Spire upgrade icon,
+screen, 4 nothing to do (no Level Up radial and no Spire upgrade icon after the camera search,
 requirements missing, queue full, Level Up refused), 5 skipped (PC in use),
 7 tap lock held by another run.
 """
@@ -63,6 +69,12 @@ DISC_PX = 2000                 # LIVE: cream disc px (min>215, spread<30) in the
                                # (956,686) / (956,686) / (956,685)
 DISC_DX = 42                   # LIVE: disc either side of the centre L>=227, dark arrow at the
                                # centre (112,94,94) L~99; a cloud (norm_3, 6118 px) has L>230 there
+LABEL_DX = 150                 # T103c: the 'Radiant Spire' label must sit ABOVE the radial's 'Level Up'
+                               # within +-LABEL_DX in x. LIVE label/text centres: hm_requests (899,181)/
+                               # (959,740) dx 60, hs_0_world (948,175)/(932,738) dx 16, the KITCHEN's
+                               # (shots-80480) (1061,332)/(1051,760) - a 'Radiant Spire' OCR line elsewhere
+                               # (quest tracker x<270 y~900, chat) must not lend its label to that radial
+WORLD_WIN = (120, 80, 1800, 860)  # world area for the label check: no HUD columns, no quest tracker
 # --- world: floating 'upgrade' icon above an UNSELECTED Spire (T103b) --------------
 # LIVE: Hermes 2026-11-04 spire_sel.png / shots-8632 hu_world: a white disc with a dark
 # up-arrow floats above the tower; a tap opens the 'Upgrade Requirement' dialog directly
@@ -80,6 +92,18 @@ ICON_HEAD = 26                 # widest dark row within r 20 = the arrow head's 
                                # Look-alikes: placement 'i' scroll disc (pl3) 19..24, helmet
                                # plate (livecheck/c0) 18..19 - both pass ring/out/dark
 ICON_CLUSTER = 40              # hits this close to the first hit belong to the same icon
+# --- T103c camera search: no radial, no icon -> deselect (GROUND) + up to 2 drags, icon re-searched.
+# LIVE-unverified (no frame of a drag): that a drag pans the homestead camera at all, and the
+# distances. shots-80480/hu_world (after the operator's 'Go' to the Kitchen): Kitchen selected,
+# Spire door (512,705) vs (920,460) on the icon frames (spire_sel/shots-8632), ~1.1x zoom ->
+# the icon would sit near (507,373), ON screen - and there is none there, so the icon is most
+# likely ABSENT while another building has the focus (not just off the top edge); the deselect
+# is the more promising step. Drag 1 = the brief's 'content down' (icon above the top edge),
+# drag 2 = content right+up = back towards the usual Spire spot (80480: door -> ~(862,795), icon
+# ~(858,506) inside ICON_BAND). Points on mid-screen ground: off the HUD (x 120..1800,
+# y 80..1000), off the joystick (960,835) and the quest tracker; 350/408 px over 600 ms = a drag.
+CAMERA_DRAGS = ((1300, 350, 1300, 650), (1150, 650, 1500, 440))
+CAMERA_MS = 600
 # --- Spire dialog (hm_up3; same layout on shots-62772/80500 hl_entry*) -------------
 REQ_RE = re.compile(r'requirement\D{0,4}(\d)\s*/\s*(\d)', re.I)  # LIVE: 'Upgrade Requirement (5/7)'
 CARD_ROW = (590, 625)          # LIVE: card label boxes y 601..617 ('Level 5 Kitchen' .. 'AFK stage: 80')
@@ -125,11 +149,16 @@ def disc_at(img, xy) -> bool:
 
 
 def find_radial(img, boxes):
-    """Tap point of the selected Spire's 'Level Up' disc, else None."""
+    """Tap point of the selected Spire's 'Level Up' disc, else None. T103c: the 'Radiant Spire'
+    label must belong to this radial (above it, LABEL_DX) - another building's radial (Kitchen,
+    shots-80480) is never taken for the Spire's."""
     lu = _line(boxes, 'level up', RADIAL_WIN)
-    if lu is None or _line(boxes, SPIRE_LABEL) is None:
+    if lu is None:
         return None
     cx, cy = _centre(lu)
+    if not any(abs(_centre(b)[0] - cx) <= LABEL_DX and _centre(b)[1] < cy
+               for b in boxes if SPIRE_LABEL in b[4].lower()):
+        return None
     dx, up, down = DISC_WIN
     pts = hs._pixels(img, (cx - dx, cy - up, cx + dx, cy - down),
                      lambda r, g, b: min(r, g, b) > 215 and max(r, g, b) - min(r, g, b) < 30)
@@ -174,6 +203,23 @@ def spire_icon(img):
     if not hits:
         return None
     return hs._median([p for p in hits if max(abs(p[0] - hits[0][0]), abs(p[1] - hits[0][1])) <= ICON_CLUSTER])
+
+
+def camera_search():
+    """T103c: no radial and no icon on the start frame -> deselect (GROUND), then up to
+    len(CAMERA_DRAGS) drags; spire_icon after each, only on the world view.
+    (icon xy or None, last frame)."""
+    _tap(v.GROUND, 0.8)
+    for i, drag in enumerate((None, *CAMERA_DRAGS)):
+        if drag:
+            v.swipe(*drag, CAMERA_MS, 1.5)
+        img = v.shot(f'hu_cam{i}')
+        if v.classify(img) != 'WORLD':
+            return None, img
+        xy = spire_icon(img)
+        if xy:
+            return xy, img
+    return None, img
 
 
 def parse_requirement(boxes):
@@ -247,18 +293,31 @@ def main(argv: list[str] | None = None) -> int:
         return 7
     _bot_lock.release_at_exit()
 
-    img = v.shot('hu_world')
+    name = 'hu_world'
+    img = v.shot(name)
+    if v.is_confirm_dialog(img):                 # T103c: 'exit the game?' (shots-9308) - X only
+        print('    confirm dialog on the start frame -> X (never the check)', flush=True)
+        _tap(v.CONFIRM_CANCEL, 1.5)
+        name = 'hu_world_c'
+        img = v.shot(name)
     if v.classify(img) == 'WORLD':
-        boxes = v.ocr_boxes('hu_world')
+        boxes = v.ocr_boxes(name)
         disc = find_radial(img, boxes)
         still = lambda im: v.classify(im) == 'WORLD' and disc_at(im, disc)  # noqa: E731
         if disc is None:                         # T103b: unselected Spire, floating icon
             disc = spire_icon(img)
             still = lambda im: v.classify(im) == 'WORLD' and spire_icon(im) is not None  # noqa: E731
+        selected = _line(boxes, SPIRE_LABEL, WORLD_WIN) is not None
+        if disc is None and not selected:        # T103c: another building focused / camera moved
+            disc, img = camera_search()
+            if v.classify(img) != 'WORLD':
+                print('    ERROR: camera search left the world view - stopping without a tap', flush=True)
+                return 1
+            if disc:
+                print(f'    upgrade icon at {disc} after the camera search', flush=True)
         if disc is None:
-            why = ('Spire selected but no Level Up on its radial (upgrading / max?)'
-                   if _line(boxes, SPIRE_LABEL) else
-                   'no Level Up radial and no upgrade icon on the world view (upgrading / max / off-screen?)')
+            why = ('Spire selected but no Level Up on its radial (upgrading / max?)' if selected else
+                   'no Level Up radial and no upgrade icon, also after the camera search')
             print(f'    nothing to do: {why}', flush=True)
             return 4
         img = hs.tap_until(disc, 2.5, 'hu_dialog', lambda im: v.classify(im) != 'WORLD', still)
@@ -267,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         img = v.shot('hu_read')                  # settled frame for OCR + check pixels
         boxes = v.ocr_boxes('hu_read')
-    elif back_plate(img) and parse_requirement(boxes := v.ocr_boxes('hu_world')):
+    elif back_plate(img) and parse_requirement(boxes := v.ocr_boxes(name)):
         print('    Spire dialog already open', flush=True)  # T103b: live start frame shots-82892
     else:
         print('    ERROR: not on the world view or the Spire dialog (no BACK key in the homestead)',

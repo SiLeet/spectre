@@ -337,8 +337,7 @@ def _run() -> int:
         if is_static(img, try_shot('sp_0_static')):
             print('    initial BATTLE is a still screen (no fight animation) — '
                   'one dismiss retry (BACK + centre)', flush=True)
-            v.tap(v.BACK, 1.5)
-            v.tap(CARD_CLOSE, 2.0)
+            v.tap_seq([(*v.BACK, 1.5), (*CARD_CLOSE, 2.0)], tolerate=False)   # T75: 1 round trip
             img = try_shot('sp_0_retry')
             st = classify_battle(img)
             print(f'    after dismiss retry: {st}', flush=True)
@@ -614,8 +613,7 @@ def _run() -> int:
                         # one recovery before giving up: BACK, then the centre
                         print(f'    {st} persists — one BACK + centre tap before aborting',
                               flush=True)
-                        v.tap(v.BACK, 1.5)
-                        v.tap((960, 540), 2.0)
+                        v.tap_seq([(*v.BACK, 1.5), (960, 540, 2.0)], tolerate=False)   # T75: 1 round trip
                         recovered, unknowns = True, 0
                         continue
                     if unknowns >= 15:

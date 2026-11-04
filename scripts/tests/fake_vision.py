@@ -131,7 +131,8 @@ class FakeDevice:
         self.taps: list[tuple[int, int]] = []
         self.shots: list[str] = []
         for name, fake in (('adb', self._no_adb), ('tap', self._tap), ('swipe', self._swipe),
-                           ('shot', self._shot), ('ocr_lines', self._ocr)):
+                           ('shot', self._shot), ('ocr_lines', self._ocr),
+                           ('tap_seq', self._tap_seq), ('key_seq', self._key_seq)):
             for mod in (v, *also):       # also: modules with their own tap/shot copies
                 if hasattr(mod, name):
                     p = mock.patch.object(mod, name, fake)
@@ -156,6 +157,14 @@ class FakeDevice:
 
     def _tap(self, xy, wait=1.0):
         self.taps.append(tuple(xy))
+
+    def _tap_seq(self, steps, tolerate=True, dry=False):    # T75: one batch = taps in order
+        self.taps.extend((x, y) for x, y, _ in steps)
+        return True
+
+    def _key_seq(self, steps, tolerate=True, dry=False):
+        self.taps.extend(('key', k) for k, _ in steps)
+        return True
 
     def _swipe(self, *args, **kw):
         self.taps.append(('swipe', *args))

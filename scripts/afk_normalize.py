@@ -60,8 +60,7 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
                 v.tap(v.GROUND, 1.5)
             else:
                 print(f'    escape {cycle}/{step}: BACK x2 ({st})', flush=True)
-                v.tap(v.BACK, 1.2)
-                v.tap(v.BACK, 1.5)
+                v.tap_seq([(*v.BACK, 1.2), (*v.BACK, 1.5)], tolerate=False)   # T75: 1 round trip
     st = v.classify(v.shot(f'{tag}_final'))
     if st in ('WORLD', 'PANEL'):
         print(f'    ESCAPE: recovered ({st}) after {cycles} cycle(s)', flush=True)

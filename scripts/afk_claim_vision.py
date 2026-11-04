@@ -391,6 +391,40 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
     time.sleep(wait)
 
 
+def _run_seq(cmds: list[str], waits: list[float], tolerate: bool, dry: bool):
+    """One `adb shell` for several input commands: 'cmd; sleep W; cmd; ...'.
+    Steps are ';'-joined, so a failing middle step does not stop the rest and
+    only the last rc is seen (best effort, bounded by the waits + 15 s)."""
+    parts = []
+    for cmd, wait in zip(cmds, waits):
+        parts.append(cmd)
+        if wait > 0:
+            parts.append(f'sleep {wait:g}')   # LIVE: fractional sleep (toybox, Android 9 Pie64)
+    line = '; '.join(parts)
+    if dry:
+        return line
+    p = adb('shell', line, timeout=int(sum(waits)) + 15)
+    if p.returncode != 0 and not tolerate:
+        raise RuntimeError(f'adb input sequence failed: {p.stderr[:120]!r}')
+    return p.returncode == 0
+
+
+def tap_seq(steps, tolerate: bool = True, dry: bool = False):
+    """Several taps in ONE adb round trip (T75; each adb call costs ~0.5-1.5 s).
+
+    steps: [(x, y, wait_s), ...]. Returns True/False (tolerate=True) or raises
+    RuntimeError like tap() (tolerate=False); dry=True returns the shell line.
+    Only for BLIND runs - a step that needs a screenshot in between stays tap()."""
+    return _run_seq([f'input tap {int(x)} {int(y)}' for x, y, _ in steps],
+                    [w for _, _, w in steps], tolerate, dry)
+
+
+def key_seq(steps, tolerate: bool = True, dry: bool = False):
+    """Several keyevents in ONE adb round trip; steps: [(keycode, wait_s), ...]."""
+    return _run_seq([f'input keyevent {int(k)}' for k, _ in steps],
+                    [w for _, w in steps], tolerate, dry)
+
+
 def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:
     p = adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
     if p.returncode != 0:                  # same contract as tap()
@@ -644,8 +678,7 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         if dry_run:
             print('    [dry-run] would tap AFK progress', flush=True)
             return 0
-        tap(GROUND, 0.8)
-        tap(AFK_PROGRESS, 3.0)
+        tap_seq([(*GROUND, 0.8), (*AFK_PROGRESS, 3.0)], tolerate=False)   # T75: 1 round trip
         state = classify(shot(f'{tag}_1_panel'))
         print(f'    after AFK tap: {state}', flush=True)
     if state == 'POPUP':
@@ -668,8 +701,7 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         if not reach_world():
             print('    ERROR: could not get back to the world view', flush=True)
             return 1
-        tap(GROUND, 0.8)
-        tap(AFK_PROGRESS, 3.0)
+        tap_seq([(*GROUND, 0.8), (*AFK_PROGRESS, 3.0)], tolerate=False)   # T75: 1 round trip
         state = classify(shot(f'{tag}_2_retry'))
         print(f'    retry state: {state}', flush=True)
     if state != 'PANEL':

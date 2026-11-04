@@ -104,9 +104,14 @@ class F6BattleModes(unittest.TestCase):
 
 
 
+# T101: the hand level is the big-box crop OCR (`<shot>_lv`), the badge only marks a detail
+LV95 = {'hl_710_0_lv': ['95'], 'hl_840_0_lv': ['95']}
+
+
 class HeroCase(unittest.TestCase):
     def run_hl(self, frames, ocr, hands=(710, 840)):
-        dev = FakeDevice(self, frames, ocr=ocr)
+        # T101: enter_hall shoots 'hl_start' first (WORLD -> one HALL_BTN tap)
+        dev = FakeDevice(self, ['WORLD'] + list(frames), ocr=ocr)
         keys = []
         for patch in (mock.patch.object(hl, 'key', lambda code, wait=1.5: dev.taps.append(('key', code))),
                       mock.patch.object(hl, 'HAND_XS', list(hands)),
@@ -123,21 +128,22 @@ class F2HeroLevel(HeroCase):
         lvl95 = ['Affinity', 'Lvl. 95']
         dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'WORLD', 'UNKNOWN', 'UNKNOWN'],
                               {'hl_entry': HALL, 'hl_710_0': lvl95, 'hl_hall_840': ['Battle Modes'],
-                               'hl_hall_840_reenter': HALL, 'hl_840_0': lvl95})
+                               'hl_hall_840_reenter': HALL, 'hl_840_0': lvl95, **LV95})
         self.assertEqual(rc, 0)
         self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), ('key', 4),
                                     hl.HALL_BTN, (840, hl.HANDS_Y), ('key', 4)])
 
     def test_unknown_screen_between_hands_stops_without_blind_tap(self):
         dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
-                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 95']})
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 95'], **LV95})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), ('key', 4)])
 
     def test_unreadable_hand_exits_1(self):
         dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
                               {'hl_entry': HALL, 'hl_710_0': DETAIL_NO_BADGE,
-                               'hl_hall_840': HALL, 'hl_840_0': ['Affinity', 'Lvl. 95']})
+                               'hl_hall_840': HALL, 'hl_840_0': ['Affinity', 'Lvl. 95'],
+                               'hl_840_0_lv': ['95']})   # 710: no box read
         self.assertEqual(rc, 1)
         self.assertIn('with failures', dev.out.getvalue())
 
@@ -429,7 +435,9 @@ class F12HeroExhaustion(HeroCase):
         dev, rc = self.run_hl(['UNKNOWN'] * 5,
                               {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80'],
                                'hl_710_check1': ['Lvl. 80'], 'hl_710_check2': ['Lvl. 90'],
-                               'hl_710_1': ['Affinity', 'Lvl. 90']}, hands=(710,))
+                               'hl_710_1': ['Affinity', 'Lvl. 90'],
+                               'hl_710_0_lv': ['80'], 'hl_710_check1_lv': ['80'],
+                               'hl_710_check2_lv': ['90'], 'hl_710_1_lv': ['90']}, hands=(710,))
         self.assertEqual(rc, 0)
         self.assertNotIn('resources exhausted', dev.out.getvalue())
         self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), hl.LEVEL_X10, hl.LEVEL_X10, ('key', 4)])
@@ -437,7 +445,9 @@ class F12HeroExhaustion(HeroCase):
     def test_two_unchanged_taps_stop_the_run(self):
         dev, rc = self.run_hl(['UNKNOWN'] * 4,
                               {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80'],
-                               'hl_710_check1': ['Lvl. 80'], 'hl_710_check2': ['Lvl. 80']},
+                               'hl_710_check1': ['Lvl. 80'], 'hl_710_check2': ['Lvl. 80'],
+                               'hl_710_0_lv': ['80'], 'hl_710_check1_lv': ['80'],
+                               'hl_710_check2_lv': ['80']},
                               hands=(710, 840))
         self.assertEqual(rc, 0)
         self.assertIn('resources exhausted', dev.out.getvalue())
@@ -448,7 +458,8 @@ class F12HeroExhaustion(HeroCase):
 class F20HeroPurchaseDialog(HeroCase):
     def test_dialog_after_x10_is_cancelled_and_stops(self):
         dev, rc = self.run_hl(['UNKNOWN', 'UNKNOWN', 'DIALOG'],
-                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80']},
+                              {'hl_entry': HALL, 'hl_710_0': ['Affinity', 'Lvl. 80'],
+                               'hl_710_0_lv': ['80']},
                               hands=(710, 840))
         self.assertEqual(rc, 0)
         self.assertEqual(dev.taps, [hl.HALL_BTN, (710, hl.HANDS_Y), hl.LEVEL_X10,

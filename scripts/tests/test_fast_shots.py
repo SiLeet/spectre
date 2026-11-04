@@ -98,11 +98,16 @@ class OcrRegion(unittest.TestCase):
             self.assertEqual(v.ocr_region('nope', (0, 0, 10, 10)), [])
         ocr.assert_not_called()
 
-    def test_slot_level_uses_the_helper(self):
-        with mock.patch.object(v, 'ocr_region', return_value=['Level', '81']) as reg:
+    def test_slot_level_reads_the_upscaled_box(self):
+        # T101: slot_level OCRs only LEVEL_NUM_BOX, LEVEL_SCALE x upscaled, saved as `{name}_lv`
+        seen = []
+        with mock.patch.object(v, 'ocr_png', side_effect=lambda p: seen.append(p) or ['Level', '81']):
             self.assertEqual(hl.slot_level('detail'), 81)
-        reg.assert_called_once_with('detail', hl.LEVEL_NUM_BOX)
-        with mock.patch.object(v, 'ocr_region', return_value=[]):
+        self.assertEqual(seen[0].name, 'detail_lv.png')
+        with Image.open(seen[0]) as crop:
+            left, top, right, bottom = hl.LEVEL_NUM_BOX
+            self.assertEqual(crop.size, ((right - left) * hl.LEVEL_SCALE, (bottom - top) * hl.LEVEL_SCALE))
+        with mock.patch.object(v, 'ocr_png', return_value=[]):
             self.assertIsNone(hl.slot_level('detail'))
 
 

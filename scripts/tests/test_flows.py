@@ -111,32 +111,34 @@ class ClaimFlow(unittest.TestCase):
 class HeroLevelEntry(unittest.TestCase):
     """afk_hero_level runs on the shared claim_vision helpers (T48)."""
 
-    def test_hall_not_open_aborts_after_one_guarded_retry(self):
-        # entry tap, still town (WORLD) -> one re-tap from the town -> still no hall
-        dev = FakeDevice(self, ['WORLD', 'WORLD', 'WORLD'], ocr={'hl_entry': ['Battle Modes']})
+    # T101: enter_hall shoots 'hl_start' first; every hall tap is gated on a WORLD frame
+    def test_hall_not_open_aborts_after_bounded_tries(self):
+        # town stays town: HALL_TRIES taps (plain, then the T97b retry chain), then exit 1
+        dev = FakeDevice(self, ['WORLD'] * (1 + hl.HALL_TRIES), ocr={'hl_entry': ['Battle Modes']})
         with mock.patch.object(sys, 'argv', ['afk_hero_level.py']):
             self.assertEqual(hl.main(), 1)
-        self.assertEqual(dev.taps, [(990, 1010), (990, 1010)])
-        self.assertEqual(dev.shots, ['hl_entry', 'hl_entry_retry', 'hl_entry_retry_reenter'])
+        self.assertEqual(dev.taps, [hl.HALL_BTN, ('touchscreen', *hl.HALL_BTN), ('hold', *hl.HALL_BTN)])
+        self.assertEqual(dev.shots, ['hl_start', 'hl_entry', 'hl_entry1', 'hl_entry2'])
 
-    def test_unknown_screen_after_entry_tap_no_retry(self):
-        dev = FakeDevice(self, ['UNKNOWN', 'UNKNOWN'], ocr={'hl_entry': []})
+    def test_unknown_screen_after_entry_tap_no_blind_retry(self):
+        # an unknown screen after the tap gets bounded BACKs (reach_world), never a 2nd hall tap
+        dev = FakeDevice(self, ['WORLD'] + ['UNKNOWN'] * 8, ocr={'hl_entry': []})
         with mock.patch.object(sys, 'argv', ['afk_hero_level.py']):
             self.assertEqual(hl.main(), 1)
-        self.assertEqual(dev.taps, [(990, 1010)])
+        self.assertEqual(dev.taps, [hl.HALL_BTN] + [('key', 4)] * 6)
 
     def test_slow_hall_open_recovered(self):
         dev = FakeDevice(self, ['WORLD', 'WORLD', 'UNKNOWN'],
-                         ocr={'hl_entry': [], 'hl_entry_retry_reenter': ['Resonance Level: 80']})
+                         ocr={'hl_entry': [], 'hl_entry1': ['Resonance Level: 80']})
         with mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--dry-run']):
             self.assertEqual(hl.main(), 0)
         self.assertIn('hall open: Resonance Level: 80', dev.out.getvalue())
 
     def test_dry_run_reads_hall_only(self):
-        dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': ['Resonance Level: 80']})
+        dev = FakeDevice(self, ['WORLD', 'UNKNOWN'], ocr={'hl_entry': ['Resonance Level: 80']})
         with mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--dry-run']):
             self.assertEqual(hl.main(), 0)
-        self.assertEqual(dev.taps, [(990, 1010)])
+        self.assertEqual(dev.taps, [hl.HALL_BTN])
 
 
 if __name__ == '__main__':

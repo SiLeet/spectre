@@ -55,6 +55,29 @@ class DailyCharge(unittest.TestCase):
         self.assertIn('charged: hand 840 level 78 -> 79', dev.out.getvalue())
         self.assertEqual(last.read_text(encoding='utf-8'), '840')
 
+    def test_live_gold_short_is_reported_short_not_no_effect(self):
+        # live 2026-11-04: '8138K/9360' slipped through the suffix bug -> empty taps
+        dev, rc, _ = self.run_level({'hl_scan_710': detail(80, '8138K/9360'),
+                                     'hl_scan_840': detail(78, '8138K/9360'),
+                                     'hl_daily_pre0': detail(78, '8138K/9360')})
+        self.assertEqual(rc, 4)
+        self.assertIn('resources short', dev.out.getvalue())
+        self.assertEqual(dev.taps.count(hl.LEVEL_X1), 0)
+
+    def test_box_cap_100_does_not_leak_into_reads(self):
+        # live 2026-11-04: with the Level-Up button disabled the box shows the
+        # resonance cap 'Level 100'; the 'Lvl NN' badge is the truth.
+        # addCleanup registered BEFORE run_level's own patches -> restored LAST (LIFO):
+        # a `with` here would restore before the FakeDevice patch stops, re-leaking this one
+        p = mock.patch.object(hl.v, 'ocr_region',
+                              lambda name, box: ['100'] if box == hl.LEVEL_NUM_BOX else [])
+        p.start()
+        self.addCleanup(p.stop)
+        dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
+                                     'hl_daily_pre0': detail(78), 'hl_daily_post0': ['Lvl. 79']})
+        self.assertEqual(rc, 0)
+        self.assertIn('charged: hand 840 level 78 -> 79', dev.out.getvalue())
+
     def test_blocked_hand_is_skipped_for_the_next(self):
         blocked = 'Hands of Resonance must be within 10 levels of each other.'
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
@@ -130,6 +153,8 @@ class ResourceGate(unittest.TestCase):
 
     def test_short_and_unknown(self):
         self.assertFalse(hl.resources_ok(['1.2M/3M']))
+        self.assertFalse(hl.resources_ok(['8138K/9360']))            # live: need inherits the K
+        self.assertTrue(hl.resources_ok(['6396K/2840']))
         self.assertIsNone(hl.resources_ok(['3/4', '0/1', 'Level']))   # affinity/ascend counters
 
 

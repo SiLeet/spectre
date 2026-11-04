@@ -97,10 +97,12 @@ def read_level(lines):
 
 
 def slot_level(name):
-    """The hero's slot level (big 'Level NN' bottom-right) from a saved shot.
+    """Fallback slot level (big 'Level NN' bottom-right) from a saved shot.
 
-    The full-frame OCR merges the big number with the layout; a region crop
-    isolates it (live-verified 2026-11-03: read 80 -> 81 after one charge)."""
+    LIVE 2026-11-04: on a disabled Level-Up button this box shows the resonance
+    cap ('Level 100'), so callers prefer read_level() (the 'Lvl NN' badge) and
+    use this only when the badge is unreadable. Region crop isolates the number
+    (live-verified 2026-11-03: read 80 -> 81 after one charge)."""
     for ln in v.ocr_region(name, LEVEL_NUM_BOX):          # T76: shared crop+OCR helper
         m = re.fullmatch(r"(\d{1,3})", ln.strip())
         if m and 1 <= int(m.group(1)) <= LEVEL_MAX:
@@ -240,7 +242,8 @@ def resources_ok(lines):
     seen = False
     for ln in lines:
         for m in _RES_RE.finditer(ln):
-            have, need = _amount(m.group(1), m.group(2)), _amount(m.group(3), m.group(4))
+            # real OCR prints '8138K/9360': the need inherits the have suffix
+            have, need = _amount(m.group(1), m.group(2)), _amount(m.group(3), m.group(4) or m.group(2))
             if not (m.group(2) or m.group(4)) and need < 100:
                 continue
             seen = True
@@ -263,7 +266,7 @@ def scan_hands():
                 print(f"    scan hand {x}: level not readable — one retry", flush=True)
                 time.sleep(SCAN_RETRY_WAIT)
             lines = snap(name)
-            lvl = (slot_level(name) or read_level(lines)) if is_detail(lines) else None
+            lvl = (read_level(lines) or slot_level(name)) if is_detail(lines) else None
             if lvl is not None:
                 break
         if lvl is not None:
@@ -295,7 +298,7 @@ def reread_level(name: str, lvl: int | None, expect: int | None = None) -> int |
         time.sleep(DETAIL_POLL_WAIT)
         shot = f"{name}_rr{i}"
         lines = snap(shot)
-        lvl = slot_level(shot) or (read_level(lines) if is_detail(lines) else None)
+        lvl = (read_level(lines) or slot_level(shot)) if is_detail(lines) else None
     return lvl
 
 
@@ -329,7 +332,7 @@ def daily_charge() -> int:
             print(f"    SKIP hand {x}: blocked (hands must be within 10 levels)", flush=True)
             key(4)
             continue
-        before = slot_level(pre) or (read_level(lines) if is_detail(lines) else None)
+        before = (read_level(lines) or slot_level(pre)) if is_detail(lines) else None
         if is_detail(lines):                  # != scanned level: stale previous detail
             before = reread_level(pre, before, levels.get(x))
         if before is None:
@@ -352,7 +355,7 @@ def daily_charge() -> int:
             print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)
             key(4)
             return 4
-        after = slot_level(f"hl_daily_post{attempt}") or read_level(v.ocr_lines(f"hl_daily_post{attempt}"))
+        after = read_level(v.ocr_lines(f"hl_daily_post{attempt}")) or slot_level(f"hl_daily_post{attempt}")
         after = reread_level(f"hl_daily_post{attempt}", after)
         key(4)
         if after is not None and after == before + 1:

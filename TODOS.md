@@ -1264,3 +1264,11 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   (d2ec11d), Delta-Suite 379 OK, Release-Build unnoetig (kein Rust). Worktrees
   entfernt. Erst-Review via headless claude -p laeuft (Token-Regel). Live-Checks:
   docs/reports/claude-wave-6-run.md.
+- ✅ R22 [2026-11-04 03:55]: hero_level-Daily-Fix (2 Live-Bugs aus dem Charge-SKIP):
+  (1) slot_level-Box las im Detail den Resonanz-CAP ("Level 100") statt des Held-
+  Levels -> read_level (Lvl-Badge) hat jetzt Vorrang an allen Detail-Lesestellen
+  (+Test: cap 100 leakt nicht; Mock-LIFO-Falle dokumentiert). (2) resources_ok
+  verlor das K-Suffix der Bedarfszahl ('8138K/9360' -> 8.1M vs 9360) -> Suffix-
+  Erbung (+2 Tests). LIVE bewiesen 03:55: scans alle 5 Hände lesbar (read_level
+  robuster), before=82, "resources short ... no charge today" rc4 OHNE Taps.
+  OFFEN: echte +1-Charge (Gold 8138K < 9360K) — nach Gold-Zuwachs (Daily).

@@ -122,7 +122,12 @@ _SPEC = {
     'DR_BLACK': ((29, 29, 29), {}),
     'DR_TRANSITION': ((5, 8, 20), {(200, 270): (25, 72, 156)}),
     'DR_DIM': ((8, 8, 10), {(200, 270): (60, 62, 70), (960, 540): (180, 170, 150)}),
-    'DR_ENDED': ((30, 30, 30), {(960, 90): (230, 140, 60), (960, 1035): (235, 235, 235)}),
+    'DR_ENDED': ((30, 30, 30), {(960, 90): (230, 140, 60), (960, 1035): (235, 235, 235),
+                                (600, 60): (203, 121, 42), (1500, 60): (203, 121, 42)}),
+    # T93 Victory Rewards overlay (shots-72816/dr_post1_0): black letterbox,
+    # warm dim centre, bright 'Victory Rewards' title letters
+    'DR_VICTORY_REWARDS': ((5, 5, 5), {(960, 540): (113, 77, 41), **{
+        (x, 135): (240, 240, 240) for x in range(810, 1340, 90)}}),
     # afk_stage_push.classify_battle (A8; probe values from the runtime review)
     'SP_PREP': ((60, 60, 60), {(1280, 1000): (80, 200, 80)}),
     'SP_LOADING': ((30, 30, 30), {(549, 846): (23, 23, 23)}),

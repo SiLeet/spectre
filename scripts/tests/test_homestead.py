@@ -16,6 +16,7 @@ from fake_vision import FakeDevice, frame  # noqa: E402
 from make_frame_manifest import load_rgb  # noqa: E402
 
 HERMES = Path.home() / 'AppData' / 'Local' / 'hermes' / 'cache' / 'scratch'
+SPECTRE = Path(__file__).resolve().parents[3] / 'spectre' / '.spectre'   # worktrees have no .spectre
 
 
 def hermes(name: str):
@@ -41,8 +42,10 @@ MENU = lambda: paint('UNKNOWN', [(hs.EXIT_BTN, 12, (198, 187, 183)), (hs.BUILD_T
                                  (hs.PRODUCTION_TAB, 12, (145, 184, 138))])
 RING = lambda: paint('UNKNOWN', [((1089, 562), 30, (250, 250, 250)), ((842, 557), 30, (250, 250, 250)),  # noqa: E731
                                  ((1089, 562), 7, (60, 200, 60)), ((842, 557), 7, (220, 40, 40))])
-MARK = lambda: paint('WORLD', [BTN, ((964, 560), 20, (254, 238, 93))])       # noqa: E731
+MARK = lambda: paint('WORLD', [BTN, ((964, 560), 26, (254, 238, 93))])       # noqa: E731
 TOAST = lambda: frame('UNKNOWN')                                            # noqa: E731
+LEFT = lambda: paint('WORLD', [BTN, ((760, 877), 26, (254, 238, 93))])      # noqa: E731  (T103c)
+FIELD_BUILT = ['Field Built', '"ProQerity', 'Tapto Close', 'o 10']          # live OCR of complete1/close9
 CHECK, CANCEL = (1089, 562), (842, 557)
 RES = ['@ 653,402 3848', '460']
 
@@ -112,6 +115,22 @@ class Detectors(unittest.TestCase):
                 self.assertIsNone(hs.find_marker(img))
         for name in ('hm_requests.png', 'hm_req2.png'):
             self.assertTrue(hs.build_btn(hermes(name)))
+
+    def test_finished_build_outside_the_build_window(self):
+        # T103c live (shots-80480 / where1 / base2): marker (760,877), outside MARK_WIN; the
+        # Kitchen's yellow request bubble (874,425) on the same frame is no marker
+        for path in (SPECTRE / 'shots-80480' / 'hu_world.png', HERMES / 'where1.png', HERMES / 'base2.png'):
+            if not path.exists():
+                continue
+            with self.subTest(path.name):
+                img = load_rgb(path)
+                self.assertIsNone(hs.find_marker(img))
+                mx, my = hs.find_marker(img, hs.COLLECT_WIN)
+                self.assertLessEqual(abs(mx - 760) + abs(my - 877), 8)
+        for name in ('close10.png', 'hm_requests.png', 'hm_req2.png', 'spire_sel2.png', 'hm_build_menu.png',
+                     'complete1.png'):                                # bubble only / no marker / toast
+            with self.subTest(name):
+                self.assertIsNone(hs.find_marker(hermes(name), hs.COLLECT_WIN))
 
     def test_synthetic_frames_match_the_detectors(self):
         self.assertEqual(v.classify(WORLD()), 'WORLD')
@@ -208,11 +227,74 @@ class Flow(unittest.TestCase):
     def test_reward_info_card_is_closed_too(self):
         frames = self.entry(0) + [RING, MARK, TOAST, TOAST, WORLD] + self.entry(1) + [MENU, WORLD]
         ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
-               'hs_b0_2': ['Diamond', 'Tapto Close'], **cnt('hs_1_read', 13),
+               'hs_b0_t0': ['Diamond', 'Tapto Close'], **cnt('hs_1_read', 13),
                'hs_1_read_res': RES}
         dev, rc = self.run_hs(frames, ocr)
         self.assertEqual(rc, 0, dev.out.getvalue())
         self.assertEqual(dev.taps.count(hs.TOAST_CLOSE), 2)
+        self.assertNotIn(('key', 4), dev.taps)                  # a different toast: no BACK fallback
+
+    def test_toast_left_up_gets_one_back(self):
+        # T103c: the same toast after its Tap to close -> ONE keyevent BACK (only on the toast)
+        frames = self.entry(0) + [RING, MARK, TOAST, TOAST, WORLD] + self.entry(1) + [MENU, WORLD]
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': FIELD_BUILT,
+               'hs_b0_t0': FIELD_BUILT, **cnt('hs_1_read', 13), 'hs_1_read_res': RES}
+        dev, rc = self.run_hs(frames, ocr)
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps[4:7], [(964, 560), hs.TOAST_CLOSE, ('key', 4)])
+        self.assertEqual(dev.taps.count(('key', 4)), 1)
+
+    def test_toast_that_never_closes_is_bounded(self):
+        frames = self.entry(0) + [RING, MARK] + [TOAST] * (hs.TOAST_TRIES + 1)
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': FIELD_BUILT,
+               **{f'hs_b0_t{n}': FIELD_BUILT for n in range(hs.TOAST_TRIES)}}
+        dev, rc = self.run_hs(frames, ocr)
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps.count(('key', 4)), 1)          # BACK once, the rest are taps
+        self.assertEqual(dev.taps.count(hs.TOAST_CLOSE), hs.TOAST_TRIES - 1)
+
+    def test_finished_build_collected_before_the_menu(self):
+        # T103c: world with a waiting marker -> tap it, Tap to close (left up -> BACK), then Build
+        frames = [WORLD, LEFT, TOAST, TOAST, WORLD, MENU, MENU, MENU, WORLD]
+        ocr = {'hs_0_world_col0': FIELD_BUILT, 'hs_0_world_col0_t0': FIELD_BUILT,
+               **cnt('hs_0_read', 16), 'hs_0_read_res': RES}
+        dev, rc = self.run_hs(frames, ocr)
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, (760, 877), hs.TOAST_CLOSE, ('key', 4), hs.BUILD_BTN,
+                                    hs.EXIT_BTN])
+        self.assertIn('collecting', dev.out.getvalue())
+
+    def test_collect_is_bounded(self):
+        frames = [WORLD, LEFT] + [LEFT] * hs.COLLECT_MAX + [MENU, MENU, MENU, WORLD]
+        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 16), 'hs_0_read_res': RES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps.count((760, 877)), hs.COLLECT_MAX)
+
+    def test_unknown_screen_after_a_collect_tap_stops(self):
+        dev, rc = self.run_hs([WORLD, LEFT, TOAST], {'hs_0_world_col0': ['Something else']})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [v.GROUND, (760, 877)])
+
+    def test_real_frames_collect(self):
+        # operator live 22:28: where1 (marker) -> complete1 -> close9 (still up) -> BACK -> close10
+        w, menu = hermes('where1.png'), hermes('hm_build_menu.png')
+        frames = [w, w, hermes('complete1.png'), hermes('close9.png'), hermes('close10.png'),
+                  menu, menu, menu, hermes('close10.png')]
+        ocr = {'hs_0_world_col0': FIELD_BUILT, 'hs_0_world_col0_t0': FIELD_BUILT,
+               **cnt('hs_0_read', 16), 'hs_0_read_res': RES}
+        dev, rc = self.run_hs(frames, ocr)
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        mx, my = dev.taps[1]
+        self.assertLessEqual(abs(mx - 760) + abs(my - 877), 8)
+        self.assertEqual(dev.taps[2:], [hs.TOAST_CLOSE, ('key', 4), hs.BUILD_BTN, hs.EXIT_BTN])
+
+    def test_exit_game_dialog_on_the_start_frame_is_cancelled(self):
+        # T103c live (shots-9308): X, re-shoot, continue - never the green check (exits the game)
+        dev, rc = self.run_hs(['DIALOG', WORLD, WORLD, MENU, MENU, MENU, WORLD],
+                              {**cnt('hs_0_read', 16), 'hs_0_read_res': RES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.CONFIRM_CANCEL, v.GROUND, hs.BUILD_BTN, hs.EXIT_BTN])
+        self.assertNotIn(('key', 4), dev.taps)
 
     def test_at_limit_is_nothing_to_do(self):
         dev, rc = self.run_hs(self.entry(0) + [MENU, WORLD],

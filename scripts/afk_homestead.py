@@ -17,6 +17,11 @@ Flow (Hermes played it once live, 2026-11-04 20:40-20:44, frames in
   -> back to the menu, counter must read N+1; repeat (bounded by MAX_BUILDS)
   -> Exit -> world.
 
+T103c (operator live 2026-11-04 22:28): a start frame showing 'exit the game?' is cancelled
+via its X; finished builds left on the world ('Tap to Complete' anywhere in COLLECT_WIN) are
+collected before the menu opens (tap -> 'Field Built' -> Tap to close, max COLLECT_MAX); a toast
+still up after its 'Tap to close' tap gets ONE keyevent BACK (only on the recognised toast).
+
 Never spends diamonds: a confirm dialog is always cancelled, 'Complete Now'
 is never tapped (only the free marker). Every tap is gated on the previous
 screenshot; an unrecognised screen stops the run.
@@ -88,12 +93,21 @@ X_PX = (150, 600)              # LIVE: red-pixel count of the X (256 on all thre
 # --- world after the check: 'Tap to Complete' marker (hm_confirmed2) -------------
 MARK_WIN = (700, 350, 1220, 800)   # LIVE: marker at (964,578) on hm_confirmed2; position follows the
                                    # camera, so a wide window around the screen centre
-MARK_PX = 1000                 # LIVE: lemon-yellow disc (254,238,93): 2773 px within +-35 of the
+MARK_PX = 2000                 # LIVE: lemon-yellow disc (254,238,93): 2773 px within +-35 of the
                                # median on hm_confirmed2; <=154 on every WORLD frame in .spectre
-                               # (yellow roof of shots-76112/dg_cam_5, trash/shots-53860/dg_*)
+                               # (yellow roof of shots-76112/dg_cam_5, trash/shots-53860/dg_*).
+                               # T103c sweep, COLLECT_WIN, 353 WORLD frames (.spectre incl. trash +
+                               # Hermes scratch): 17 hits, all real markers, near 2648..3178; best
+                               # non-marker = the Kitchen's yellow request bubble 880..931 (was 1000)
+# T103c: finished builds left uncollected ('Tap to Complete', shots-80480/hu_world + Hermes
+# where1/base2: disc median (760,877), outside MARK_WIN) are collected at the start of the phase.
+COLLECT_WIN = (250, 150, 1700, 1000)  # world area without the HUD (left column + quest tracker x<250,
+                                      # right column x>1700, top bar, bottom bar y>1000)
+COLLECT_MAX = 3                # markers collected per world frame (bounded)
 TOAST_CLOSE = (960, 1021)      # LIVE: 'Tap to close' text median (957,1021) on hm_spire_up (and the
                                # diamond info card hm_up2); NOT (960,654) = reward icon
 TOAST_WORD = 'built'           # LIVE: full-frame OCR of hm_spire_up -> 'Field Built', 'Tapto Close'
+TOAST_TRIES = 4                # close taps per toast chain (toast, reward info card, BACK fallback)
 MAX_BUILDS = 4                 # brief: bounded, max ~4 fields per run
 BUILD_POLLS = 10               # x POLL_WAIT after the check: marker / toast / world
 POLL_WAIT = 2.0
@@ -184,14 +198,20 @@ def _white_disc(img: Image.Image, c) -> bool:
                for dx, dy in ((RING_DISC_DX, 0), (-RING_DISC_DX, 0), (0, RING_DISC_DX), (0, -RING_DISC_DX)))
 
 
-def find_marker(img: Image.Image):
-    """Yellow 'Tap to Complete' check disc over a finished build, else None."""
-    pts = _pixels(img, MARK_WIN, lambda r, g, b: r > 235 and g > 210 and b < 120 and g - b > 120)
-    if len(pts) < MARK_PX:
-        return None
-    mx, my = _median(pts)
-    near = sum(abs(x - mx) <= 35 and abs(y - my) <= 35 for x, y in pts)
-    return (mx, my) if near >= MARK_PX else None
+def find_marker(img: Image.Image, win=MARK_WIN):
+    """Yellow 'Tap to Complete' check disc over a finished build in win, else None.
+    T103c: judged per yellow cluster - a wide window also holds other yellow UI (the Kitchen's
+    request bubble, ~930 px) that would drag a window-wide median off the disc."""
+    pts = _pixels(img, win, lambda r, g, b: r > 235 and g > 210 and b < 120 and g - b > 120)
+    best = None
+    for group in _clusters(pts):
+        if len(group) < MARK_PX:
+            continue
+        mx, my = _median(group)
+        near = sum(abs(x - mx) <= 35 and abs(y - my) <= 35 for x, y in group)
+        if near >= MARK_PX and (best is None or near > best[0]):
+            best = near, (mx, my)
+    return best and best[1]
 
 
 def ocr_scaled(name: str, box, tag: str) -> list[str]:
@@ -266,6 +286,53 @@ def tap_until(xy, wait: float, tag: str, ok, still):
     return img if ok(img) else None
 
 
+def toast_text(name: str) -> str:
+    return ' '.join(v.ocr_lines(name)).lower()
+
+
+def close_toast(text: str, tag: str):
+    """A recognised toast is up ('Field Built' / its reward info card; `text` = its OCR) -> world.
+    TOAST_CLOSE per toast; the SAME toast still up after its tap -> ONE keyevent BACK (T103c,
+    operator live: close9 == complete1 after the tap, BACK -> close10 world). BACK only on a
+    recognised toast frame - never on the world, never in the build menu. World frame, or None."""
+    last, backed = None, False
+    for n in range(TOAST_TRIES):
+        if TOAST_WORD not in text and 'close' not in text:
+            print(f'    ERROR: unknown screen, not a toast (OCR {text[:60]!r})', flush=True)
+            return None
+        if text == last and not backed:
+            print('    toast still up after Tap to close -> one BACK', flush=True)
+            v.back(1.5)
+            backed = True
+        else:
+            v.tap(TOAST_CLOSE, 2.0)
+        last = text
+        img = v.shot(f'{tag}_t{n}')
+        if v.classify(img) == 'WORLD':
+            return img
+        text = toast_text(f'{tag}_t{n}')
+    print('    ERROR: toast did not close', flush=True)
+    return None
+
+
+def collect(img, tag: str):
+    """T103c: world frame -> tap up to COLLECT_MAX finished builds' 'Tap to Complete' markers in
+    COLLECT_WIN and close their toasts. The world frame, or None (unknown screen)."""
+    for i in range(COLLECT_MAX):
+        mark = find_marker(img, COLLECT_WIN)
+        if mark is None:
+            break
+        print(f'    finished build waiting at {mark} - collecting', flush=True)
+        v.tap(mark, 2.5)
+        name = f'{tag}_col{i}'
+        img = v.shot(name)
+        if v.classify(img) != 'WORLD':
+            img = close_toast(toast_text(name), name)
+            if img is None:
+                return None
+    return img
+
+
 def leave(img) -> None:
     """Back to the world: cancel a placement, Exit the menu, then reach_world. T102b: keyevent 4
     inside the Build menu opens 'exit game?' (Hermes, live) - reach_world (BACK) only runs once
@@ -299,8 +366,14 @@ def open_menu(tag: str):
     """World -> Avalon Creator (Production tab). The menu frame, or the exit code.
     T102b: the 2nd live run started inside the menu left open by a failed run - a menu
     already up is used as is, a placement left open is cancelled (X) first; BACK
-    (reach_world) only for other non-world screens."""
+    (reach_world) only for other non-world screens. T103c: an 'exit the game?' dialog on the
+    start frame (shots-9308/hu_world) is cancelled via its X first; finished builds waiting on
+    the world are collected before the menu opens."""
     img = v.shot(f'{tag}_start')
+    if v.is_confirm_dialog(img):
+        print('    confirm dialog on the start frame -> X (never the check)', flush=True)
+        v.tap(v.CONFIRM_CANCEL, 1.5)
+        img = v.shot(f'{tag}_start_c')
     ring = find_ring(img)
     if ring:
         v.tap(ring[1], 2.0)
@@ -315,6 +388,9 @@ def open_menu(tag: str):
     img = v.shot(f'{tag}_world')
     if v.classify(img) != 'WORLD':
         print('    ERROR: not on the world view after the ground tap', flush=True)
+        return 1
+    img = collect(img, f'{tag}_world')
+    if img is None:
         return 1
     if not build_btn(img):
         print('    Build button not on the world HUD - nothing to do', flush=True)
@@ -337,7 +413,7 @@ def build_one(k: int) -> int:
         return 1
     check, _ = find_ring(img)
     v.tap(check, FIRST_WAIT)
-    toast = tapped = False
+    tapped = False
     for n in range(BUILD_POLLS):
         img = v.shot(f'hs_b{k}_{n}')
         if v.is_confirm_dialog(img):
@@ -357,7 +433,7 @@ def build_one(k: int) -> int:
                 return 4
         if v.classify(img) == 'WORLD':
             mark = find_marker(img)
-            if toast or (tapped and not mark):
+            if tapped and not mark:
                 return 0                   # the menu counter verifies it
             if mark:
                 v.tap(mark, 2.5)
@@ -365,11 +441,9 @@ def build_one(k: int) -> int:
             else:
                 time.sleep(POLL_WAIT)      # still building
             continue
-        text = ' '.join(v.ocr_lines(f'hs_b{k}_{n}')).lower()
-        if TOAST_WORD in text or (toast and 'close' in text):
-            toast = True                   # 'Field Built' / a reward info card on top of it
-            v.tap(TOAST_CLOSE, 2.0)
-            continue
+        text = toast_text(f'hs_b{k}_{n}')
+        if TOAST_WORD in text:             # 'Field Built' (+ a reward info card on top of it)
+            return 0 if close_toast(text, f'hs_b{k}') is not None else 1
         print(f'    ERROR: unknown screen while building (OCR {text[:60]!r})', flush=True)
         return 1
     print('    ERROR: build did not finish within the poll budget', flush=True)

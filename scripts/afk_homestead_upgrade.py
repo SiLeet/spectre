@@ -181,6 +181,12 @@ GO_PILL_DX = 25
 SMALL_DISC_DY = 30
 SMALL_DISC_R = 25
 GO_WAIT = 3.0
+# T103g live (shots-14680/hu_go after Go -> Kitchen): OCR read 'Cook' + 'Kitchen' but NOT the small
+# 'Level Up' text (Hermes' kn2.png: 'l_evel CP'). Its disc sat at (1054,730) on all three Kitchen
+# frames (hu_go, kn2, shots-80480) = the 'Cook' text centre (959,738) + (95,-8); the Cook disc
+# passes small_disc_at too, so the fallback searches only +-ANCHOR_R around that offset.
+COOK_TO_LU = (95, -8)
+ANCHOR_R = 10
 BUILDING_RE = re.compile(r'level\s*\d+\s+([a-z][a-z ]+)', re.I)   # 'Level 5 Kitchen' -> kitchen
 BTN_NEAR = 40                  # an OCR 'Level Up' box centre must be this close to LEVEL_UP_BTN
 
@@ -447,16 +453,27 @@ def small_disc_at(img, xy) -> bool:
 def building_level_up(img, boxes, name: str):
     """Tap point of the selected `name` building's radial 'Level Up' disc ('Level U' as read),
     with its own name label above it (LABEL_DX), else None."""
+    def labelled(cx, cy):
+        return any(name in lb[4].lower() and abs(_centre(lb)[0] - cx) <= LABEL_DX and _centre(lb)[1] < cy
+                   for lb in boxes)
+
     for b in boxes:
-        if not b[4].lower().startswith('level u'):
+        if 'evel' not in b[4].lower():          # 'Level U', T103g live 'l_evel CP'
             continue
         cx, cy = _centre(b)
-        if not any(name in lb[4].lower() and abs(_centre(lb)[0] - cx) <= LABEL_DX and _centre(lb)[1] < cy
-                   for lb in boxes):
+        if not labelled(cx, cy):
             continue
-        for x in range(cx - 8, cx + 9, 4):      # the arrow sits a few px right of the text centre
-            if small_disc_at(img, (x, cy - SMALL_DISC_DY)):
-                return x, cy - SMALL_DISC_DY
+        for y in (cy - SMALL_DISC_DY, cy - SMALL_DISC_DY + 4, cy - SMALL_DISC_DY - 4):
+            for x in range(cx - 8, cx + 9, 4):  # the arrow sits a few px right of the text centre
+                if small_disc_at(img, (x, y)):
+                    return x, y
+    cook = _line(boxes, 'cook', RADIAL_WIN)     # T103g: Level Up text unread -> anchor on 'Cook'
+    if cook and labelled(*_centre(cook)):
+        ax, ay = _centre(cook)[0] + COOK_TO_LU[0], _centre(cook)[1] + COOK_TO_LU[1]
+        for r in range(0, ANCHOR_R + 1, 2):
+            for x, y in ((ax + dx, ay + dy) for dx in (-r, 0, r) for dy in (-r, 0, r)):
+                if small_disc_at(img, (x, y)):
+                    return x, y
     return None
 
 

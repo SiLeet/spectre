@@ -141,7 +141,7 @@ def main() -> int:
             v.tap((1500, 600), 1.2)
             continue
         st = v.classify(img)
-        if st in ('PANEL', 'POPUP'):
+        if st in ('PANEL', 'POPUP', 'DR_BOSS'):   # T94: DR_BOSS was POPUP
             v.tap(v.BACK, 1.2)
             continue
         break  # world (or unknown) -> open the events panel next

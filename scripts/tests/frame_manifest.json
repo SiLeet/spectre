@@ -26,8 +26,8 @@
    1080
   ],
   "sha16": "daebd2b2cc8f71f3",
-  "classify": "UNKNOWN",
-  "battle_class": "PREP"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-41060/f1probe_b1.png",
@@ -156,8 +156,8 @@
    1080
   ],
   "sha16": "ac5925a4972f41e2",
-  "classify": "UNKNOWN",
-  "battle_class": "DEFEAT"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-54120/norm_final.png",
@@ -406,8 +406,8 @@
    1080
   ],
   "sha16": "d680416cccf1dc5c",
-  "classify": "UNKNOWN",
-  "battle_class": "DEFEAT"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-68368/rw_leave_start.png",
@@ -416,8 +416,8 @@
    1080
   ],
   "sha16": "ef5e6a7a100562dd",
-  "classify": "UNKNOWN",
-  "battle_class": "DEFEAT"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-68548/hl_entry.png",
@@ -426,8 +426,8 @@
    1080
   ],
   "sha16": "7c2738c145cf5cb1",
-  "classify": "UNKNOWN",
-  "battle_class": "PREP"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-68548/hl_entry_retry.png",
@@ -436,8 +436,8 @@
    1080
   ],
   "sha16": "b2d4456a2a915aee",
-  "classify": "UNKNOWN",
-  "battle_class": "DEFEAT"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-70956/f1probe_after_sword.png",
@@ -456,8 +456,8 @@
    1080
   ],
   "sha16": "35caa15b44aae4b7",
-  "classify": "UNKNOWN",
-  "battle_class": "DEFEAT"
+  "classify": "DR_BOSS",
+  "battle_class": "POPUP"
  },
  {
   "relpath": ".spectre/shots-73476/zz_probe.png",

@@ -136,10 +136,12 @@ class NormalizePrep(unittest.TestCase):
         self.assertEqual(afk_normalize.main(), 1)
         self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK] + [v.BACK] * 4)
 
-    def test_claim_round_still_refuses_the_prep(self):
-        dev = FakeDevice(self, ['DR_PREP_GRID'])
-        self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [])
+    def test_claim_round_backs_out_of_the_prep(self):
+        # T94 (was: refused): the round start leaves the prep with its BACK
+        dev = FakeDevice(self, ['DR_PREP_GRID', 'WORLD', 'PANEL', 'POPUP', 'PANEL'])
+        self.assertEqual(v.claim_round('r1'), 0)
+        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK, v.GROUND, v.AFK_PROGRESS,
+                                    v.CHEST, v.CLAIM, v.BACK])
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 REPO = Path(__file__).resolve().parent.parent
 import os
@@ -348,6 +348,36 @@ LOGIN_CLAIM = (960, 930)   # 'Esperia Monthly / Daily Rewards' popup Claim (veri
 DR_PREP_BAR = ((760, 1000), (1600, 1000))     # Battle bar, left + right end
 DR_PREP_PLATES = ((570, 1000), (690, 1000))   # back-button plate, Records button
 DR_PREP_PANEL = ((478, 700), (1656, 700))     # cream panel rim beside the hero grid (r=4)
+# T94 Dream Realm boss page (probes moved here from afk_dream_realm so classify
+# can name it; afk_dream_realm keeps its old names as aliases).
+DR_BOSS_BAR = ((700, 1000), (1280, 1010))     # bar left end (T91 BOSS_BAR_LEFT) + right probe
+DR_HERO_DETAIL = ((620, 992), (466, 1014))    # Ascend plate + back-arrow plate (A8 fund #2)
+# Brown letterbox art beside the portrait panel. LIVE: 12 Necrodrakon pages
+# (94,76,70) (75,55,44) (71,51,43) (76,55,45), King Croaker livecheck/now
+# (90,72,64)..(72,53,42): R-B >= 24; hero level-up (livecheck/aftertap, c1;
+# lights the bar probes) R-B <= -4.
+DR_LETTERBOX = ((200, 540), (1720, 540), (100, 200), (1820, 900))
+# Back plate on BOTH boss layouts: Necrodrakon plate x 478-586 / y 958-1043
+# (now6; v.BACK sits 4 px left of it on the panel edge), King Croaker plate
+# x ~430-526 with the Battle bar ~10 px right of it (livecheck/now: (535,1000)
+# is that gap). LIVE: L 245-247 on all 13 boss pages + now5; not tapped live.
+DR_BOSS_BACK = (502, 1005)
+# Boss info card over the page (now5, Necrodrakon): cream header over a grey
+# body. LIVE: header L 243 (247,242,235) both, body (91,81,80); every boss
+# page reads header L <= 114 (shots-75220/r1_0_initial (33,142,180)).
+DR_INFO_HEADER = ((1170, 225), (1150, 285))
+DR_INFO_BODY = (1220, 550)
+# T94 round-start recovery budget: taps (each on a proven state) + re-shots.
+# Not counted: ONE BACK on a verified Battle Modes menu (the brief's normal
+# reach_world path after the boss back, not a recovery action). Card + info
+# card + boss page = 3 taps, so a transition that also needs its tap is refused.
+RECOVER_BUDGET = 3
+RECOVER_WAITS = 6               # black / UI-less / own-tap aftermath frames, RECOVER_WAIT s apart
+RECOVER_WAIT = 2.5
+# Neutral spot for the one UI-less tap: scene on now4, inert letterbox art on
+# the boss page. Not the centre: that is the boss model, a tap there opens the
+# info card (now5 — inferred from the operator's tap on the transition).
+TRANSITION_TAP = (200, 540)
 POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
 
@@ -580,6 +610,126 @@ def is_dr_prep(img: Image.Image) -> bool:
             and all(lum(avg(img, p, r=4)) > 200 for p in DR_PREP_PANEL))
 
 
+def dr_green(c: tuple[int, int, int]) -> bool:
+    # boss-page Battle button ~(109,154,100), prep Battle button ~(160,192,152);
+    # the in-fight olive probes (129,143,88)/(167,178,96) must NOT match
+    return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 170
+
+
+def is_dr_hero_detail(img: Image.Image) -> bool:
+    """Hero-detail screen (A8 live fund #2, shots-62080/dr_f1_pre3 +
+    shots-65076/hl_daily_post): the full-width green 'Level Up' bar lights
+    BOTH battle probes, so is_boss_page used to match and start_fight fired
+    BOSS_TAP onto the Level-Up button. Both the Ascend badge plate and the
+    back-arrow plate are bright cream here (~(222,216,211) / (217,211,207))
+    while the real boss page reads dark/blue at both spots (King Croaker,
+    shots-77148/readonly-state-1513: ~(25,49,118) / (87,150,199)). A bright
+    boss-page background would be gated too — that fails SAFE (clean abort,
+    no chance consumed), never into wrong taps."""
+    return all(lum(avg(img, p)) > 190 for p in DR_HERO_DETAIL)
+
+
+def is_dr_boss_bar(img: Image.Image) -> bool:
+    """Boss page (afk_dream_realm.is_boss_page): the Battle button is a
+    FULL-WIDTH green bar, so the left AND the right probe both read green
+    (T91: the left probe replaces the centre one, which sits on the dark
+    'Chances' label). Neither prep layout lights the left probe (old: SKIP in
+    the centre; new: the cream Records button), so a prep never classifies as
+    boss page. The hero detail matches the green signature too — excluded
+    explicitly (A8 live fund #2); the Arena lobby carried the same false
+    positive (shots-59516/arena_1_lobby) — T91: its Formation plate leaves
+    the left probe un-green. T94: the hero level-up screen still matches
+    (livecheck/aftertap, c1) — classify uses is_dr_boss."""
+    if is_dr_hero_detail(img):
+        return False
+    return all(dr_green(avg(img, p)) for p in DR_BOSS_BAR)
+
+
+def is_dr_boss(img: Image.Image) -> bool:
+    """T94: the boss page as classify sees it — green bar + brown letterbox +
+    the back plate under DR_BOSS_BACK (also true under the info card)."""
+    return (is_dr_boss_bar(img)
+            and all(c[0] - c[2] > 12 and 40 < lum(c) < 110
+                    for c in (avg(img, p) for p in DR_LETTERBOX))
+            and lum(avg(img, DR_BOSS_BACK)) > 200)
+
+
+def is_dr_info(img: Image.Image) -> bool:
+    """T94: the boss info card (tap on the boss model) is up."""
+    return (all(lum(avg(img, p)) > 200 for p in DR_INFO_HEADER)
+            and lum(avg(img, DR_INFO_BODY)) < 150)
+
+
+def is_ui_less(img: Image.Image) -> bool:
+    """T94 UI-less transition (night/aurora scene, no HUD, no card, no button;
+    Battle-Ended card -> boss page, now4). LIVE over all 285 1920x1080 frames
+    (480x270 box): now4 white 0, L 35.4, B-R 43.0 — the only match. Nearest
+    misses: shots-80660/norm_1 (letterboxed boss mid-load) B-R 19.4,
+    shots-69680/norm_2 (fight intro) white 4 + L 77.5, black frames L 0,
+    'Loading...' white >= 82."""
+    sm = img.resize((480, 270), Image.Resampling.BOX)
+    r, g, b = sm.split()
+    white = sum(ImageChops.darker(ImageChops.darker(r, g), b).histogram()[201:])
+    mean = tuple(ImageStat.Stat(sm).mean)
+    return white == 0 and 20 < lum(mean) < 60 and mean[2] - mean[0] > 30
+
+
+def recover_leftover(tag: str, img: Image.Image, name: str,
+                     budget: int = RECOVER_BUDGET) -> tuple[str, str]:
+    """T94: bounded, state-proven way out of Dream Realm leftovers at a round
+    start (result card / Victory Rewards -> CARD_CLOSE, boss page or its info
+    card -> DR_BOSS_BACK, prep -> DR_PREP_BACK). At most `budget` taps, plus one
+    uncounted BACK on a verified Battle Modes menu; black / UI-less frames (and
+    any unknown frame after one of its own taps or waits) are waited out, a
+    UI-less frame still up after a wait gets ONE neutral tap (counted). Returns (state, name of the last shot); the
+    name is unchanged when the frame was none of these (nothing done)."""
+    import afk_dream_realm as dr    # lazy: both import this module
+    import afk_normalize
+    taps = waits = 0
+    prev_ui_less = ui_tapped = modes = False
+    while True:
+        st = classify(img)
+        if st in ('WORLD', 'PANEL'):
+            return st, name
+        ui_less = st == 'UNKNOWN' and is_ui_less(img)
+        if dr.is_battle_ended(img) or dr.is_victory_rewards(img):
+            what, xy = 'Dream Realm result screen -> tap to close', dr.CARD_CLOSE
+        elif is_dr_boss(img):
+            what, xy = f'Dream Realm boss page ({st}) -> back plate', DR_BOSS_BACK
+        elif st == 'DR_PREP':
+            what, xy = 'Dream Realm prep -> BACK', afk_normalize.DR_PREP_BACK
+        elif is_battle_modes(img):
+            if modes:
+                return st, name         # the one BACK did not leave it
+            modes, prev_ui_less = True, False
+            print('    recovery: Battle Modes menu -> BACK (outside the budget)', flush=True)
+            tap(BACK, 2.5)
+            name = f'{tag}_0m'
+            img = shot(name)
+            continue
+        elif ui_less and prev_ui_less and not ui_tapped and not ocr_lines(name):
+            ui_tapped = True
+            what, xy = 'UI-less transition persists -> one neutral tap', TRANSITION_TAP
+        elif (st == 'UNKNOWN' and (taps or waits or modes or ui_less or dr.is_uniform_dark(img))
+              and waits < RECOVER_WAITS):
+            waits, prev_ui_less = waits + 1, ui_less
+            print(f'    recovery: transition, waiting ({waits}/{RECOVER_WAITS})', flush=True)
+            time.sleep(RECOVER_WAIT)
+            name = f'{tag}_0w{waits}'
+            img = shot(name)
+            continue
+        else:
+            return st, name
+        if taps >= budget:
+            print(f'    recovery: budget of {budget} taps used up ({what}) — no tap', flush=True)
+            return st, name
+        taps, prev_ui_less = taps + 1, False
+        print(f'    recovery {taps}/{budget}: {what}', flush=True)
+        tap(xy, 2.5)
+        name = f'{tag}_0r{taps}'
+        img = shot(name)
+
+
 def reach_world(max_steps: int = 6) -> bool:
     """Tap BACK until the verified world view is up."""
     for i in range(max_steps):
@@ -758,6 +908,11 @@ def classify(img: Image.Image) -> str:
         return 'PANEL'
     if is_afk_panel(img):
         return 'PANEL'
+    # T94: before POPUP — the letterboxed boss page puts (474,1010) on the dark
+    # panel edge next to its cream back plate, which the POPUP rule read as a
+    # dimmed back arrow (now6, shots-75220). With the info card up it stays POPUP.
+    if is_dr_boss(img) and not is_dr_info(img):
+        return 'DR_BOSS'
     # POPUP before WORLD: a dimmed popup used to satisfy the WORLD predicate
     # (|lb-lg| < 15 also matched lb-lg in (-15,-8]), which then tapped the world
     # sequence into a live popup.
@@ -806,10 +961,22 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
     """One verified AFK-chest claim from wherever the game is: world -> AFK
     panel -> chest popup -> Claim -> panel (BACK). Shared by main() and
     afk_dailies. Returns main()'s exit codes: 0 claim verified (or dry-run
-    reached its stop), 1 unreachable/unknown screen, 4 nothing claimable."""
+    reached its stop), 1 unreachable/unknown screen, 4 nothing claimable.
+    Dry-run too spends the T94 leftover recovery taps (recover_leftover)."""
     last = f'{tag}_0_initial'          # the shot `state` was read from (intro OCR)
-    state = classify(shot(last))
+    img = shot(last)
+    state = classify(img)
     print(f'    initial state: {state}', flush=True)
+    if state not in ('WORLD', 'PANEL'):
+        # T94: Dream Realm leftovers get <= RECOVER_BUDGET state-proven taps;
+        # anything else is untouched and handled below as before
+        state, now = recover_leftover(tag, img, last)
+        if now != last:
+            last = now
+            print(f'    after leftover recovery: {state}', flush=True)
+            if state not in ('WORLD', 'PANEL'):
+                print('    ERROR: leftover screen not left within the budget — refusing', flush=True)
+                return 1
 
     if state == 'WORLD':
         if dry_run:
@@ -837,10 +1004,11 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         tap(BACK, 2.0)
         state = classify(shot(f'{tag}_1c_intro'))
         print(f'    after intro BACK: {state}', flush=True)
-    if state in ('UNKNOWN', 'DR_PREP'):
+    if state not in ('WORLD', 'PANEL', 'POPUP'):
         # never fire the recovery taps on an unidentified screen: that is
-        # how a blind tap ends up on a store/purchase dialog (T91: the dream
-        # prep keeps its old UNKNOWN handling here; afk_normalize leaves it)
+        # how a blind tap ends up on a store/purchase dialog (T94: also a
+        # DR_PREP / DR_BOSS reached after the popup close — reach_world's
+        # repeated BACK must not run into the transition behind them)
         print('    ERROR: unknown screen — refusing to tap blind', flush=True)
         return 1
     if state != 'PANEL':
@@ -902,7 +1070,8 @@ def main() -> int:
                     help='skip unless the PC has been idle this many seconds (scheduled runs)')
     ap.add_argument('--dry-run', action='store_true',
                     help='no chest/claim tap; a popup on screen is still closed '
-                         '(BACK, or the login-popup claim)')
+                         '(BACK, or the login-popup claim), and Dream Realm leftovers get '
+                         'up to RECOVER_BUDGET recovery taps')
     args = ap.parse_args()
 
     if not args.dry_run:

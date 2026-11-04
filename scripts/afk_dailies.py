@@ -58,7 +58,7 @@ def open_menu() -> bool:
         # both bright only while the menu panel is open (world: L 64 / 31)
         if v.lum(v.avg(img, (480, 1010))) > 150 and v.lum(v.avg(img, (1375, 1028))) > 150:
             return True
-        v.tap(v.BACK if v.classify(img) == 'POPUP' else MENU, 3.0)
+        v.tap(v.BACK if v.classify(img) in ('POPUP', 'DR_BOSS') else MENU, 3.0)   # T94: DR_BOSS was POPUP
     return False
 
 

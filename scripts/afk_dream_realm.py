@@ -59,8 +59,8 @@ BOSS_TAP = (960, 1020)           # green Battle button on the boss page
 PREP_TAP = (1280, 1010)          # green Battle button on the prep screen
                                  # NB: (960,1010) on prep is the SKIP button — never tap it
 BATTLE_BTN_BOSS = (960, 1040)    # centre probe (legacy SKIP-layout prep / is_fight)
-BATTLE_BTN_PREP = (1280, 1010)
-BOSS_BAR_LEFT = (700, 1000)      # T91: boss bar spans x 595-1655 -> green here;
+BATTLE_BTN_PREP = v.DR_BOSS_BAR[1]   # (1280, 1010)
+BOSS_BAR_LEFT = v.DR_BOSS_BAR[0] # (700, 1000) T91: boss bar spans x 595-1655 -> green here;
                                  # the prep's Records button sits here (cream).
                                  # LIVE: boss shots-66808/dr_f1_chances (101,156,91),
                                  # prep dr_f1_prewait1 (244,240,234). The centre probe
@@ -194,41 +194,12 @@ def dim_confirmed(tag: str, img) -> bool:
     return _dim_probes(v.shot(f'{tag}_dim2'))
 
 
-def _green(c: tuple[int, int, int]) -> bool:
-    # boss-page Battle button ~(109,154,100), prep Battle button ~(160,192,152);
-    # the in-fight olive probes (129,143,88)/(167,178,96) must NOT match
-    return c[1] > 130 and c[1] > c[0] + 25 and c[2] < 170
-
-
-HERO_DETAIL_PROBES = ((620, 992), (466, 1014))   # Ascend plate + back-arrow plate
-
-
-def is_hero_detail(img) -> bool:
-    """Hero-detail screen (A8 live fund #2, shots-62080/dr_f1_pre3 +
-    shots-65076/hl_daily_post): the full-width green 'Level Up' bar lights
-    BOTH battle probes, so is_boss_page used to match and start_fight fired
-    BOSS_TAP onto the Level-Up button. Both the Ascend badge plate and the
-    back-arrow plate are bright cream here (~(222,216,211) / (217,211,207))
-    while the real boss page reads dark/blue at both spots (King Croaker,
-    shots-77148/readonly-state-1513: ~(25,49,118) / (87,150,199)). A bright
-    boss-page background would be gated too — that fails SAFE (clean abort,
-    no chance consumed), never into wrong taps."""
-    return all(v.lum(v.avg(img, p)) > 190 for p in HERO_DETAIL_PROBES)
-
-
-def is_boss_page(img) -> bool:
-    """Boss page: the Battle button is a FULL-WIDTH green bar, so the left
-    AND the right probe both read green (T91: left probe BOSS_BAR_LEFT
-    replaces the centre one, which sits on the dark 'Chances' label). Neither
-    prep layout lights BOSS_BAR_LEFT (old: SKIP in the centre; new: the cream
-    Records button), so a prep never classifies as boss page. The hero
-    detail matches the green signature too — excluded explicitly (A8 live
-    fund #2); the Arena lobby carried the same false positive (shots-59516/
-    arena_1_lobby) — T91: its Formation plate leaves BOSS_BAR_LEFT un-green."""
-    if is_hero_detail(img):
-        return False
-    return (_green(v.avg(img, BOSS_BAR_LEFT))
-            and _green(v.avg(img, BATTLE_BTN_PREP)))
+# T94: the boss-page probes moved to afk_claim_vision (classify names the
+# page DR_BOSS); the old names stay as aliases.
+_green = v.dr_green
+HERO_DETAIL_PROBES = v.DR_HERO_DETAIL
+is_hero_detail = v.is_dr_hero_detail
+is_boss_page = v.is_dr_boss_bar
 
 
 def is_prep(img) -> bool:

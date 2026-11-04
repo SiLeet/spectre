@@ -97,7 +97,7 @@ def classify_battle(img) -> str:
     # NOTE: keep this AFTER the BATTLE check — night battle frames read as
     # v.classify POPUP (verified on shots-36248 sp_auto_3/_14) and must
     # still classify as BATTLE.
-    if v.classify(img) == 'POPUP':
+    if v.classify(img) in ('POPUP', 'DR_BOSS'):   # T94: boss page kept POPUP (its green bar is no PREP)
         return 'POPUP'
     if card > 160:   # victory ~232, defeat ~183, prep arena ~82
         title = v.avg(img, (960, 60))

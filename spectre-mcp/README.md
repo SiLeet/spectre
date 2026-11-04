@@ -23,7 +23,7 @@ scripts/bluestacks-ensure.sh starten").
 | `read` | `pid`, `addr`, `type` (u8/u16/u32/u64/i32/f32/f64) | small temp dump, parsed little-endian → `{value}` |
 | `hot` | `pid`, `hex`, `base?`, `limit?` | `spectre hot ... --adb --adb-host/--adb-port --json` |
 | `hunt` | `pid`, `min`, `max`, `type` (u32) | `spectre hunt ... --adb --adb-host/--adb-port --type` |
-| `search` | `pid`, `type`, `value` or `min`+`max` | `spectre search ... --adb` |
+| `search` | `pid`, `type`, `value` or `min`+`max`; optional `continue` (refine the previous hits), `state` | `spectre search ... [--continue] [--state PATH] --adb` |
 | `chain` | `pid`, `base`, `offsets?` | `spectre chain <base> --pid <pid> --adb --json [--offsets]` |
 | `offsets` | `game?` | `spectre offsets [game] --json` |
 | `adb_tap` | `x`, `y` | `adb -s <SERIAL> shell input tap x y` |

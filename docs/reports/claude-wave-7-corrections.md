@@ -57,3 +57,41 @@ Panels, per Kontaktbogen einzeln geprüft. Suite auf dem T100-Branch: `Ran 548 t
 - Nebenbefund T90: CHEST-Tap (975,760) öffnete auf `shots-42328/r1_3_chest` kein Popup; die Truhe sitzt im neuen Layout eher um (1060,740). Deine CHEST-Kalibrierung.
 
 Worktrees `C:\Users\Sigi\spectre-w7-T86` … `-T100` stehen noch (alles gemergt; können weg).
+
+## Nachtrag T101–T103b (Abend 2026-11-04)
+
+Auch diese Rückmeldungen kamen nicht an (ENOINBOX). Stand der Branches (je 1 Commit, kein push):
+
+| Task | Branch @ Commit | In `main`? | Kern |
+|---|---|---|---|
+| T101 | `feature/T101-hall-direct` @ `c22766a` | ja (`66086ce`) | Hall-Einstieg nur von verifizierter Welt; Hand-Level = große „Level NNN"-Box; Charge = 1 Tap; Kostenzeile per OCR-Vote |
+| T101b | `feature/T101b-level-preview` @ `2e371ab` | **nein — bitte mergen** | Meilenstein-Vorschau „Upgrade 100 » 101" wird einmal bestätigt; COST_BOX ab x 840; Scan pollt |
+| T102 | `feature/T102-homestead-build` @ `c186e37` | ja (`c84dec7`) | Homestead Phase 1: Fields bauen |
+| T102b | `feature/T102b-homestead-counter` @ `734228b` | ja (`9bee2dd`) | Zähler per 7-Varianten-Vote; Menü-Exit nie per BACK |
+| T102c | `feature/T102c-radial-anywhere` @ `dc4a8b5` | **nein — bitte mergen** | Platzierungs-Radial im ganzen Band gesucht (folgt dem Ghost) |
+| T103 | `feature/T103-homestead-upgrades` @ `cd22c0f` | ja (`1d56598`) | Spire-Upgrade-Dialog; „Complete Now" wird nie getippt |
+| T103b | `feature/T103b-spire-select` @ `412f8fa` | **nein — bitte mergen** | Spire über sein schwebendes Upgrade-Icon wählen; offener Dialog beim Start ok |
+
+### Korrekturen zu deinen T101–T103-Diagnosen
+
+| Punkt | Brief sagte | Tatsächlich (Beleg) |
+|---|---|---|
+| T101 (1) | Hall-Tap (990,1010) liegt auf totem Punkt | Beide 20:30-Direktläufe starteten auf dem offenen Radiant-Spire-Upgrade-Panel (shots-62772/80500, classify UNKNOWN). (990,1010) liegt dort im „Complete Now"-Button (1800 Diamanten). Fix: Tap nur auf verifizierter Welt, sonst erst zurück zur Welt. |
+| T101 (2) | Gold knapp unter Bedarf, „heute korrekt geskippt" | Falsch. `8572K/9390` = 8,57 M Gold gegen 9.390 Bedarf. Die alte Regel „Bedarf erbt das K" las 9,39 M → falscher Skip um 18:22Z. |
+| T101 (3) | „charge had no effect" | Die Ladung wirkte doppelt und auf die falsche Hand: shots-17092 101→103, shots-48104 103→105 (Gold 8572K→8553K = 9390 + 9450). Das „Lvl. NN"-Badge ist nicht das Hand-Level (Badges 82/92/85 bleiben bei jeder Ladung gleich); Cecia/Aurora (100) wurden nie geladen. |
+| T101-Nachtrag | LEVEL_X1 trifft nach Redesign ins Leere; echte Trigger = grüne Doppelpfeile im Hall | Widerlegt: LEVEL_X1 levelte live (101→103 mit passendem Gold/EXP-Verbrauch). Die Doppelpfeile sind „levelbar"-Marker, bei (1003/1116/1229, 423), nicht ~(963,400). |
+| T101-live | Level-Read nach Tap None; Kosten 8,53 M vs. Gold-Anzeige 653K inkonsistent; drittes Paar weg = Verbrauch? | Bei Level 100 öffnet der Tap eine „Upgrade 100 » 101"-Vorschau (shots-43184) → Level-Box weg. 8,53 M ist Helden-Gold, 653K ist Homestead-Gold (andere Währung). „Drittes Paar weg" = der Ausschnitt schnitt das Gold-Paar ab (Vorschau-Zeile ~100 px weiter links), kein Verbrauch. Fix in T101b. |
+| T102 | „Build" (900,1017) ist ein Bauschritt; Toast kommt automatisch | „Build" ist der schon aktive Build/Layout-Umschalter; der Toast kommt erst nach dem Tap auf den „Tap to Complete"-Marker; Toast-Mitte öffnet die Diamant-Infokarte. |
+| T102-live | FIELD_BOX-Crop prüfen | Weißer kursiver Zähler: kein einzelner Crop liest 12/13/14 zuverlässig → 7-Varianten-Vote (T102b). |
+| T102-Radial | Radial-Lage dynamisch | Bestätigt; Geometrie fest (X 247 px links vom Haken, gleiche Höhe), nur die Position wandert → Band-Suche + Weißscheiben-Test (T102c, Sweep 1796 Frames: 7 Treffer, alle echt). |
+| T103-live | Label „Radiant Spire" ~(890,185) antippen | Dort steht kein Text-Label; es ist ein schwebendes weißes Icon mit Pfeil nach oben über dem Spire (Mitte ~(916,171)). T103b sucht es pro Frame (Sweep: 4 Treffer, alle echt). |
+
+### Diamanten-Policy (T103)
+
+Die „Complete Now"-Regel (automatisch, wenn Diamanten ≥ 10× Kosten) ist **nicht** umgesetzt. Sie widerspricht der stehenden Regel „nie Diamanten" und braucht Sergejs Entscheidung. Das Modul lehnt jeden Tap in der „Complete Now"-Fläche ab.
+
+### LIVE offen
+
+- T101b: Verhalten nach der Bestätigung in der Vorschau (schließt sie oder zeigt 101 » 102?) — beides wird behandelt, ungesehen.
+- T101: „tap missed" (rc 1) hat keine Obergrenze über Zyklen; nichts wird verbraucht.
+- T102c/T103b: neue Detektoren live ungetippt; T103 „Go"-Wege, 7/7-Dialog, Kitchen/Kochen offen.

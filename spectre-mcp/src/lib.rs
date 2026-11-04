@@ -317,11 +317,13 @@ pub fn tool_list() -> Vec<Value> {
         ),
         tool(
             "search",
-            "Speicher nach einem Wert (value) oder Bereich (min+max) durchsuchen (spectre search --adb).",
+            "Speicher nach einem Wert (value) oder Bereich (min+max) durchsuchen (spectre search --adb); continue=true verfeinert die vorige Treffermenge (--continue).",
             json!({
             "pid": pid,
             "type": { "type": "string", "enum": ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64", "f32", "f64"] },
-            "value": num("exakter Wert"), "min": num("Bereich: untere Grenze"), "max": num("Bereich: obere Grenze") }),
+            "value": num("exakter Wert"), "min": num("Bereich: untere Grenze"), "max": num("Bereich: obere Grenze"),
+            "continue": { "type": "boolean", "description": "vorige Treffer verfeinern statt neu scannen (spectre search --continue)" },
+            "state": { "type": "string", "description": "State-Datei der Suche (--state; Default .spectre-search.json)" } }),
             &["pid", "type"],
         ),
         tool(
@@ -532,6 +534,12 @@ impl<R: CommandRunner> Ctx<'_, R> {
                         args.extend(["--min".to_owned(), min, "--max".to_owned(), max])
                     }
                     _ => return Err("search braucht entweder value oder min+max".to_owned()),
+                }
+                if a.get("continue").and_then(Value::as_bool).unwrap_or(false) {
+                    args.push("--continue".to_owned());
+                }
+                if let Some(state) = opt_text(a, "state") {
+                    args.extend(["--state".to_owned(), state]);
                 }
                 // shortcut: search/dump/find/regions/chain take only --adb (CLI uses 127.0.0.1:5555); add host/port once the CLI has the flags.
                 args.push("--adb".to_owned());
@@ -1035,6 +1043,29 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn search_refine_passes_continue_and_state() {
+        let s = server(|_, _| ok("2 match(es)"));
+        let resp = call(
+            &s,
+            "search",
+            json!({ "pid": 9, "type": "u32", "value": "259850", "continue": true, "state": "s.json" }),
+        );
+        assert_eq!(resp["result"]["isError"], false);
+        call(&s, "search", json!({ "pid": 9, "type": "u32", "min": "1", "max": "9", "continue": true }));
+        call(&s, "search", json!({ "pid": 9, "type": "u32", "value": "5", "continue": false }));
+        let c: Vec<_> = calls(&s).into_iter().filter(|(p, _)| p == "spectre").collect();
+        assert_eq!(
+            c[0].1,
+            strings(&["search", "9", "u32", "259850", "--continue", "--state", "s.json", "--adb"])
+        );
+        assert_eq!(
+            c[1].1,
+            strings(&["search", "9", "u32", "--min", "1", "--max", "9", "--continue", "--adb"])
+        );
+        assert_eq!(c[2].1, strings(&["search", "9", "u32", "5", "--adb"]));
     }
 
     #[test]

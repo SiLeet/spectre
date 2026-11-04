@@ -553,6 +553,51 @@ class F27NoBlindBackAfterPopup(unittest.TestCase):
 
 
 
+class T86IntroScreen(unittest.TestCase):
+    """The season/login welcome cinematic (UNKNOWN + OCR) gets one BACK."""
+    INTRO = ['12400', 'Willkommen in', 'Esperia!', 'Server:H143']   # live OCR, fix_intro_0
+
+    def test_initial_intro_back_then_normal_chain(self):
+        dev = FakeDevice(self, ['UNKNOWN', 'WORLD', 'WORLD', 'PANEL', 'POPUP', 'PANEL'],
+                         ocr={'r1_0_initial': self.INTRO})
+        self.assertEqual(v.claim_round('r1'), 0)
+        self.assertEqual(dev.taps, [v.BACK, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+        self.assertIn('r1_1c_intro', dev.shots)
+
+    def test_intro_after_popup_close(self):
+        dev = FakeDevice(self, ['POPUP', 'POPUP', 'UNKNOWN', 'WORLD', 'WORLD', 'PANEL',
+                                'POPUP', 'PANEL'],
+                         ocr={'r1_1b_recover': ['Welcome to Esperia']})
+        self.assertEqual(v.claim_round('r1'), 0)
+        self.assertEqual(dev.taps, [v.BACK, v.BACK, v.GROUND, v.AFK_PROGRESS,
+                                    v.CHEST, v.CLAIM, v.BACK])
+
+    def test_unknown_without_intro_words_still_refuses(self):
+        for words in ([], ['Welcome back!'], ['Esperia Monthly']):
+            with self.subTest(words=words):
+                dev = FakeDevice(self, ['UNKNOWN'], ocr={'r1_0_initial': words})
+                self.assertEqual(v.claim_round('r1'), 1)
+                self.assertEqual(dev.taps, [])
+
+    def test_intro_still_up_after_one_back(self):
+        dev = FakeDevice(self, ['UNKNOWN', 'UNKNOWN'],
+                         ocr={'r1_0_initial': self.INTRO, 'r1_1c_intro': self.INTRO})
+        self.assertEqual(v.claim_round('r1'), 1)
+        self.assertEqual(dev.taps, [v.BACK])
+
+    def test_real_intro_frames(self):
+        for i in range(4):
+            rel = f'shots-77952/fix_intro_{i}.png'
+            with self.subTest(rel=rel):
+                self.assertEqual(v.classify(real(rel)), 'UNKNOWN')
+                # stage_push must not read it as PREP (fix_intro_3 sparkle on the Battle probe)
+                self.assertEqual(sp.classify_battle(real(rel)), 'UNKNOWN')
+                lines = v.ocr_png(REPO / '.spectre' / rel, timeout=40) if sys.platform == 'win32' else []
+                if lines:                   # OCR unavailable -> classify half only
+                    self.assertTrue(v.intro_hint(lines), lines)
+
+
+
 class F28DailiesDismiss(unittest.TestCase):
     def dimmed(self):
         img = frame('QUESTS')

@@ -11,7 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 import afk_homestead_upgrade as hu  # noqa: E402
-from fake_vision import FakeDevice  # noqa: E402
+from fake_vision import FakeDevice, frame  # noqa: E402
+from PIL import ImageDraw  # noqa: E402
 from test_homestead import HERMES, hermes  # noqa: E402
 
 # real WinRT OCR line boxes (ocr.ps1 -Boxes), recorded 2026-11-04 on the frames named
@@ -27,6 +28,30 @@ DIALOG_BOXES = [(844, 364, 199, 27, '? Radiant Spire i'),                       
                 (1201, 985, 102, 29, 'Level Up'), (1451, 91, 22, 12, '0/2')]
 DISC = (956, 686)
 NO_BACK_KEY = ('key', 4)
+SPECTRE = Path(__file__).resolve().parents[3] / 'spectre' / '.spectre'
+ICON_FRAMES = [HERMES / 'spire_sel.png', SPECTRE / 'shots-8632' / 'hu_world.png',   # T103b live
+               HERMES / 'b16b.png', HERMES / 'end1.png']
+ICON = (915, 171)
+
+
+def real(path):
+    if not path.exists():
+        raise unittest.SkipTest(f'frame missing: {path}')
+    from make_frame_manifest import load_rgb
+    return load_rgb(path)
+
+
+def icon_frame(xy, arrow='up', disc=(234, 230, 229), head=15):
+    """Synthetic WORLD frame with the T103b upgrade icon (measured colours) at xy:
+    arrow head base 2*head+1 px wide (live 29..32), shaft 11 px."""
+    img = frame('WORLD')
+    d, (x, y) = ImageDraw.Draw(img), xy
+    d.ellipse((x - 27, y - 27, x + 27, y + 27), fill=disc)
+    s = -1 if arrow == 'up' else 1
+    if arrow:
+        d.polygon([(x, y + 19 * s), (x - head, y + 7 * s), (x + head, y + 7 * s)], fill=(102, 83, 85))
+        d.rectangle((x - 5, min(y + 7 * s, y - 14 * s), x + 5, max(y + 7 * s, y - 14 * s)), fill=(102, 83, 85))
+    return img
 
 
 def dialog(met='5/7', queue='0/2'):
@@ -57,6 +82,43 @@ class Detectors(unittest.TestCase):
         self.assertIsNone(hu.find_radial(hermes('hm_confirmed2.png'), WORLD_BOXES))
         # the dialog's own 'Level Up' is outside the radial window
         self.assertIsNone(hu.find_radial(hermes('hm_up3.png'), DIALOG_BOXES))
+
+    def test_spire_icon_on_the_live_frames(self):
+        for path in ICON_FRAMES:
+            with self.subTest(path.name):
+                xy = hu.spire_icon(real(path))
+                self.assertIsNotNone(xy)
+                self.assertLessEqual(max(abs(a - b) for a, b in zip(xy, ICON)), 3)
+
+    def test_spire_icon_not_on_other_frames(self):
+        # selected Spire (radial disc is outside the band), hero at the door, the dialog itself
+        for name in ('hm_requests.png', 'hm_req2.png', 'hm_confirmed2.png', 'hm_up3.png',
+                     'spire_sel2.png', 'hm_build_menu.png'):
+            with self.subTest(name):
+                self.assertIsNone(hu.spire_icon(hermes(name)))
+
+    def test_spire_icon_is_searched_not_fixed(self):
+        for xy in ((420, 120), (1250, 480), ICON):
+            with self.subTest(xy):
+                got = hu.spire_icon(icon_frame(xy))
+                self.assertLessEqual(max(abs(a - b) for a, b in zip(got, xy)), 3)
+        self.assertIsNone(hu.spire_icon(icon_frame((960, 800))))          # below the band
+        self.assertIsNone(hu.spire_icon(frame('WORLD')))
+
+    def test_spire_icon_shape_tells(self):
+        self.assertIsNone(hu.spire_icon(icon_frame(ICON, arrow=None)))     # white orb, no arrow
+        self.assertIsNone(hu.spire_icon(icon_frame(ICON, arrow='down')))   # arrow head below
+        self.assertIsNone(hu.spire_icon(icon_frame(ICON, head=10)))        # narrow glyph ('i' scroll, pl3)
+        big = frame('WORLD')
+        ImageDraw.Draw(big).rectangle((700, 100, 1100, 400), fill=(234, 230, 229))
+        ImageDraw.Draw(big).rectangle((905, 160, 925, 180), fill=(102, 83, 85))
+        self.assertIsNone(hu.spire_icon(big))                              # cloud / cream panel
+
+    def test_dialog_already_open_start_frame(self):
+        img = real(SPECTRE / 'shots-82892' / 'hu_world.png')            # live T103 run start frame
+        self.assertNotEqual(v.classify(img), 'WORLD')
+        self.assertTrue(hu.back_plate(img))
+        self.assertEqual(hu.missing_cards(img, DIALOG_BOXES), ['Level 5 Kitchen', '3704/28K'])
 
     def test_dialog(self):
         img = hermes('hm_up3.png')
@@ -161,12 +223,45 @@ class Flow(unittest.TestCase):
         dev, rc = self.run_hu(['hm_confirmed2.png'], {'hu_world': WORLD_BOXES[1:]})
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps, [])
-        self.assertIn('LIVE-open', dev.out.getvalue())
+        self.assertIn('no upgrade icon', dev.out.getvalue())
+
+    def test_unselected_spire_via_the_upgrade_icon(self):
+        # T103b live: spire_sel (icon, no radial) -> tap -> spire_sel2 (dialog 5/7)
+        dev, rc = self.run_hu(['spire_sel.png', 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png'],
+                              {'hu_world': WORLD_BOXES[1:2], 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [ICON, hu.BACK_PLATE])
+
+    def test_icon_tap_retried_once_then_stops(self):
+        dev, rc = self.run_hu(['spire_sel.png', 'spire_sel.png', 'spire_sel.png'], {'hu_world': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(len(dev.taps), 2)                # the tap + ONE T97b retry, both on the icon
+        self.assertEqual([t[-2:] for t in dev.taps], [ICON, ICON])
+
+    def test_icon_all_met_starts_the_upgrade(self):
+        dev, rc = self.run_hu(['spire_sel.png', 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png'],
+                              {'hu_world': [], 'hu_read': dialog('7/7')})
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps, [ICON, hu.LEVEL_UP_BTN])
+
+    def test_dialog_already_open(self):
+        # T103b live: shots-82892 started ON the Spire dialog -> read it, no world needed
+        dev, rc = self.run_hu(['hm_up3.png', 'hm_confirmed2.png'], {'hu_world': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [hu.BACK_PLATE])
+        self.assertIn('already open', dev.out.getvalue())
+
+    def test_dialog_already_open_all_met(self):
+        dev, rc = self.run_hu(['spire_sel2.png', 'hm_confirmed2.png'], {'hu_world': dialog('7/7')})
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps, [hu.LEVEL_UP_BTN])
 
     def test_not_on_the_world_stops_without_back_key(self):
-        dev, rc = self.run_hu(['hm_up3.png'], {})
-        self.assertEqual(rc, 1)
-        self.assertEqual(dev.taps, [])
+        for start in ('hm_up3.png', 'UNKNOWN'):           # dialog plate but no Spire OCR / anything else
+            with self.subTest(start):
+                dev, rc = self.run_hu([start], {})
+                self.assertEqual(rc, 1)
+                self.assertEqual(dev.taps, [])
 
     def test_unrecognised_dialog_closes_and_stops(self):
         dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],

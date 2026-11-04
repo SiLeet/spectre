@@ -13,9 +13,15 @@ the Spire selected; hm_up3 = Spire Lvl.5 -> Lvl.6 dialog, 5/7):
   -> build queue 'n/m' (hammer, top right) full: close, rc 4
   -> a == b: tap the dialog's 'Level Up' (OCR-confirmed) -> world = started.
 
-LIVE-open (no frame): selecting the Spire from an arbitrary world view (no
-label/locator without a selection, the camera moves), what 'Go' opens (the
-missing-requirement recursion is NOT implemented), a 7/7 dialog, the screen after
+T103b (Hermes live 2026-11-04): an UNSELECTED upgradable Spire shows a floating white
+disc with a dark up-arrow above the tower (spire_sel.png); its tap opens the dialog
+directly (spire_sel2.png) -> spire_icon() searches it in the upper screen when no radial
+is up. A start frame that already IS the Spire dialog (shots-82892/hu_world) is read
+as is - no world needed.
+
+LIVE-open (no frame): the icon with the Spire elsewhere on screen / off screen, the
+same icon on other buildings (topmost wins; OCR rejects their dialog), what 'Go'
+opens (the missing-requirement recursion is NOT implemented), a 7/7 dialog, the screen after
 'Level Up', the queue icon's meaning (busy/total assumed).
 
 Never spends diamonds: 'Complete Now' (1800 diamonds) is never tapped - every tap
@@ -26,13 +32,14 @@ unrecognised screen stops the run (rc 1) without a tap.
 
 Usage: python scripts/afk_homestead_upgrade.py [--dry-run] [--min-idle S]
 Exit codes: 0 upgrade started (dialog closed after Level Up), 1 stuck / unknown
-screen, 4 nothing to do (Spire not selected / no Level Up on its radial,
+screen, 4 nothing to do (no Level Up radial and no Spire upgrade icon,
 requirements missing, queue full, Level Up refused), 5 skipped (PC in use),
 7 tap lock held by another run.
 """
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 from pathlib import Path
@@ -56,6 +63,23 @@ DISC_PX = 2000                 # LIVE: cream disc px (min>215, spread<30) in the
                                # (956,686) / (956,686) / (956,685)
 DISC_DX = 42                   # LIVE: disc either side of the centre L>=227, dark arrow at the
                                # centre (112,94,94) L~99; a cloud (norm_3, 6118 px) has L>230 there
+# --- world: floating 'upgrade' icon above an UNSELECTED Spire (T103b) --------------
+# LIVE: Hermes 2026-11-04 spire_sel.png / shots-8632 hu_world: a white disc with a dark
+# up-arrow floats above the tower; a tap opens the 'Upgrade Requirement' dialog directly
+# (spire_sel2.png). Disc centre (916,171), radius ~27 (white to r 26, gone at r 28),
+# disc (234,230,229), arrow (102,83,85): ~450 px L<120 within r 20, their median 3..8 px
+# ABOVE the centre (arrow head). No text label there. The camera moves: searched, not fixed.
+ICON_BAND = (300, 60, 1600, 540)  # candidate centres: upper screen (HUD columns/bottom bar outside)
+ICON_STEP = 3                  # candidate grid; the ring test holds for +-3 px off the centre
+ICON_RING = (20, 23)           # radii inside the disc: >= ICON_RING_MIN of 16 samples white each
+ICON_RING_MIN = 13             # LIVE: 13..16 on the grid (b16b/end1: 13 - tower glow on the rim)
+ICON_OUT = 33                  # radius outside the disc: <= ICON_OUT_MAX of 16 white (bounded disc,
+ICON_OUT_MAX = 3               # not a cloud / cream panel); LIVE: 0/16
+ICON_DARK = (250, 700)         # L<120 px within r 20 (arrow); LIVE: 442..456 at +-3 px
+ICON_HEAD = 26                 # widest dark row within r 20 = the arrow head's base; LIVE 29..32.
+                               # Look-alikes: placement 'i' scroll disc (pl3) 19..24, helmet
+                               # plate (livecheck/c0) 18..19 - both pass ring/out/dark
+ICON_CLUSTER = 40              # hits this close to the first hit belong to the same icon
 # --- Spire dialog (hm_up3; same layout on shots-62772/80500 hl_entry*) -------------
 REQ_RE = re.compile(r'requirement\D{0,4}(\d)\s*/\s*(\d)', re.I)  # LIVE: 'Upgrade Requirement (5/7)'
 CARD_ROW = (590, 625)          # LIVE: card label boxes y 601..617 ('Level 5 Kitchen' .. 'AFK stage: 80')
@@ -113,6 +137,43 @@ def find_radial(img, boxes):
         return None
     xy = hs._median(pts)
     return xy if disc_at(img, xy) else None
+
+
+def _white(c) -> bool:
+    return min(c) > 200 and max(c) - min(c) < 40
+
+
+def _ring(r):
+    return [(round(r * math.cos(k * math.pi / 8)), round(r * math.sin(k * math.pi / 8))) for k in range(16)]
+
+
+_RINGS = [_ring(r) for r in ICON_RING]
+_OUT = _ring(ICON_OUT)
+_DISC20 = [(dx, dy) for dx in range(-20, 21) for dy in range(-20, 21) if dx * dx + dy * dy <= 400]
+
+
+def _icon_at(px, x, y) -> bool:
+    if not all(_white(px[x + dx, y + dy]) for dx, dy in (_RINGS[1][0], _RINGS[1][4], _RINGS[1][8])):
+        return False                                      # cheap prefilter: right/bottom/left
+    if any(sum(_white(px[x + dx, y + dy]) for dx, dy in ring) < ICON_RING_MIN for ring in _RINGS):
+        return False
+    if sum(_white(px[x + dx, y + dy]) for dx, dy in _OUT) > ICON_OUT_MAX:
+        return False
+    dark = sorted(dy for dx, dy in _DISC20 if v.lum(px[x + dx, y + dy]) < 120)
+    return (ICON_DARK[0] <= len(dark) <= ICON_DARK[1] and dark[len(dark) // 2] < -1  # head up
+            and max(dark.count(dy) for dy in set(dark)) >= ICON_HEAD)
+
+
+def spire_icon(img):
+    """Centre of the floating white-disc/dark-up-arrow upgrade icon in ICON_BAND, else None.
+    shortcut: several such icons on screen -> the topmost one; the dialog OCR ('Radiant Spire')
+    rejects another building's dialog. Upgrade if live shows icons on other buildings."""
+    px = img.convert('RGB').load()
+    l, t, r, b = ICON_BAND
+    hits = [(x, y) for y in range(t, b, ICON_STEP) for x in range(l, r, ICON_STEP) if _icon_at(px, x, y)]
+    if not hits:
+        return None
+    return hs._median([p for p in hits if max(abs(p[0] - hits[0][0]), abs(p[1] - hits[0][1])) <= ICON_CLUSTER])
 
 
 def parse_requirement(boxes):
@@ -187,24 +248,31 @@ def main(argv: list[str] | None = None) -> int:
     _bot_lock.release_at_exit()
 
     img = v.shot('hu_world')
-    if v.classify(img) != 'WORLD':
-        print('    ERROR: not on the world view (no BACK key in the homestead)', flush=True)
+    if v.classify(img) == 'WORLD':
+        boxes = v.ocr_boxes('hu_world')
+        disc = find_radial(img, boxes)
+        still = lambda im: v.classify(im) == 'WORLD' and disc_at(im, disc)  # noqa: E731
+        if disc is None:                         # T103b: unselected Spire, floating icon
+            disc = spire_icon(img)
+            still = lambda im: v.classify(im) == 'WORLD' and spire_icon(im) is not None  # noqa: E731
+        if disc is None:
+            why = ('Spire selected but no Level Up on its radial (upgrading / max?)'
+                   if _line(boxes, SPIRE_LABEL) else
+                   'no Level Up radial and no upgrade icon on the world view (upgrading / max / off-screen?)')
+            print(f'    nothing to do: {why}', flush=True)
+            return 4
+        img = hs.tap_until(disc, 2.5, 'hu_dialog', lambda im: v.classify(im) != 'WORLD', still)
+        if img is None:
+            print(f'    ERROR: Spire dialog did not open after the tap at {disc}', flush=True)
+            return 1
+        img = v.shot('hu_read')                  # settled frame for OCR + check pixels
+        boxes = v.ocr_boxes('hu_read')
+    elif back_plate(img) and parse_requirement(boxes := v.ocr_boxes('hu_world')):
+        print('    Spire dialog already open', flush=True)  # T103b: live start frame shots-82892
+    else:
+        print('    ERROR: not on the world view or the Spire dialog (no BACK key in the homestead)',
+              flush=True)
         return 1
-    boxes = v.ocr_boxes('hu_world')
-    disc = find_radial(img, boxes)
-    if disc is None:
-        why = ('Spire selected but no Level Up on its radial (upgrading / max?)'
-               if _line(boxes, SPIRE_LABEL) else
-               'Spire not selected on the world view - selecting it is LIVE-open')
-        print(f'    nothing to do: {why}', flush=True)
-        return 4
-    img = hs.tap_until(disc, 2.5, 'hu_dialog', lambda im: v.classify(im) != 'WORLD',
-                       lambda im: v.classify(im) == 'WORLD' and disc_at(im, disc))
-    if img is None:
-        print('    ERROR: Spire dialog did not open after the Level Up disc', flush=True)
-        return 1
-    img = v.shot('hu_read')                      # settled frame for OCR + check pixels
-    boxes = v.ocr_boxes('hu_read')
     req = parse_requirement(boxes)
     if req is None:
         print(f'    ERROR: Spire dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)

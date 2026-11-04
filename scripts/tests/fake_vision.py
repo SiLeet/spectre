@@ -132,6 +132,8 @@ class FakeDevice:
         self.shots: list[str] = []
         for name, fake in (('adb', self._no_adb), ('tap', self._tap), ('swipe', self._swipe),
                            ('shot', self._shot), ('ocr_lines', self._ocr),
+                           # real ocr_region would open v.TMP = .spectre/shots-<pid> (T82 review)
+                           ('ocr_region', lambda name, box: []),
                            ('tap_seq', self._tap_seq), ('key_seq', self._key_seq)):
             for mod in (v, *also):       # also: modules with their own tap/shot copies
                 if hasattr(mod, name):

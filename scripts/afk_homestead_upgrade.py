@@ -679,11 +679,21 @@ def go_building(img, label_box, dry_run: bool) -> int:
         return 4 if close_dialog(img) else 1
     print(f'    Go -> {name} (requirement {label_box[4]!r})', flush=True)
     _tap(go, GO_WAIT)
-    img = v.shot('hu_go')
-    if v.classify(img) != 'WORLD':
+    # T103i (Hermes live): after the Go jump the frame is still loading and the radial appears
+    # late -> poll like T103h before 'no radial' (a transition frame is not yet an error)
+    disc = None
+    for i in range(DIALOG_POLLS):
+        if i:
+            time.sleep(DIALOG_POLL_WAIT)
+        shot = 'hu_go' if i == 0 else f'hu_go_p{i}'
+        img = v.shot(shot)
+        if v.classify(img) == 'WORLD':
+            disc = building_level_up(img, v.ocr_boxes(shot), name)
+            if disc:
+                break
+    if disc is None and v.classify(img) != 'WORLD':
         print('    ERROR: Go did not lead to the world view - stopping without a tap', flush=True)
         return 1
-    disc = building_level_up(img, v.ocr_boxes('hu_go'), name)
     if disc is None:
         print(f'    nothing to do: no {name} Level Up radial after Go (LIVE: maxed / not selected?)',
               flush=True)

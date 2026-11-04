@@ -5,8 +5,8 @@ Maps the verified T27 flow (TODOS.md 'T27 (Teilstand)'):
   1. reach the world view (BACK xN, dismiss taps)
   2. Battle Modes (890,1060) -> Arena card (1200,300)
   3. Challenge (1080,1004) -> Select Opponent list
-  4. per fight: tap the LEFT opponent slot (750,500) — empirically the weakest
-     of the three offered opponents — the fight runs automatically
+  4. per fight: tap the LEFT opponent's green sword button (T95; the old card
+     tap (750,500) only toggles the opponent detail on the current layout)
   5. wait for the fight to resolve (~80 s), the game returns to the opponent
      selection; tap Challenge! again for the next attempt
   6. stop after --fights attempts, or on repeated unknown states
@@ -44,7 +44,9 @@ GROUND = (300, 250)         # world-view dismiss tap
 BATTLE_MODES = (890, 1060)  # Battle Modes entry button, world view
 ARENA_CARD = (1200, 300)    # Arena card inside Battle Modes
 CHALLENGE = (1080, 1004)    # green Challenge button, arena lobby
-OPPONENT_LEFT = (750, 500)  # left opponent card (weakest of the 3)
+OPPONENT_LEFT = (750, 500)  # old-layout left card; current layout: opens/closes the detail view
+# LIVE: on the T95 opponent detail view (shots-52268/arena_f1_step1|3|5) this spot is
+# the cream 'Refresh: 6/6' plate (x 869-991); only arena_state's green test gates it.
 ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 
@@ -57,6 +59,30 @@ CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 LOBBY_BAR = ((800, 1000), (1400, 1000))   # Challenge bar, both sides of the label
 LOBBY_PLATE = (685, 975)                  # Formation plate, top-right corner (r=4)
 LOBBY_BAND = (1100, 1068)                 # dark navy band under the bar (r=6)
+# LIVE: shots-52268/arena_1_lobby + shots-15028|17920/norm_0: back plate x 478-583,
+# arrow (530,1000) L 186. v.BACK (474,1010) sits 4 px left of the plate (it did
+# press it live: norm_1 arrow highlighted, then Battle Modes); the centre has margin.
+LOBBY_BACK = (530, 1000)
+
+# T95 select screen, current layout. LIVE: shots-52268/arena_2_select,
+# arena_f1_step0|2|4, arena_p1_pre, arena_exit0 (all identical): three 3D cards,
+# one green sword button under each (left one centred (845,782), white icon in
+# the middle, ring G-max 54/63 left/right of it), cream back plate x 742-846 /
+# y 964-1044 (L 250), cream 'Refresh: 6/6' plate x 1282-1386 (L 250, NEVER tap).
+# The opponent detail view (f1_step1|3|5) keeps the back plate but puts the
+# green Challenge! bar where the Refresh plate was and covers the sword.
+# The cards are not sorted by power (12K/81K/18K here): left = weakest is not
+# guaranteed. shortcut: no OCR power pick yet, add one if left loses too often.
+SWORD_LEFT = (845, 782)                   # left card's sword button
+SWORD_RING = ((807, 782), (883, 782))     # green ring beside the icon (r=4)
+SELECT_ARROW = (793, 1000)                # back plate centre -> lobby
+SELECT_PLATES = ((760, 1000), (1300, 1000))   # back plate, Refresh plate (probe only, r=4)
+# LIVE: detail view (f1_step1|3|5): back plate (760,1000) L 250, arrow (793,1000) L 175
+# as on select; green Challenge! bar at (1300,1000) G-max 66 (select: cream -3);
+# dark floor left of the back plate (720,1000) L 49. Without that gap check the
+# AFK-stage DEFEAT card (trash/shots-6048/rw_0, 77760/sp_auto_25: cream stats
+# plate L 250 + green Retry G-max 55) matched.
+DETAIL_GAP = (720, 1000)
 
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
@@ -96,6 +122,23 @@ def is_lobby(img: Image.Image) -> bool:
             and v.lum(avg(img, (480, 270))) < 200)
 
 
+def is_select(img: Image.Image) -> bool:
+    """T95 select screen (current layout): left sword ring green on both sides
+    + cream back and Refresh plates (the detail view has the green bar there)."""
+    gmax = lambda c: c[1] - max(c[0], c[2])
+    return (all(gmax(avg(img, p, r=4)) > 35 for p in SWORD_RING)
+            and all(v.lum(avg(img, p, r=4)) > 200 for p in SELECT_PLATES))
+
+
+def is_detail(img: Image.Image) -> bool:
+    """T95 opponent detail view: cream back plate (dark floor left of it) +
+    green Challenge! bar where the select screen has its Refresh plate.
+    Leaves via SELECT_ARROW."""
+    back, bar = (avg(img, p, r=4) for p in SELECT_PLATES)
+    return (v.lum(back) > 200 and bar[1] - max(bar[0], bar[2]) > 35
+            and v.lum(avg(img, DETAIL_GAP, r=4)) < 120)
+
+
 def arena_state(img: Image.Image) -> str:
     """Classify the arena chain: RESULT card, PREP (Battle button) or SELECT.
 
@@ -105,7 +148,9 @@ def arena_state(img: Image.Image) -> str:
     bare 'bright card => RESULT' rule read the season-skinned Select screen
     as RESULT (banner avg 198.7 > 190) and stalled the whole chain
     (2026-11-03, shots-6048 + f1probe_select). A real RESULT card dims the
-    underlying UI, so the refresh badge reads dark there."""
+    underlying UI, so the refresh badge reads dark there. The T95 layout (select
+    and detail view) reaches SELECT through the final fallback; is_select /
+    is_detail decide what to tap there."""
     btn = avg(img, ARENA_BATTLE)
     if btn[1] > 120 and btn[1] > btn[0] + 20 and btn[1] > btn[2] + 20:
         return 'PREP'                       # green Battle button at the bottom
@@ -135,7 +180,8 @@ SELECT_BACK = (714, 1010)   # live 2026-11-03: the select screen's own back arro
 
 def advance_to_fight(tag: str, steps: int = 6) -> str:
     """Drive the arena chain to a running fight: dismiss results, pick the left
-    (lowest-power) opponent, press Battle on the prep screen.
+    opponent (the left card, not necessarily the weakest), press Battle on the
+    prep screen.
 
     Zombie guard (T66, night log 2026-11-03: 'steps 0=SELECT, 1..5=RESULT ->
     could not reach a fight (STUCK)'): after STAGNANT_STEPS steps whose state
@@ -171,8 +217,10 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
             _mark_battle_tap()              # T61: wall time starts at the Battle tap
             tap(ARENA_BATTLE, 3.0)
             return 'PREP'
+        elif is_select(img):
+            tap(SWORD_LEFT, 2.5)            # T95: the sword button starts the challenge
         else:
-            tap(OPPONENT_LEFT, 2.5)         # left card = lowest combat power
+            tap(OPPONENT_LEFT, 2.5)         # old layout; closes a T95 detail view (f1_step1 -> 2)
     return 'STUCK'
 
 
@@ -183,7 +231,8 @@ def exit_to_world(max_steps: int = 5) -> bool:
     (both live-verified 2026-11-03): classify() reads select as POPUP (R13)
     and the generic BACK (474,1010) cannot leave it — the select screen's own
     back arrow sits at (714,1010). Route: select -> lobby (714) -> battle
-    modes (474) -> world (474). Result cards are dismissed on the way; an
+    modes (474) -> world (474); T95 layout: select back arrow SELECT_ARROW
+    (793,1000). Result cards are dismissed on the way; an
     unrecognised screen stops the exit (bounded), the run keeps its result.
     """
     for i in range(max_steps):
@@ -205,7 +254,10 @@ def exit_to_world(max_steps: int = 5) -> bool:
             # goes to the select screen, not to the lobby
             tap(BACK, 2.5)
             continue
-        # The positive SELECT rule first (refresh badge at (1160,1010) bright
+        if is_select(img) or is_detail(img):
+            tap(SELECT_ARROW, 2.0)          # T95: v.BACK / SELECT_BACK hit the floor here
+            continue
+        # Old layout: the positive SELECT rule (refresh badge at (1160,1010) bright
         # white on real select frames). A real lobby already reads PREP above
         # (bar under (960,1010)) and leaves via the same BACK; is_lobby here
         # covers lobbies that do not.

@@ -113,8 +113,10 @@ def main() -> int:
             return 0
         popups = popups + 1 if st == 'POPUP' else 0
         if rec and (v.is_dr_boss(img) or st == 'DR_PREP'
-                    or dr.is_victory_rewards(img) or dr.is_battle_ended(img)):
-            print('    normalize: Dream Realm leftover after the recovery — giving up', flush=True)
+                    or dr.is_victory_rewards(img) or dr.is_battle_ended(img)
+                    or ar.is_select(img) or ar.is_detail(img) or ar.is_lobby(img)):
+            # T96: recover_leftover owns arena screens it met, no second back tap here
+            print('    normalize: Dream Realm / arena leftover after the recovery — giving up', flush=True)
             return 1
         if not rec and (v.is_dr_boss(img)
                         or (st == 'UNKNOWN' and (dr.is_uniform_dark(img) or v.is_ui_less(img)))):

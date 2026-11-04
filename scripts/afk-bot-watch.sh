@@ -275,8 +275,9 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     fi
     # T84: Dura's Trials once per day (first clear + sweep all tokens; never
     # buys tokens). Soft phase like leveling: rc 0 done / 4 first clear not
-    # achieved -> done for today; any other rc (1 stuck, 5 PC in use, 7 lock)
-    # is logged, no marker, chain continues, Daily exit code unchanged.
+    # achieved or Dura's not in the menu / Coming Soon (T87) -> done for today;
+    # any other rc (1 stuck, 5 PC in use, 7 lock) is logged, no marker, chain
+    # continues, Daily exit code unchanged.
     # AFK_DURAS=0 switches it off.
     if [ "${AFK_DURAS:-1}" = "1" ] && \
        [ "$(cat "$OUT_DIR/duras-last.txt" 2>/dev/null || echo never)" != "$today" ]; then

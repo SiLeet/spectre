@@ -14,7 +14,11 @@ import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice  # noqa: E402
 
 ARTIFACTS = Path(__file__).resolve().parent / '.artifacts'
-ENTRY = ['WORLD', 'BATTLE_MODES', 'UNKNOWN']          # open_battle_modes + du_entry
+# open_battle_modes + du_menu_0 + du_entry. T87: the card is tapped only once the menu OCR
+# shows 'dura', so every flow fixture reads it on du_menu_0 (MENU, merged in run_duras)
+ENTRY = ['WORLD', 'BATTLE_MODES', 'UNKNOWN', 'UNKNOWN']
+MENU = {'du_menu_0': ['Legend Trial', "Dura's Trials"]}
+SWIPE = ('swipe', *du.MENU_SWIPE, du.MENU_SWIPE_MS, 2.0)
 
 
 def screen(floor: int, tokens: int, cleared: bool) -> list[str]:
@@ -22,11 +26,18 @@ def screen(floor: int, tokens: int, cleared: bool) -> list[str]:
 
 
 class Duras(unittest.TestCase):
-    def run_duras(self, frames, ocr, *argv):
+    def run_duras(self, frames, ocr, *argv, region=None):
         ARTIFACTS.mkdir(exist_ok=True)
         marker = ARTIFACTS / 'duras-last.txt'
         marker.unlink(missing_ok=True)
-        dev = FakeDevice(self, frames, ocr=ocr)
+        dev = FakeDevice(self, frames, ocr={**MENU, **ocr})
+        if region is not None:          # card-grid crop OCR (the live path: full frame reads '00')
+            def ocr_region(name, box):
+                self.assertEqual(box, du.MENU_BOX)
+                return list(region.get(name, []))
+            p = mock.patch.object(v, 'ocr_region', ocr_region)
+            p.start()
+            self.addCleanup(p.stop)
         p = mock.patch.object(du, 'MARKER', marker)
         p.start()
         self.addCleanup(p.stop)
@@ -127,6 +138,54 @@ class Duras(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(dev.taps, [v.GROUND, du.DURAS_CARD])
         self.assertIn('highest floor 12, cleared=True, tokens 6/6', dev.out.getvalue())
+
+    # --- T87: Dura's missing from the Battle Modes menu (not unlocked) = soft rc 4 ---
+    def test_card_found_after_swipes_is_not_tapped_blind(self):
+        # review F3: DURAS_CARD is the unscrolled spot -> found below the fold = stop, rc 1
+        frames = ['WORLD', 'BATTLE_MODES'] + ['UNKNOWN'] * 3                 # du_menu_0..2
+        dev, rc, marker = self.run_duras(frames, {'du_menu_0': []},
+                                         region={'du_menu_2': ['Arena', "Dura's Trials"]})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, SWIPE, SWIPE])
+        self.assertEqual(SWIPE[1:5], (960, 675, 960, 392))
+        self.assertIn('seen only after 2 swipe(s)', dev.out.getvalue())
+        self.assertFalse(marker.exists())
+
+    def test_not_in_menu_after_max_swipes_is_soft_4(self):
+        frames = ['WORLD', 'BATTLE_MODES'] + ['UNKNOWN'] * (du.MENU_SWIPES + 1)
+        dev, rc, marker = self.run_duras(frames, {'du_menu_0': []}, region={
+            'du_menu_0': ['AFK Stage Dream Realm Arena', 'Legend Trial', 'X Coming Soon']})
+        self.assertEqual(rc, 4)
+        self.assertEqual(dev.taps, [v.GROUND] + [SWIPE] * du.MENU_SWIPES)
+        self.assertNotIn(du.DURAS_CARD, dev.taps)
+        self.assertIn("Dura's currently not available", dev.out.getvalue())
+        self.assertFalse(marker.exists())     # the Daily wrapper marks the day on rc 4
+
+    def test_menu_ocr_empty_is_stuck_not_done(self):
+        # review F2: OCR failure (ocr_png -> []) must not mark the day via rc 4
+        frames = ['WORLD', 'BATTLE_MODES'] + ['UNKNOWN'] * (du.MENU_SWIPES + 1)
+        dev, rc, marker = self.run_duras(frames, {'du_menu_0': []}, region={})
+        self.assertEqual(rc, 1)
+        self.assertNotIn(du.DURAS_CARD, dev.taps)
+        self.assertIn('menu OCR read no card name', dev.out.getvalue())
+        self.assertFalse(marker.exists())
+
+    def test_coming_soon_is_soft_4(self):
+        # review F1: live OCR never merges 'Coming Soon' with a card name; a locked card's
+        # tap opens nothing, so the menu is still there on du_entry
+        dev, rc, marker = self.run_duras(['WORLD', 'BATTLE_MODES', 'UNKNOWN', 'BATTLE_MODES'],
+                                         {'du_menu_0': ["Dura's Trials", 'X Coming Soon']})
+        self.assertEqual(rc, 4)
+        self.assertEqual(dev.taps, [v.GROUND, du.DURAS_CARD])
+        self.assertIn("not available yet (Coming Soon), skipping", dev.out.getvalue())
+        self.assertFalse(marker.exists())
+
+    def test_battle_modes_not_open_stays_1(self):
+        dev, rc, marker = self.run_duras(['WORLD'] + ['UNKNOWN'] * 5, {})
+        self.assertEqual(rc, 1)
+        self.assertEqual(dev.taps, [v.GROUND] + [v.BATTLE_MODES_BTN] * 4)
+        self.assertIn('Battle Modes did not open', dev.out.getvalue())
+        self.assertFalse(marker.exists())
 
 
 class Parsers(unittest.TestCase):

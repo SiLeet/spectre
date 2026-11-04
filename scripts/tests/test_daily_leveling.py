@@ -126,8 +126,9 @@ class DailyCharge(unittest.TestCase):
         self.assertEqual(dev.taps[-3:], [hl.LEVEL_X1, v.CONFIRM_CANCEL, ('key', 4)])
 
     def test_scan_fails_uses_last_known_hand(self):
+        # T101b: an unreadable hand costs the bounded detail poll (was one 1.5 s retry)
         dev, rc, _ = self.run_level({**hand('hl_daily_pre0', 90, COVERED), **hand('hl_daily_post0', 91)},
-                                    frames=self.FRAMES + ['UNKNOWN'] * 2,   # T72: 1 retry per hand
+                                    frames=self.FRAMES + ['UNKNOWN'] * (2 * hl.DETAIL_POLLS - 2),
                                     last_hand=1100)
         self.assertEqual(rc, 0)
         self.assertIn('LIVE: hand scan read no level — using last known hand 1100', dev.out.getvalue())

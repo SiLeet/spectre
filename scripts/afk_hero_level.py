@@ -40,7 +40,6 @@ HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
 # LIVE: measured card centres (vision measurement 2026-11-03); the old
 # [710, 840, 970, 1100, 1220] was up to ~20 px off. HANDS_Y stayed valid.
 HAND_XS = [730, 850, 970, 1090, 1210]
-SCAN_RETRY_WAIT = 1.5              # LIVE: pause before the one re-read of an unreadable hand
 # T80b (live 2026-11-04: first read after the hand tap None 4/5x, once the
 # PREVIOUS hand's level): poll until the detail is up instead of a fixed 3.0 s
 DETAIL_POLLS = 16                  # LIVE: 16 x 0.5 s ~ 8 s bound
@@ -64,7 +63,14 @@ LEVEL_SCALE = 2                    # T101: 2x upscale read 101/103/100/110 on ev
 # shots-17092/hl_daily_pre0_w2; 3 items on shots-17092/hl_scan_1090). Too small for one
 # OCR pass: 5 upscaled variants are stacked into ONE image; a have/need pair counts only
 # when >= 2 variants read it identically (measured: 8 of 8 settled frames read gold + EXP).
-COST_BOX = (900, 1016, 1320, 1044)
+# T101b: x from 840 - the milestone 'Upgrade' preview draws the same line ~100 px further left
+# (shots-43184/hl_daily_post0: the gold pair 8534K/9360 was clipped at x 900 -> 'third pair gone'
+# was the crop, not a spend). Same reads at 840 on every detail frame (shots-17092/29628/43184).
+COST_BOX = (840, 1016, 1320, 1044)
+# T101b: milestone level-up preview ('Upgrade', 'Level 100 >> Level 101', shots-43184/hl_daily_post0,
+# _rr1, _rr2 after the charge tap at hand level 100). OCR of this box: '100? 101' (x1 and x2).
+# Its own green Level Up bar spans x~540-1480 / y~970-1040, so LEVEL_X1 confirms inside it.
+PREVIEW_BOX = (780, 670, 1140, 790)
 COST_SCALE = 3
 COST_THRESHOLDS = (175, 190, 205)  # dark-text binarisations; + plain and inverted grey
 LEVEL_MAX = 300                    # plausibility cap for an OCR'd level
@@ -140,6 +146,24 @@ def slot_level(name):
         if m and 1 <= int(m.group(1)) <= LEVEL_MAX:
             return int(m.group(1))
     return None
+
+
+def preview_levels(name):
+    """(from, to) of the level-up preview in saved shot `name`, None when it is not open:
+    two numbers with to == from + 1 in PREVIEW_BOX (hero art there never reads like that)."""
+    for ln in _crop_ocr(name, "pv", lambda im: im.crop(PREVIEW_BOX)):
+        m = re.search(r"(\d{2,3})\D{1,4}(\d{2,3})", ln)
+        if m and int(m.group(2)) == int(m.group(1)) + 1 <= LEVEL_MAX:
+            return int(m.group(1)), int(m.group(2))
+    return None
+
+
+def shown_level(name, lines):
+    """Hand level on shot `name`: the preview's from-level while it is open, else the detail box."""
+    pv = preview_levels(name)
+    if pv:
+        return pv[0]
+    return slot_level(name) if is_detail(lines) else None
 
 
 def is_hall(lines):
@@ -355,22 +379,23 @@ def no_effect_verdict(pre: frozenset, post: frozenset) -> tuple[int, str]:
 
 
 def scan_hands():
-    """{hand_x: level} for every hand whose detail reads a level (hall re-verified between)."""
+    """{hand_x: level} for every hand whose detail reads a level (hall re-verified between).
+    T101b: poll until the detail is up (open_detail) + up to SLOT_REREADS settled reads -
+    live shots-43184 the fixed 3 s / +1.5 s shots caught the hall or a half-drawn detail
+    (hl_scan_1210 hall, _1210b no level yet). Blocked hands ('within 10 levels') draw the
+    level lower (shots-43184 730b/850b) and cannot be charged: logged as blocked, not read."""
     levels = {}
     for i, x in enumerate(HAND_XS):
         if i > 0 and not in_hall(f"hl_scan_hall_{x}"):
             break
-        v.tap((x, HANDS_Y), 3.0)
-        lvl = None
-        # live 2026-11-03: single hands read None sporadically -> exactly one re-read
-        for name in (f"hl_scan_{x}", f"hl_scan_{x}b"):
-            if name.endswith("b"):
-                print(f"    scan hand {x}: level not readable — one retry", flush=True)
-                time.sleep(SCAN_RETRY_WAIT)
-            lines = snap(name)
-            lvl = slot_level(name) if is_detail(lines) else None
-            if lvl is not None:
-                break
+        name, lines = open_detail(x, f"hl_scan_{x}")
+        if "within 10" in " ".join(lines):
+            print(f"    scan hand {x}: blocked (within 10 levels)", flush=True)
+            key(4)
+            continue
+        lvl = slot_level(name) if is_detail(lines) else None
+        if is_detail(lines):
+            lvl, _ = reread_level(name, lvl)
         if lvl is not None:
             levels[x] = lvl
         print(f"    scan hand {x}: level {lvl}", flush=True)
@@ -402,8 +427,16 @@ def reread_level(name: str, lvl: int | None, expect: int | None = None) -> tuple
         time.sleep(DETAIL_POLL_WAIT)
         shot = f"{name}_rr{i}"
         lines = snap(shot)
-        lvl = slot_level(shot) if is_detail(lines) else None
+        lvl = shown_level(shot, lines)
     return lvl, shot
+
+
+def close_detail(name: str) -> None:
+    """Back out of the detail after the charge; a preview still open on shot `name` needs
+    one more back first (preview -> detail -> hall). LIVE: preview after the confirm unseen."""
+    if preview_levels(name):
+        key(4)
+    key(4)
 
 
 def daily_charge() -> int:
@@ -462,20 +495,37 @@ def daily_charge() -> int:
             print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)
             key(4)
             return 4
+        pv = preview_levels(post)
+        if pv:
+            # T101b: at a milestone (live 100 -> 101, shots-43184) the tap opens the 'Upgrade'
+            # preview; its own Level Up bar takes the SAME single charge (T83's second tap).
+            # At 101/103 the tap levels directly (T101: two taps were two levels).
+            if pv[0] != before:
+                print(f"    ERROR: level-up preview {pv[0]} -> {pv[1]} on hand level {before}", flush=True)
+                close_detail(post)
+                return 1
+            print(f"    level-up preview {pv[0]} -> {pv[1]} — confirming inside it", flush=True)
+            v.tap(LEVEL_X1, 3.0)
+            post = f"{post}_ok"
+            if v.is_confirm_dialog(v.shot(post)):
+                v.tap(v.CONFIRM_CANCEL, 1.5)
+                print("    SKIP: confirm/purchase dialog in the preview — cancelled", flush=True)
+                close_detail(post)
+                return 4
         # expect +1: a lagging detail (old level, old costs) gets fresh shots before any
         # 'tap missed' rc 1, which would let the next cycle charge again
-        after, post = reread_level(post, slot_level(post), before + 1)
+        after, post = reread_level(post, shown_level(post, v.ocr_lines(post)), before + 1)
         if after is not None and after == before + 1:
-            key(4)
+            close_detail(post)
             print(f"    charged: hand {x} level {before} -> {after}", flush=True)
             return 0
         if after is None or after == before:
             rc, why = no_effect_verdict(pre_cost, cost_pairs(post))
-            key(4)
+            close_detail(post)
             print(f"    SKIP: charge had no effect on hand {x} (level {before} -> {after}): {why};"
                   f" evidence {v.TMP / (post + '.png')}", flush=True)
             return rc
-        key(4)
+        close_detail(post)
         print(f"    WARN: unexpected read-back {before} -> {after} (LIVE: x1 vs x10 mode?)", flush=True)
         return 0 if after > before else 4     # lower = misread after a real tap: never retry
     print("    SKIP: no chargeable hand today", flush=True)

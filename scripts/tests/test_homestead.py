@@ -46,8 +46,9 @@ CHECK, CANCEL = (1089, 562), (842, 557)
 RES = ['@ 653,402 3848', '460']
 
 
-def counter(n: int, limit: int = 16) -> list[str]:
-    return [f'{n}/{limit}', '5s', 'Field', '010', '0100']
+def cnt(name: str, n: int, limit: int = 16) -> dict:
+    """Fake OCR of every counter variant of shot `name` reading n/limit (T102b vote)."""
+    return {f'{name}_cnt{i}': [f'{n}/{limit}'] for i in range(len(hs.COUNTER_VARIANTS))}
 
 
 class Detectors(unittest.TestCase):
@@ -96,12 +97,45 @@ class Detectors(unittest.TestCase):
         self.assertIsNone(hs.find_marker(WORLD()))
 
 
+class RealCounter(unittest.TestCase):
+    """T102b: the vote on the live menu frames (real WinRT OCR, offline; skip when missing)."""
+
+    def test_live_counters(self):
+        import shutil
+        import tempfile
+        spectre = Path(__file__).resolve().parents[2] / '.spectre'
+        if not spectre.exists():
+            spectre = Path(r'C:\Users\Sigi\spectre\.spectre')     # worktrees have no .spectre
+        cases = [(HERMES / 'hm_build_menu.png', (12, 16)), (HERMES / 'hm_menu_now.png', (14, 16)),
+                 (spectre / 'shots-67544' / 'hs_0_read.png', (13, 16)),
+                 (spectre / 'shots-67544' / 'hs_1_read.png', (14, 16)),
+                 (spectre / 'shots-68276' / 'hs_0_read.png', (14, 16))]
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        p = mock.patch.object(v, 'TMP', tmp)                    # crops never land in .spectre
+        p.start()
+        self.addCleanup(p.stop)
+        ran = 0
+        for i, (src, want) in enumerate(cases):
+            if not src.exists():
+                continue
+            shutil.copy(src, tmp / f'c{i}.png')
+            with self.subTest(str(src)):
+                self.assertEqual(hs.read_counter(f'c{i}'), want)
+            ran += 1
+        if not ran:
+            raise unittest.SkipTest('no live menu frames')
+
+
 class Parsers(unittest.TestCase):
-    def test_counter(self):
-        self.assertEqual(hs.parse_counter(['"12/16', 'Field']), (12, 16))   # x2 OCR read
-        self.assertEqual(hs.parse_counter(counter(16)), (16, 16))
-        self.assertIsNone(hs.parse_counter(['12/16']))          # not proven to be the Field tile
-        self.assertIsNone(hs.parse_counter(['12', 'Field']))    # x1 OCR read
+    def test_counter_vote(self):
+        # T102b live reads: hs_1_read variants -> [], '14/16', [], [], "14'/16", [], "14'/16"
+        self.assertEqual(hs.counter_votes([[], ['14/16'], [], [], ["14'/16"], [], ["14'/16"]]), (14, 16))
+        self.assertEqual(hs.counter_votes([['13/16'], ['i3/16'], ['13/16']]), (13, 16))  # (3,16) loses
+        self.assertIsNone(hs.counter_votes([['14/16'], [], []]))          # one vote is not enough
+        self.assertIsNone(hs.counter_votes([['14/16'], ['14/16'], ['13/16'], ['13/16']]))  # split
+        self.assertIsNone(hs.counter_votes([["14716'"], ['14 O-']]))      # the old stacked misread
+        self.assertIsNone(hs.counter_votes([['17/16'], ['17/16']]))       # built > limit: implausible
 
     def test_resources(self):
         self.assertEqual(hs.parse_resources(RES), (653402, 3848))
@@ -123,8 +157,8 @@ class Flow(unittest.TestCase):
     def test_one_field_built_and_verified(self):
         frames = (self.entry(0) + [RING, MARK, TOAST, WORLD] + self.entry(1)
                   + [MENU, WORLD])                                  # exit shot, reach_world
-        ocr = {'hs_0_read_field': counter(12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
-               'hs_1_read_field': counter(13), 'hs_1_read_res': RES}
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
+               **cnt('hs_1_read', 13), 'hs_1_read_res': RES}
         dev, rc = self.run_hs(frames, ocr)
         self.assertEqual(rc, 0, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, hs.BUILD_BTN, hs.FIELD_TILE, CHECK, (964, 560),
@@ -135,9 +169,9 @@ class Flow(unittest.TestCase):
         w, menu = hermes('hm_requests.png'), hermes('hm_build_menu.png')
         frames = [w, w, menu, menu, hermes('hm_field_tap.png'), hermes('hm_confirmed2.png'),
                   hermes('hm_spire_up.png'), w, w, w, menu, menu, menu, w]
-        ocr = {'hs_0_read_field': counter(12), 'hs_0_read_res': RES,
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES,
                'hs_b0_1': ['Field Built', '"Proqerity', 'Tapto Close'],
-               'hs_1_read_field': counter(13), 'hs_1_read_res': RES}
+               **cnt('hs_1_read', 13), 'hs_1_read_res': RES}
         dev, rc = self.run_hs(frames, ocr)
         self.assertEqual(rc, 0, dev.out.getvalue())
         self.assertEqual(dev.taps[2], hs.FIELD_TILE)
@@ -147,8 +181,8 @@ class Flow(unittest.TestCase):
 
     def test_reward_info_card_is_closed_too(self):
         frames = self.entry(0) + [RING, MARK, TOAST, TOAST, WORLD] + self.entry(1) + [MENU, WORLD]
-        ocr = {'hs_0_read_field': counter(12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
-               'hs_b0_2': ['Diamond', 'Tapto Close'], 'hs_1_read_field': counter(13),
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
+               'hs_b0_2': ['Diamond', 'Tapto Close'], **cnt('hs_1_read', 13),
                'hs_1_read_res': RES}
         dev, rc = self.run_hs(frames, ocr)
         self.assertEqual(rc, 0, dev.out.getvalue())
@@ -156,21 +190,21 @@ class Flow(unittest.TestCase):
 
     def test_at_limit_is_nothing_to_do(self):
         dev, rc = self.run_hs(self.entry(0) + [MENU, WORLD],
-                              {'hs_0_read_field': counter(16), 'hs_0_read_res': RES})
+                              {**cnt('hs_0_read', 16), 'hs_0_read_res': RES})
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps, [v.GROUND, hs.BUILD_BTN, hs.EXIT_BTN])
         self.assertIn('at the limit', dev.out.getvalue())
 
     def test_resources_short_stops_cleanly(self):
         dev, rc = self.run_hs(self.entry(0) + [MENU, WORLD],
-                              {'hs_0_read_field': counter(12), 'hs_0_read_res': ['@ 50 3848', '460']})
+                              {**cnt('hs_0_read', 12), 'hs_0_read_res': ['@ 50 3848', '460']})
         self.assertEqual(rc, 4)
         self.assertNotIn(hs.FIELD_TILE, dev.taps)
         self.assertIn('resources short', dev.out.getvalue())
 
     def test_dry_run_reads_only(self):
         dev, rc = self.run_hs(self.entry(0) + [MENU, WORLD],
-                              {'hs_0_read_field': counter(12), 'hs_0_read_res': RES}, '--dry-run')
+                              {**cnt('hs_0_read', 12), 'hs_0_read_res': RES}, '--dry-run')
         self.assertEqual(rc, 0)
         self.assertEqual(dev.taps, [v.GROUND, hs.BUILD_BTN, hs.EXIT_BTN])
 
@@ -180,14 +214,48 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps, [v.GROUND])
 
     def test_counter_unreadable_stops(self):
-        dev, rc = self.run_hs(self.entry(0) + [MENU, WORLD], {})
+        dev, rc = self.run_hs(self.entry(0) + [MENU, MENU, WORLD], {})
         self.assertEqual(rc, 1)
         self.assertNotIn(hs.FIELD_TILE, dev.taps)
+        self.assertIn('hs_0_read2', dev.shots)                  # T102b: one settled re-read
+        self.assertNotIn(('key', 4), dev.taps)                  # never BACK in the menu
+
+    def test_counter_reread_after_build_accepts_the_settled_value(self):
+        # T102b live: 'built field 1 (expect 14/16)' then the tile (animating) read nothing
+        frames = (self.entry(0) + [RING, MARK, TOAST, WORLD] + self.entry(1)
+                  + [MENU, MENU, WORLD])                         # read2, exit shot, Exit -> world
+        ocr = {**cnt('hs_0_read', 13), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
+               **cnt('hs_1_read2', 14), 'hs_1_read2_res': RES}
+        dev, rc = self.run_hs(frames, ocr)
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertIn('Field 14/16', dev.out.getvalue())
+
+    def test_menu_left_open_is_used_without_back(self):
+        # T102b live: run 2 started inside the menu a failed run left open; keyevent 4 there
+        # opens 'exit game?' -> no reach_world, no ground tap, no Build tap
+        dev, rc = self.run_hs([MENU, MENU, MENU, WORLD], {**cnt('hs_0_read', 16), 'hs_0_read_res': RES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [hs.EXIT_BTN])
+        self.assertIn('already open', dev.out.getvalue())
+
+    def test_placement_left_open_is_cancelled_first(self):
+        dev, rc = self.run_hs([RING, MENU, MENU, MENU, WORLD], {**cnt('hs_0_read', 16),
+                                                              'hs_0_read_res': RES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [CANCEL, hs.EXIT_BTN])
+
+    def test_exit_that_does_not_close_never_backs(self):
+        # Exit, its T97b retry, menu still up -> stop there (BACK would ask 'exit game?')
+        dev, rc = self.run_hs(self.entry(0) + [MENU, MENU, MENU],
+                              {**cnt('hs_0_read', 16), 'hs_0_read_res': RES})
+        self.assertEqual(rc, 4)
+        self.assertEqual(dev.taps[-2:], [hs.EXIT_BTN, ('touchscreen', *hs.EXIT_BTN)])
+        self.assertNotIn(('key', 4), dev.taps)
 
     def test_counter_mismatch_after_build_stops(self):
-        frames = self.entry(0) + [RING, MARK, TOAST, WORLD] + self.entry(1) + [MENU, WORLD]
-        ocr = {'hs_0_read_field': counter(12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
-               'hs_1_read_field': counter(12), 'hs_1_read_res': RES}
+        frames = self.entry(0) + [RING, MARK, TOAST, WORLD] + self.entry(1) + [MENU, MENU, WORLD]
+        ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': ['Field Built'],
+               **cnt('hs_1_read', 12), **cnt('hs_1_read2', 12), 'hs_1_read_res': RES}
         dev, rc = self.run_hs(frames, ocr, max_builds=2)
         self.assertEqual(rc, 1)
         self.assertIn('expected 13', dev.out.getvalue())
@@ -196,25 +264,25 @@ class Flow(unittest.TestCase):
     def test_refused_build_cancels_and_exits(self):
         # check tap: still placing, the T97b retry too -> X, Exit, world
         frames = self.entry(0) + [RING, RING, RING, MENU, WORLD]
-        dev, rc = self.run_hs(frames, {'hs_0_read_field': counter(12), 'hs_0_read_res': RES})
+        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps[3:], [CHECK, ('touchscreen', *CHECK), CANCEL, hs.EXIT_BTN])
 
     def test_diamond_dialog_is_cancelled(self):
         frames = self.entry(0) + [RING, 'DIALOG', MENU, WORLD]
-        dev, rc = self.run_hs(frames, {'hs_0_read_field': counter(12), 'hs_0_read_res': RES})
+        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES})
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps[3:], [CHECK, v.CONFIRM_CANCEL, hs.EXIT_BTN])
 
     def test_unknown_screen_while_building_stops_without_taps(self):
         frames = self.entry(0) + [RING, MARK, TOAST]
-        dev, rc = self.run_hs(frames, {'hs_0_read_field': counter(12), 'hs_0_read_res': RES,
+        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES,
                                        'hs_b0_1': ['Something else']})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps[-1], (964, 560))      # the marker; nothing after the unknown frame
 
     def test_tile_tap_without_placement_never_retries_on_a_changed_screen(self):
-        dev, rc = self.run_hs(self.entry(0) + [TOAST], {'hs_0_read_field': counter(12),
+        dev, rc = self.run_hs(self.entry(0) + [TOAST], {**cnt('hs_0_read', 12),
                                                          'hs_0_read_res': RES})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps[-1], hs.FIELD_TILE)

@@ -42,6 +42,8 @@ use hot::{HotArgs, run_hot};
 mod search_range;
 mod offsets;
 use offsets::{OffsetsArgs, run_offsets};
+mod read_batch;
+use read_batch::{ReadBatchArgs, run_read_batch};
 
 // ── Top-Level CLI ────────────────────────────────────────────────────────────
 
@@ -129,6 +131,9 @@ pub enum SubCommand {
     /// Show and validate a game's offsets YAML, or list the available games.
     #[structopt(about = "Show and validate a game's offsets YAML (no game: list games)")]
     Offsets(OffsetsArgs),
+    /// Read every field of an offsets YAML in one process run (one reader).
+    #[structopt(name = "read-batch", about = "Read all fields of an offsets YAML in one run (JSON)")]
+    ReadBatch(ReadBatchArgs),
 }
 
 // ── Scan Command ─────────────────────────────────────────────────────────────
@@ -469,6 +474,7 @@ fn main() -> ExitCode {
         Some(SubCommand::Hunt(cmd)) => run_hunt(cmd),
         Some(SubCommand::Hot(cmd)) => run_hot(cmd),
         Some(SubCommand::Offsets(cmd)) => run_offsets(cmd),
+        Some(SubCommand::ReadBatch(cmd)) => run_read_batch(cmd),
         None => {
             eprintln!("error: a subcommand is required; run `spectre --help` for usage");
             return ExitCode::from(2);

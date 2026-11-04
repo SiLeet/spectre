@@ -147,7 +147,7 @@ fn parse_field_type(raw: &str) -> Option<FieldType> {
 
 /// The core type of a YAML field: its type string plus an optional `length`
 /// for strings.  `None` if the type string is unknown.
-pub(crate) fn resolve_field_type(yf: &YamlFieldDef) -> Option<FieldType> {
+pub fn resolve_field_type(yf: &YamlFieldDef) -> Option<FieldType> {
     match (parse_field_type(&yf.field_type)?, yf.length) {
         (FieldType::String(_), Some(n)) => Some(FieldType::String(n)),
         (ft, _) => Some(ft),

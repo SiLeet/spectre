@@ -40,7 +40,6 @@ import _bot_lock  # noqa: E402
 
 # verified T27 coordinates (TODOS.md, 2026-10-31)
 GROUND = (300, 250)         # world-view dismiss tap
-BATTLE_MODES = (890, 1060)  # Battle Modes entry button, world view
 ARENA_CARD = (1200, 300)    # Arena card inside Battle Modes
 CHALLENGE = (1080, 1004)    # green Challenge button, arena lobby
 OPPONENT_LEFT = (750, 500)  # old-layout left card; current layout: opens/closes the detail view

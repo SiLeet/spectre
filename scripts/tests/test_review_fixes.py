@@ -389,7 +389,10 @@ class F10GiftEntry(unittest.TestCase):
                                  'GIFT_ENTRY', 'EVENTS']                 # entry still there -> retry
                                 + ['EVENTS'] * 7 + ['WORLD'])           # 7 rows (no green badge), close
         self.assertEqual(rc, 0)
-        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, ('hold', *gift.LOGIN_REWARDS), v.BACK])
+        # T97b: the retry goes via 'touchscreen'; the panel opened -> the mode sticks (closing BACK too)
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, ('touchscreen', *gift.LOGIN_REWARDS),
+                                    ('touchscreen', *v.BACK)])
+        self.assertEqual(v.TAP_MODE, 'touchscreen')
 
     def test_entry_not_found_is_warn_not_done(self):
         dev, rc = self.run_gift(['WORLD'] + ['WORLD'] * 9)

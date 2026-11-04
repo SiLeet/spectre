@@ -141,7 +141,7 @@ class R7Chances(unittest.TestCase):
 
     def test_empty_pool_stops_cleanly(self):
         import argparse
-        dev = FakeDevice(self, ['DR_BOSS', 'DR_BOSS', 'DR_BOSS', 'DR_BOSS'],
+        dev = FakeDevice(self, ['DR_BOSS_PAGE', 'DR_BOSS', 'DR_BOSS', 'DR_BOSS'],   # T100: start = DR_BOSS
                          ocr={'dr_f1_chances': ['Chances: 0/7']})
         self.assertEqual(dr.run(argparse.Namespace(fights=7, wait_fight=150)), 0)
         self.assertEqual(dev.taps, [])

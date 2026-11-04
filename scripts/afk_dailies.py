@@ -182,12 +182,13 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
     if (not is_quests_panel(img) and v.lum(v.avg(img, (480, 1010))) > 150
             and v.lum(v.avg(img, (1375, 1028))) > 150):
         # T97: the menu is still open (open_menu's probe) -> the icon tap did
-        # nothing: once more as a short press (LIVE: unverified), else give up.
-        # The 11-04 'quest panel did not open' was a detector miss (panel open,
-        # (500,90) L 140), not a dead tap — fixed in T99 (tab-bar probe)
-        print('    quest panel did not open — one hold-tap on the icon', flush=True)
-        v.tap_hold(QUESTS_ICON, wait=3.5)
+        # nothing: once more via the tap-mode chain (T97b, LIVE: unverified), else
+        # give up. The 11-04 'quest panel did not open' was a detector miss (panel
+        # open, (500,90) L 140), not a dead tap — fixed in T99 (tab-bar probe)
+        print('    quest panel did not open — one tap retry on the icon', flush=True)
+        mode = v.tap_retry(QUESTS_ICON, wait=3.5)
         img = v.shot('dl_questpanel_hold')
+        v.tap_result(mode, is_quests_panel(img))
     if not is_quests_panel(img):
         print('    ERROR: quest panel did not open', flush=True)
         return 1

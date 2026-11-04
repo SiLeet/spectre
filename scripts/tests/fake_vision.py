@@ -14,13 +14,14 @@ afk_claim_vision docstring, 2026-10-31):
 
   state    base           back (474,1010)  right of back (564,1010)  extra
   WORLD    (62,70,50)     (62,70,50)       (62,70,50)                AFK chip (60,1036) (150,150,150)
-  PANEL    (40,40,40)     (184,176,174)    (230,230,230)             -
+  PANEL    (40,40,40)     (184,176,174)    (230,230,230)             Battle bar (800|1300,893) green
   POPUP    (40,40,40)     (62,58,57)       (100,100,100)             claim bar (960,602) (233,179,117)
   UNKNOWN  (128,128,128)  -                -                         -
 """
 from __future__ import annotations
 
 import io
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,9 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 from PIL import Image, ImageDraw  # noqa: E402
 
+os.environ.pop('AFK_TAP_MODE', None)   # T97b: a caller's AFK_TAP_MODE must not leak into tests
 import afk_claim_vision as v  # noqa: E402
+v.TAP_MODE, v._SENDEVENT = 'tap', False   # also if imported earlier; no discovery (adb) in tests
 
 # Test isolation (Race-Fund-Fix, 2026-11-03): suite runs must never touch the
 # real .spectre/afk-bot.lock. _bot_lock resolves its default at call time, so
@@ -56,7 +59,10 @@ _SPEC = {
     # lb-lg -33 — below the old -8 POPUP cliff, only the teal HUD bar says WORLD
     'WORLD_DAY': ((62, 70, 50), {v.BACK: (21, 21, 21), (564, 1010): (54, 54, 54),
                                  v.AFK_PROGRESS: (172, 160, 146), v.AFK_BAR: (52, 168, 167)}),
-    'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230)}),
+    # T100: + the green 'Battle' bar (shots-2704/r1_1_panel (107,157,97)): back + cream
+    # alone also sit on the main menu / wide arena lobby
+    'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230),
+                             (800, 893): (107, 157, 97), (1300, 893): (107, 157, 97)}),
     'POPUP': ((40, 40, 40), {v.BACK: (62, 58, 57), (564, 1010): (100, 100, 100),
                              v.CLAIM: (233, 179, 117)}),
     # T88 new panel palette (shots-27712/r1_0_initial): light back on cream plus
@@ -150,7 +156,7 @@ _SPEC = {
     'DR_TRANSITION': ((5, 8, 20), {(200, 270): (25, 72, 156)}),
     'DR_DIM': ((8, 8, 10), {(200, 270): (60, 62, 70), (960, 540): (180, 170, 150)}),
     'DR_ENDED': ((30, 30, 30), {(960, 90): (230, 140, 60), (960, 1035): (235, 235, 235),
-                                (600, 60): (203, 121, 42), (1500, 60): (203, 121, 42)}),
+                                (600, 60): (203, 121, 42), (1400, 60): (203, 121, 42)}),
     # T93 Victory Rewards overlay (shots-72816/dr_post1_0): black letterbox,
     # warm dim centre, bright 'Victory Rewards' title letters
     'DR_VICTORY_REWARDS': ((5, 5, 5), {(960, 540): (113, 77, 41), **{
@@ -208,7 +214,10 @@ class FakeDevice:
         self.metrics.parent.mkdir(exist_ok=True)
         self.metrics.unlink(missing_ok=True)
         for p in (mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: 0),
-                  mock.patch.object(v, 'METRICS', self.metrics)):
+                  mock.patch.object(v, 'METRICS', self.metrics),
+                  # T97b: per-test tap-mode state; sendevent discovery 'unavailable' (no adb)
+                  mock.patch.object(v, 'TAP_MODE', 'tap'), mock.patch.object(v, '_TAP_DEAD', set()),
+                  mock.patch.object(v, '_SENDEVENT', False)):
             p.start()
             test.addCleanup(p.stop)
         self.out = io.StringIO()   # driver prints, kept off the test runner output
@@ -220,8 +229,10 @@ class FakeDevice:
     def _no_adb(self, *args, **kw):
         self.test.fail(f'real adb call: {args}')
 
-    def _tap(self, xy, wait=1.0):
-        self.taps.append(tuple(xy))
+    def _tap(self, xy, wait=1.0, mode=None):
+        mode = mode or v.TAP_MODE           # T97b: non-default modes are logged as (mode, x, y)
+        self.taps.append(tuple(xy) if mode == 'tap' else (mode, *xy))
+        return mode
 
     def _tap_seq(self, steps, tolerate=True, dry=False):    # T75: one batch = taps in order
         self.taps.extend((x, y) for x, y, _ in steps)
@@ -280,9 +291,14 @@ class DeadTapDevice(FakeDevice):
     keyevent 4 advances `screens` by one. Every shot shows the current screen;
     more than `max_shots` shots fails the test (unbounded loop)."""
 
-    def __init__(self, test, screens: list, max_shots: int = 40, **kw):
+    def __init__(self, test, screens: list, max_shots: int = 40, live_modes=(), **kw):
         super().__init__(test, [], **kw)
         self.screens, self.pos, self.max_shots = list(screens), 0, max_shots
+        self.live_modes = live_modes        # T97b: tap modes that DO advance the screen
+
+    def _tap(self, xy, wait=1.0, mode=None):
+        if super()._tap(xy, wait, mode) in self.live_modes:
+            self.pos = min(self.pos + 1, len(self.screens) - 1)
 
     def _shot(self, name):
         self.shots.append(name)

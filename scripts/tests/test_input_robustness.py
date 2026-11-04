@@ -26,18 +26,20 @@ OUT = ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD']   # one keyev
 
 
 class DeadTaps(unittest.TestCase):
-    def test_arena_select_stall_hold_then_back_then_stuck(self):
+    def test_arena_select_stall_retry_then_back_then_stuck(self):
         dev = DeadTapDevice(self, OUT, also=(ar,))
         self.assertEqual(ar.advance_to_fight('arena_f1'), 'STUCK')
         s = ar.SWORD_LEFT
-        # 2 dead taps -> hold-tap -> 2 dead taps -> ONE keyevent out to the lobby
-        self.assertEqual(dev.taps, [s, s, ('hold', *s), s, s, K])
+        # 2 dead taps -> T97b retry via 'touchscreen' (dead too) -> 2 dead taps -> ONE keyevent
+        self.assertEqual(dev.taps, [s, s, ('touchscreen', *s), s, s, K])
+        self.assertEqual((v.TAP_MODE, v._TAP_DEAD), ('tap', {'touchscreen'}))
         self.assertEqual(len(dev.shots), 6)
         self.assertTrue(ar.exit_to_world())                 # lobby -> modes -> world by keyevent
         self.assertEqual(dev.taps[6:], [K, K])
 
     def test_arena_detail_stall_hold_then_back(self):
         dev = DeadTapDevice(self, ['ARENA_DETAIL_T95', 'ARENA_LOBBY'], also=(ar,))
+        v._TAP_DEAD.add('touchscreen')      # chain exhausted (sendevent unavailable) -> T97 hold-tap
         self.assertEqual(ar.advance_to_fight('arena_f1'), 'STUCK')
         c = ar.DETAIL_CHALLENGE
         self.assertEqual(dev.taps, [c, c, ('hold', *c), c, c, K])
@@ -75,10 +77,11 @@ class DeadTaps(unittest.TestCase):
     def test_dailies_quest_icon_hold_only_while_menu_is_open(self):
         import afk_dailies as dl
         # chest: nothing claimable (PANEL x3) -> pre-quests -> menu -> icon tap dead
-        # (menu still open) -> ONE hold-tap -> still no quest panel -> rc 1
+        # (menu still open) -> ONE tap retry (T97b: 'touchscreen') -> still no quest panel -> rc 1
         dev = FakeDevice(self, ['PANEL'] * 4 + ['MENU', 'MENU', 'UNKNOWN'])
         self.assertEqual(dl.run_dailies(0), 1)
-        self.assertEqual(dev.taps[-2:], [dl.QUESTS_ICON, ('hold', *dl.QUESTS_ICON)])
+        self.assertEqual(dev.taps[-2:], [dl.QUESTS_ICON, ('touchscreen', *dl.QUESTS_ICON)])
+        self.assertIn('touchscreen', v._TAP_DEAD)
 
 
 class Guards(unittest.TestCase):

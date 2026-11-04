@@ -66,11 +66,15 @@ BOSS_BAR_LEFT = v.DR_BOSS_BAR[0] # (700, 1000) T91: boss bar spans x 595-1655 ->
                                  # _green's G>130 missed it by 0 -> boss read as prep
 CARD_CLOSE = (960, 1035)         # "Tap to close" strip on the BATTLE ENDED card
 CARD_BANNER = (960, 90)          # orange banner of the BATTLE ENDED card
-CARD_BANNER_WIDE = ((600, 60), (1500, 60))   # T93: banner spans the card width.
+CARD_BANNER_WIDE = ((600, 60), (1400, 60))   # T93: banner spans the card width.
                                  # LIVE: card shots-72816/dr_f1_w8 + shots-69680/norm_1
                                  # (202..226, 120..132, 3..48); the main menu matched
                                  # the 3 old probes (Honor Duel tile at (960,90)) and
                                  # reads cream (236,231,220) here (shots-58752/norm_1)
+                                 # T100: right probe 1500 -> 1400: the 11-03 card
+                                 # (brown backdrop, x 420-1500) read (137,81,55) at
+                                 # 1500. LIVE: trash/shots-82560/dr_f1_w16 (+5) now
+                                 # match; no other frame changed (1377-frame sweep).
 CORNER = (200, 270)              # ambient-glow probe: dim overlays keep a
                                  # faint glow (58-69), black loading frames
                                  # read ~0 (T38 #2, calibrated on real shots)
@@ -575,7 +579,11 @@ def main() -> int:
 
 def run(args) -> int:
     img = v.shot('dr_start')
-    if is_ready(img):
+    # T100: is_ready alone also matched the wide arena lobby (Challenge bar under
+    # both boss-bar probes, shots-13684/dr_start: fight 1 opened Select Opponent),
+    # stage-push/arena preps and the hero level-up; classify's DR tells did not.
+    # Anything else takes the Battle Modes -> Dream Realm route.
+    if is_ready(img) and v.classify(img) in ('DR_BOSS', 'DR_PREP'):
         print('--- already inside Dream Realm', flush=True)
     else:
         if not reach_world('dr_world'):

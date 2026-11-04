@@ -45,8 +45,10 @@ class HallBox(unittest.TestCase):
 
 class HallFlows(unittest.TestCase):
     def test_entry_region_hit_no_full_ocr(self):
-        dev = FakeDevice(self, ['WORLD'], ocr={'hl_entry': []})   # full OCR would say: no hall
-        with mock.patch.object(v, 'ocr_region', return_value=HALL_HIT), \
+        # T101: hl_start (town, region miss) -> hall tap -> hl_entry region hit
+        dev = FakeDevice(self, ['WORLD', 'UNKNOWN'], ocr={'hl_entry': []})   # full OCR: no hall
+        region = {'hl_entry': HALL_HIT}
+        with mock.patch.object(v, 'ocr_region', side_effect=lambda n, b: region.get(n, [])), \
                 mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--dry-run']):
             self.assertEqual(hl.main(), 0)
         self.assertIn('hall open: Resonance Level: 100', dev.out.getvalue())

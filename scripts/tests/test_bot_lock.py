@@ -99,7 +99,7 @@ class BotLockWiring(unittest.TestCase):
     def test_hero_level_gate_precedes_navigation(self):
         src = (SCRIPTS / 'afk_hero_level.py').read_text(encoding='utf-8')
         self.assertLess(src.index('_bot_lock.acquire'),
-                        src.index('# navigate: town -> Resonating Hall'),
+                        src.index('lines = enter_hall()'),            # T101: first shot/tap
                         'hero_level: lock gate must run before the first tap')
 
     def test_wrappers_export_held_env(self):
@@ -120,6 +120,8 @@ class HeroLevelLockBehaviour(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.lock = Path(self._tmp.name) / 'afk-bot.lock'
+
+    TOWN = ['WORLD'] * 4        # T101: hl_start + HALL_TRIES hall taps that open nothing
 
     def run_main(self, env, frames):
         from unittest import mock
@@ -145,13 +147,13 @@ class HeroLevelLockBehaviour(unittest.TestCase):
 
     def test_wrapper_held_env_proceeds_and_keeps_the_foreign_lock(self):
         self.foreign_lock()
-        dev, rc = self.run_main({'AFK_BOT_LOCK_HELD': '1'}, ['UNKNOWN', 'UNKNOWN'])
+        dev, rc = self.run_main({'AFK_BOT_LOCK_HELD': '1'}, self.TOWN)
         self.assertEqual(dev.taps[0], self.hl.HALL_BTN)          # past the gate
         self.assertEqual(self.lock.read_text().strip(), '999999')
 
     def test_stale_lock_is_taken_over(self):
         self.foreign_lock(age=7200)
-        dev, rc = self.run_main({}, ['UNKNOWN', 'UNKNOWN'])
+        dev, rc = self.run_main({}, self.TOWN)
         self.assertEqual(dev.taps[0], self.hl.HALL_BTN)
         self.assertEqual(self.lock.read_text().strip(), str(os.getpid()))
 

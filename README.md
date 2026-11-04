@@ -177,6 +177,7 @@ before tapping. Scheduler, gates and markers:
 | `afk_normalize.py` | Returns the game to world/AFK panel between phases |
 | `afk-wall-dash.py` | Renders `spectre-walls.html` from the wall report |
 | `bluestacks-ensure.sh` | Starts/checks BlueStacks + adb (`--check`, `--force`, `--min-idle`) |
+| `spectre-tray.ps1` / `.vbs` | Tray icon while a bot run holds `.spectre/afk-bot.lock` (green = running, orange = stale lock); menu: log, wall dashboard, `.spectre`. Start: `wscript scripts\spectre-tray.vbs` |
 | `afk-bot-soak.sh` | Repeatability test: N wrapper rounds with a pause |
 | `afk-timer-hunt.sh`, `gold-hunt*.sh`, `gold-analyze.py`, `wallet-hunt-all.py`, `ui-state-*.sh` | Memory research: dump-diff hunts for timer, gold wallet and UI-state slots |
 | `tests/` | Offline tests (no device): `python -m unittest discover -s scripts/tests -v` |

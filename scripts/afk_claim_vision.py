@@ -336,6 +336,7 @@ def memory_preflight(pid: str, base_hex: str, *, read_value=None,
     return 'disabled', power
 
 AFK_PROGRESS = (60, 1036)
+AFK_BAR = (40, 1068)       # teal 'AFK Progress' bar under the avatar (classify's world tell)
 CHEST = (975, 760)
 CLAIM = (960, 602)
 BACK = (474, 1010)
@@ -726,17 +727,26 @@ def classify(img: Image.Image) -> str:
     # POPUP before WORLD: a dimmed popup used to satisfy the WORLD predicate
     # (|lb-lg| < 15 also matched lb-lg in (-15,-8]), which then tapped the world
     # sequence into a live popup.
-    if lb < 100 and (lbar > 172 or lb - lg < -8):
+    # T89: the daytime world reads lb-lg -40..-12, so the -8 cliff only counts
+    # as POPUP without the world-only tell: the teal 'AFK Progress' bar
+    # (min(G,B)-R; a popup dims it). The old chip probe (60,1036) sits on the
+    # avatar sprite, which changes (red cloak: livecheck/after_norm chip L 77)
+    # and lit up on non-world screens (livecheck/hall_test2 L 133).
+    # LIVE 2026-11-04: bar >=106 on all 57 world frames (day/night/snow; lowest
+    # livecheck/after_norm, shots-40348/dg_cam_*); <=36 on every lb<100
+    # non-world frame (hall_test2, shots-readonly-1226xx; r1_1a_popup family 1).
+    # lbar>172 stays an unconditional POPUP (shots-60424/r1_1a_popup).
+    t = avg(img, AFK_BAR, r=4)
+    hud = min(t[1], t[2]) - t[0] > 80
+    if lb < 100 and (lbar > 172 or (lb - lg < -8 and not hud)):
         return 'POPUP'
-    # WORLD also needs the world-only tell: the lit AFK Progress chip
-    # (60,1036), L 103-174 on all 51 captured world frames (day + night).
-    # The back-arrow probes alone said WORLD on 110 non-world frames —
-    # battles, Battle Modes, a store bundle popup, a 'Use Diamond' dialog —
-    # and on dimmed popups one luminance point from the POPUP cliff (review
-    # F7). Without the chip the frame stays UNKNOWN: no taps.
-    # LIVE 2026-11-04: night-snow world reads lb-lg +14.8 (old limit |..|<8 missed it);
-    # the -8 floor stays the POPUP guard, +25 is the new upper bound.
-    if lb < 100 and -8 < lb - lg < 25 and lum(avg(img, AFK_PROGRESS)) > 100:
+    # WORLD also needs that tell: the back-arrow probes alone said WORLD on 110
+    # non-world frames — battles, Battle Modes, a store bundle popup, a 'Use
+    # Diamond' dialog — and on dimmed popups one luminance point from the POPUP
+    # cliff (review F7). Without it the frame stays UNKNOWN: no taps.
+    # LIVE 2026-11-04: night-snow world reads lb-lg +14.8, +25 is the upper
+    # bound; no lower bound since T89 (day world -40, see above).
+    if lb < 100 and lb - lg < 25 and hud:
         return 'WORLD'
     chip = avg(img, (1390, 704))
     # only trust the chip fallback when the back arrow is clearly NOT dimmed

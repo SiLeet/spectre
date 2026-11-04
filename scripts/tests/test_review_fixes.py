@@ -231,7 +231,7 @@ class F7WorldNeedsChip(unittest.TestCase):
 
     def test_synthetic_world_without_chip(self):
         img = frame('WORLD')
-        img.paste((62, 70, 50), (40, 1016, 80, 1056))
+        img.paste((62, 70, 50), (20, 1016, 80, 1080))   # chip + teal bar (T89 tell)
         self.assertEqual(v.classify(img), 'UNKNOWN')
 
 
@@ -257,6 +257,37 @@ class T88NewPanelPalette(unittest.TestCase):
     def test_synthetic(self):
         self.assertEqual(sp.classify_battle(frame('PANEL_NEW')), 'AFK_PANEL')
         self.assertNotEqual(sp.classify_battle(frame('CREAM_BACK')), 'AFK_PANEL')
+
+
+class T89DayWorld(unittest.TestCase):
+    """The daytime world (lb-lg -33, teal HUD bar lit) is WORLD; dimmed popups stay POPUP."""
+
+    def test_real_day_world(self):
+        self.assertEqual(v.classify(real('shots-79040/norm_0.png')), 'WORLD')
+
+    def test_real_world_avatar_state(self):
+        # red-cloak avatar darkens the old chip probe (L 77); the bar stays lit
+        self.assertEqual(v.classify(real('livecheck/after_norm.png')), 'WORLD')
+
+    def test_real_guild_hall_not_world(self):
+        # lit chip (L 133) without the HUD bar: was a false WORLD before T89
+        self.assertEqual(v.classify(real('livecheck/hall_test2.png')), 'UNKNOWN')
+
+    def test_real_popups(self):
+        for rel in ('shots-60424/r1_1a_popup.png', 'shots-65688/r1_1a_popup.png'):
+            with self.subTest(rel):
+                self.assertEqual(v.classify(real(rel)), 'POPUP')
+
+    def test_synthetic(self):
+        self.assertEqual(v.classify(frame('WORLD_DAY')), 'WORLD')
+        img = frame('WORLD_DAY')                       # same lb-lg -33, HUD dimmed
+        img.paste((40, 40, 40), (20, 1016, 80, 1080))
+        self.assertEqual(v.classify(img), 'POPUP')
+        img = frame('WORLD_DAY')                       # avatar change: chip dark, bar lit
+        img.paste((40, 40, 40), (40, 1016, 80, 1050))
+        self.assertEqual(v.classify(img), 'WORLD')
+        self.assertEqual(v.classify(frame('WORLD')), 'WORLD')
+        self.assertEqual(v.classify(frame('POPUP')), 'POPUP')
 
 
 

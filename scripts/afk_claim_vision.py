@@ -342,6 +342,12 @@ CLAIM = (960, 602)
 BACK = (474, 1010)
 GROUND = (300, 250)
 LOGIN_CLAIM = (960, 930)   # 'Esperia Monthly / Daily Rewards' popup Claim (verified live)
+# T91 Dream Realm prep screen (hero grid in a cream panel, back + Records + one
+# wide green Battle bar x 718-1652 / y 954-1042). LIVE: shots-66808/dr_f1_pre1..3,
+# dr_f1_prewait1..3, dr_f1_after0_0..9, shots-80660/norm_0
+DR_PREP_BAR = ((760, 1000), (1600, 1000))     # Battle bar, left + right end
+DR_PREP_PLATES = ((570, 1000), (690, 1000))   # back-button plate, Records button
+DR_PREP_PANEL = ((478, 700), (1656, 700))     # cream panel rim beside the hero grid (r=4)
 POWERSHELL = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 OCR_PS1 = Path(__file__).resolve().parent.parent / 'templates' / 'ocr.ps1'
 
@@ -559,6 +565,21 @@ def is_battle_modes(img: Image.Image) -> bool:
             and lum(avg(img, (1300, 940))) < 150)
 
 
+def is_dr_prep(img: Image.Image) -> bool:
+    """Dream Realm prep screen (T91, live 2026-11-04): it classified UNKNOWN,
+    so normalize could not leave it and the dream driver never tapped its
+    Battle bar. Green bar at both ends + cream back/Records plates + the cream
+    panel rim left and right of the hero grid. LIVE (all 245 1920x1080 frames
+    in .spectre): prep bar G-max >=55, plates L 249, rim L 242. Best non-prep
+    frame with the other two tells lit: bar -5 (AFK panel / menu), plates 59.5
+    (shots-readonly-1226xx), rim 72.5 (arena lobby: same back+button+bar row).
+    The boss page fails Records (green bar, L 132) and the left rim (L 12)."""
+    gmax = lambda c: c[1] - max(c[0], c[2])
+    return (all(gmax(avg(img, p)) > 35 for p in DR_PREP_BAR)
+            and all(lum(avg(img, p)) > 200 for p in DR_PREP_PLATES)
+            and all(lum(avg(img, p, r=4)) > 200 for p in DR_PREP_PANEL))
+
+
 def reach_world(max_steps: int = 6) -> bool:
     """Tap BACK until the verified world view is up."""
     for i in range(max_steps):
@@ -761,6 +782,9 @@ def classify(img: Image.Image) -> str:
     # bound; no lower bound since T89 (day world -40, see above).
     if lb < 100 and lb - lg < 25 and hud:
         return 'WORLD'
+    # T91: before the chip fallback — an orange hero card can sit at (1390,704)
+    if is_dr_prep(img):
+        return 'DR_PREP'
     chip = avg(img, (1390, 704))
     # only trust the chip fallback when the back arrow is clearly NOT dimmed
     if lb > 140 and chip[0] > 200 and chip[1] > 150 and chip[2] < 120:
@@ -813,9 +837,10 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         tap(BACK, 2.0)
         state = classify(shot(f'{tag}_1c_intro'))
         print(f'    after intro BACK: {state}', flush=True)
-    if state == 'UNKNOWN':
+    if state in ('UNKNOWN', 'DR_PREP'):
         # never fire the recovery taps on an unidentified screen: that is
-        # how a blind tap ends up on a store/purchase dialog
+        # how a blind tap ends up on a store/purchase dialog (T91: the dream
+        # prep keeps its old UNKNOWN handling here; afk_normalize leaves it)
         print('    ERROR: unknown screen — refusing to tap blind', flush=True)
         return 1
     if state != 'PANEL':

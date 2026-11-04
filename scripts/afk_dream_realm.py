@@ -21,9 +21,10 @@ the driver waits, otherwise it aborts.
 
 T38 hardening (review batch, 2026-11-01):
   - is_boss_page/is_prep are two-sided (calibrated): the boss page shows a
-    full-width green Battle bar (centre AND right probe green), the prep
-    screen only lights the right probe -- the prep screen can never be
-    mistaken for the boss page (BOSS_TAP sits next to SKIP).
+    full-width green Battle bar (left BOSS_BAR_LEFT AND right probe green,
+    minus hero detail); prep = v.is_dr_prep (hero grid, one wide bar,
+    PREP_TAP on it) or the legacy SKIP layout. T91: the old centre probe sat
+    on the boss page's dark 'Chances' label and read it as prep.
   - dim popups need calibrated probes (dimmed back-arrow + bottom bar +
     corner glow; black loading frames and the night world do not match)
     and a 2-shot debounce before anything is dismissed.
@@ -55,8 +56,14 @@ DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
 BOSS_TAP = (960, 1020)           # green Battle button on the boss page
 PREP_TAP = (1280, 1010)          # green Battle button on the prep screen
                                  # NB: (960,1010) on prep is the SKIP button — never tap it
-BATTLE_BTN_BOSS = (960, 1040)    # probe points for the two green Battle buttons
+BATTLE_BTN_BOSS = (960, 1040)    # centre probe (legacy SKIP-layout prep / is_fight)
 BATTLE_BTN_PREP = (1280, 1010)
+BOSS_BAR_LEFT = (700, 1000)      # T91: boss bar spans x 595-1655 -> green here;
+                                 # the prep's Records button sits here (cream).
+                                 # LIVE: boss shots-66808/dr_f1_chances (101,156,91),
+                                 # prep dr_f1_prewait1 (244,240,234). The centre probe
+                                 # reads (86,130,78) on the boss page (Chances label):
+                                 # _green's G>130 missed it by 0 -> boss read as prep
 CARD_CLOSE = (960, 1035)         # "Tap to close" strip on the BATTLE ENDED card
 CARD_BANNER = (960, 90)          # orange banner of the BATTLE ENDED card
 CORNER = (200, 270)              # ambient-glow probe: dim overlays keep a
@@ -177,25 +184,33 @@ def is_hero_detail(img) -> bool:
 
 
 def is_boss_page(img) -> bool:
-    """Boss page: the Battle button is a FULL-WIDTH green bar, so the centre
-    AND the right probe both read green (calibrated 2026-11-01 on real
-    shots). A prep screen only lights the right probe, so it can never
-    classify as boss page (T38 #1: BOSS_TAP sits next to SKIP). The hero
+    """Boss page: the Battle button is a FULL-WIDTH green bar, so the left
+    AND the right probe both read green (T91: left probe BOSS_BAR_LEFT
+    replaces the centre one, which sits on the dark 'Chances' label). Neither
+    prep layout lights BOSS_BAR_LEFT (old: SKIP in the centre; new: the cream
+    Records button), so a prep never classifies as boss page. The hero
     detail matches the green signature too — excluded explicitly (A8 live
-    fund #2); the Arena lobby carries the same false positive in real
-    frames (shots-51424/arena_1_lobby) and is fixed by the same gate."""
+    fund #2); the Arena lobby carried the same false positive (shots-59516/
+    arena_1_lobby) — T91: its Formation plate leaves BOSS_BAR_LEFT un-green."""
     if is_hero_detail(img):
         return False
-    return (_green(v.avg(img, BATTLE_BTN_BOSS))
+    return (_green(v.avg(img, BOSS_BAR_LEFT))
             and _green(v.avg(img, BATTLE_BTN_PREP)))
 
 
 def is_prep(img) -> bool:
     """Prep screen: green Battle button on the RIGHT (1280,1010) while the
     centre probe is NOT green -- there the centre is the white SKIP button,
-    which is never tapped (T38 #1)."""
+    which is never tapped (T38 #1). T91: the live prep is a hero grid with
+    ONE wide Battle bar (centre green too, and is_hero_detail matches it):
+    v.is_dr_prep; PREP_TAP (1280,1010) lies on that bar (x 718-1652,
+    y 954-1042). The boss page also leaves the centre un-green (label), so
+    the old rule needs 'not boss'."""
+    if v.is_dr_prep(img):
+        return True
     return (_green(v.avg(img, BATTLE_BTN_PREP))
-            and not _green(v.avg(img, BATTLE_BTN_BOSS)))
+            and not _green(v.avg(img, BATTLE_BTN_BOSS))
+            and not is_boss_page(img))
 
 
 def is_ready(img) -> bool:
@@ -407,7 +422,7 @@ def reach_world(tag: str) -> bool:
                 return False
             time.sleep(3)
             continue
-        v.tap(v.BACK, 1.5)
+        v.tap(afk_normalize.DR_PREP_BACK if state == 'DR_PREP' else v.BACK, 1.5)
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 

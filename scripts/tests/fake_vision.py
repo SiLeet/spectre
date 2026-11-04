@@ -94,8 +94,18 @@ _SPEC = {
                                   v.AFK_BAR: (52, 168, 167)}),
     'EVENTS': ((40, 40, 40), {(960, 100): (220, 220, 220), v.BACK: (200, 200, 200)}),
     # afk_dream_realm (A8; values from the dream docstrings / runtime review)
-    'DR_BOSS': ((60, 60, 80), {(960, 1040): (109, 154, 100), (1280, 1010): (109, 154, 100)}),
+    # T91: is_boss_page reads the bar's left end (700,1000) — (101,156,91) on
+    # shots-66808/dr_f1_chances — instead of the centre (dark 'Chances' label)
+    'DR_BOSS': ((60, 60, 80), {(960, 1040): (109, 154, 100), (1280, 1010): (109, 154, 100),
+                               (700, 1000): (101, 156, 91)}),
     'DR_PREP': ((60, 60, 80), {(960, 1040): (240, 240, 240), (1280, 1010): (160, 192, 152)}),
+    # T91 live prep (shots-66808/dr_f1_prewait1): hero grid in a cream panel,
+    # back + Records plates, one wide Battle bar; classify() reads DR_PREP
+    'DR_PREP_GRID': ((60, 60, 80), {v.BACK: (236, 231, 224), (570, 1000): (249, 246, 240),
+                                    (690, 1000): (244, 240, 234), (760, 1000): (101, 156, 91),
+                                    (960, 1040): (133, 171, 123), (1280, 1010): (101, 156, 91),
+                                    (1600, 1000): (100, 177, 78), (478, 700): (246, 242, 235),
+                                    (1656, 700): (246, 242, 235)}),
     # A8 live fund #1: the Battle-Modes menu inside the dream entry flow — its
     # dark body read (109,93,93)/(108,92,92) at the dream probes and used to
     # classify as a running fight (shots-77148/dr_world_0.png)

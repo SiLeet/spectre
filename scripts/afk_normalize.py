@@ -26,6 +26,14 @@ POPUP_STREAK = 5        # LIVE: 5 POPUP reads in a row = zombie popup (03.11.: 0
 ESCAPE_CYCLES = 2       # LIVE: ladder repetitions before giving up
 LADDER = ('resolver', 'back', 'ground', 'back2')
 PURCHASE_WORDS = ('purchase', 'buy', 'recharge', 'top up', 'top-up', 'diamond', 'pack')
+# T91 Dream Realm prep: its back button spans x 481-598 / y 945-1038; v.BACK
+# (474,1010) sits 7 px left of it on the cream panel (it did leave the prep
+# live, shots-80660/norm_0 -> norm_1), the arrow centre is the safe spot.
+# Leaving takes prep -> boss page -> Battle Modes -> world (norm_0..final),
+# one step more than the 4-step pass had: the prep BACK gets its own step.
+# LIVE: button extent measured on shots-66808/dr_f1_prewait1 + shots-80660/norm_0
+# ((535,1000) reads (199,188,187) on both); (535,1000) not yet tapped live.
+DR_PREP_BACK = (535, 1000)
 
 
 def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
@@ -70,17 +78,22 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
 
 
 def main() -> int:
-    popups = 0
-    for i in range(4):
+    popups, steps, i = 0, 4, 0
+    while i < steps:
         st = v.classify(v.shot(f'norm_{i}'))
         print(f'    normalize {i}: {st}', flush=True)
         if st in ('WORLD', 'PANEL'):
             return 0
         popups = popups + 1 if st == 'POPUP' else 0
-        if st == 'POPUP' and v.resolve_startup_popup(f'norm_pop{i}'):
+        if st == 'DR_PREP' and steps == 4:
+            steps += 1                  # T91: once — the prep BACK gets its own step
+            print('    normalize: Dream Realm prep -> BACK', flush=True)
+            v.tap(DR_PREP_BACK, 2.5)    # boss page loads behind it (norm_1 was mid-load)
+        elif st == 'POPUP' and v.resolve_startup_popup(f'norm_pop{i}'):
             time.sleep(1.0)
-            continue
-        v.tap(v.BACK, 1.5)
+        else:
+            v.tap(v.BACK, 1.5)
+        i += 1
     st = v.classify(v.shot('norm_final'))
     print(f'    normalize final: {st}', flush=True)
     if st in ('WORLD', 'PANEL'):

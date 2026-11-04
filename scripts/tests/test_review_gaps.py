@@ -62,13 +62,14 @@ def screen(tokens: int, cleared: bool) -> list[str]:
 
 
 class DurasPaths(unittest.TestCase):
-    ENTRY = ['WORLD', 'BATTLE_MODES', 'UNKNOWN']
+    # T87: + du_menu_0, whose OCR must show 'dura' before the card tap
+    ENTRY = ['WORLD', 'BATTLE_MODES', 'UNKNOWN', 'UNKNOWN']
 
     def run_duras(self, frames, ocr):
         ARTIFACTS.mkdir(exist_ok=True)
         marker = ARTIFACTS / 'duras-gaps-last.txt'
         marker.unlink(missing_ok=True)
-        dev = FakeDevice(self, frames, ocr=ocr)
+        dev = FakeDevice(self, frames, ocr={'du_menu_0': ["Dura's Trials"], **ocr})
         p = mock.patch.object(du, 'MARKER', marker)
         p.start()
         self.addCleanup(p.stop)

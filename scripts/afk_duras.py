@@ -6,7 +6,12 @@ DAILY (never save them); a floor's first clear is a real fight and a defeat
 refunds the token; cleared floors can be swept, a sweep spends one token and
 drops 2-class essence. Flow:
 
-  world -> Battle Modes -> Dura's Trials card            (OCR gate: 'dura')
+  world -> Battle Modes -> menu OCR for 'dura'; not seen -> short swipe +
+    re-OCR (max MENU_SWIPES); never seen (menu itself read) -> soft exit 4
+    (not unlocked on this server) without tapping the card; seen only after
+    a swipe -> exit 1 (the fixed card spot is the unscrolled one)
+  -> Dura's Trials card                                  (OCR gate: 'dura';
+    the tap leaves the menu unchanged = locked/Coming Soon -> soft exit 4)
   highest unlocked floor (OCR 'Floor N'); not cleared yet (no 'Sweep') ->
     exactly 1 fight: Challenge -> Battle -> result card; defeat = refund ->
     bounded retry (MAX_FIGHTS)
@@ -23,9 +28,11 @@ Wired into the scheduled Daily run of scripts/afk-bot-watch.sh (T84, soft
 phase, AFK_DURAS=0 switches it off); not part of afk-night.sh.
 
 Usage: python scripts/afk_duras.py [--dry-run] [--min-idle S]
-Exit codes: 0 done (tokens 0, or none left), 1 stuck / unknown screen / sweep
-stopped, 4 first clear not achieved or Challenge answered by a dialog (tokens
-stay), 5 skipped (PC in use), 7 skipped (tap lock held by another run).
+Exit codes: 0 done (tokens 0, or none left), 1 stuck / Battle Modes did not
+open / menu OCR read nothing / card only below the fold / unknown screen /
+sweep stopped, 4 first clear not achieved or Challenge answered by a dialog
+(tokens stay), or Dura's not in the menu / Coming Soon (T87), 5 skipped (PC
+in use), 7 skipped (tap lock held by another run).
 """
 from __future__ import annotations
 
@@ -41,7 +48,19 @@ import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
 import afk_claim_vision as v  # noqa: E402
 import afk_stage_push as sp  # noqa: E402  (classify_battle for the result card)
 
-DURAS_CARD = (960, 760)        # LIVE: Dura's Trials card in the Battle Modes menu
+DURAS_CARD = (960, 760)        # LIVE: Dura's Trials card in the UNSCROLLED Battle Modes menu
+                               # (7th-card slot; on shots-55548/bm_1 the first Coming Soon tile)
+# LIVE (T87, offline OCR of shots-428/bm_final + shots-55548/bm_1, du2_scroll0-2): the full-frame
+# menu OCR yields only ['00']; a crop of the card grid reads every card name ('AFK Stage Dream
+# Realm Arena', 'Legend Trial', 'Arcane', 'Labyrinth Honor Duel') plus 'X Coming Soon' and the
+# locked tile's 'Unlocks in a future' as SEPARATE lines, never merged with a card name, and in no
+# stable order ('Arena' after 'X Coming Soon' on du2_scroll2); the faded locked-card name
+# ('Supreme League') is not read at all. So Coming Soon is told by the card tap, not by OCR.
+MENU_BOX = (740, 40, 1390, 880)        # LIVE: card grid of the Battle Modes menu (l, t, r, b)
+MENU_WORDS = ('afk stage', 'legend trial', 'arena')   # LIVE: proof the menu OCR worked at all
+MENU_SWIPE = (960, 675, 960, 392)      # LIVE: short upward drag (AdbAutoPlayer y1200->700 scaled)
+MENU_SWIPE_MS = 1500                   # LIVE: slow drag = scroll without fling
+MENU_SWIPES = 4                        # LIVE: AdbAutoPlayer gives up after 4 swipes
 CHALLENGE_BTN = (1500, 980)    # LIVE: 'Challenge' on the highest (uncleared) floor
 FIGHT_BTN = (1280, 1010)       # LIVE: 'Battle' on the team prep screen (same spot as AFK prep)
 PREP_GATE = True               # LIVE: tap FIGHT_BTN only when sp.classify_battle reads PREP
@@ -93,16 +112,49 @@ def cancel_if_dialog(img, what: str) -> bool:
     return False
 
 
-def enter() -> list[str] | None:
+def find_card() -> tuple[int | None, bool]:
+    """Swipes done when the menu OCR first showed 'dura' (None = never, after
+    MENU_SWIPES swipes) and whether any MENU_WORDS card name was read at all."""
+    menu_read = False
+    for n in range(MENU_SWIPES + 1):
+        if n:
+            v.swipe(*MENU_SWIPE, MENU_SWIPE_MS, 2.0)
+        v.shot(f'du_menu_{n}')
+        text = ' '.join(v.ocr_lines(f'du_menu_{n}') + v.ocr_region(f'du_menu_{n}', MENU_BOX)).lower()
+        if DURAS_WORD in text:
+            return n, True
+        menu_read = menu_read or any(w in text for w in MENU_WORDS)
+    return None, menu_read
+
+
+def enter() -> list[str] | int:
+    """The Dura's screen lines, or the exit code: 1 = Battle Modes / Dura's
+    screen not reached, 4 = Dura's not available (day counts as done)."""
     if not v.open_battle_modes():
         print("    ERROR: Battle Modes did not open", flush=True)
-        return None
+        return 1
+    swipes, menu_read = find_card()
+    if swipes is None:
+        if not menu_read:       # OCR failure must not mark the day (tokens are daily)
+            print('    ERROR: Battle Modes menu OCR read no card name (LIVE: MENU_BOX / '
+                  'MENU_WORDS)', flush=True)
+            return 1
+        print(f"    Dura's currently not available (not in the Battle Modes menu after "
+              f"{MENU_SWIPES} swipes), skipping", flush=True)
+        return 4
+    if swipes:
+        print(f"    ERROR: Dura's card seen only after {swipes} swipe(s) - DURAS_CARD is the "
+              "unscrolled spot, not tapping blind (LIVE: card position below the fold)", flush=True)
+        return 1
     v.tap(DURAS_CARD, 4.0)
-    _, lines = read('du_entry')
+    img, lines = read('du_entry')
     if not is_duras(lines):
+        if v.is_battle_modes(img):      # LIVE: a locked (Coming Soon) card opens nothing
+            print("    Dura's not available yet (Coming Soon), skipping", flush=True)
+            return 4
         print("    ERROR: Dura's Trials screen not recognised (LIVE: card position / OCR word)",
               flush=True)
-        return None
+        return 1
     return lines
 
 
@@ -198,8 +250,8 @@ def main(argv: list[str] | None = None) -> int:
         return 7
     _bot_lock.release_at_exit()
     lines = enter()
-    if lines is None:
-        return 1
+    if isinstance(lines, int):
+        return lines
     floor, tokens, cleared = parse_floor(lines), parse_tokens(lines), is_cleared(lines)
     print(f"    dura's: highest floor {floor}, cleared={cleared}, tokens {tokens}/{TOKENS_MAX}", flush=True)
     if args.dry_run:

@@ -38,6 +38,11 @@ HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
 # [710, 840, 970, 1100, 1220] was up to ~20 px off. HANDS_Y stayed valid.
 HAND_XS = [730, 850, 970, 1090, 1210]
 SCAN_RETRY_WAIT = 1.5              # LIVE: pause before the one re-read of an unreadable hand
+# T80b (live 2026-11-04: first read after the hand tap None 4/5x, once the
+# PREVIOUS hand's level): poll until the detail is up instead of a fixed 3.0 s
+DETAIL_POLLS = 16                  # LIVE: 16 x 0.5 s ~ 8 s bound
+DETAIL_POLL_WAIT = 0.5
+SLOT_REREADS = 2                   # fresh shots when the level read is None / stale
 LEVEL_X10 = (1100, 985)            # same button; x10 assumed via badge (LIVE)
 TARGET_DEFAULT = 95                # stage-253 level cap (rises with stages)
 MAX_X10_PER_HAND = 2               # 10 levels per hand per run
@@ -252,6 +257,32 @@ def scan_hands():
     return levels
 
 
+def open_detail(x: int, name: str) -> tuple[str, list]:
+    """Tap hand x, then poll (bounded) until its detail is up. (shot name, OCR lines)."""
+    v.tap((x, HANDS_Y), DETAIL_POLL_WAIT)
+    shot = name
+    for i in range(DETAIL_POLLS):
+        if i:
+            time.sleep(DETAIL_POLL_WAIT)
+            shot = f"{name}_w{i}"
+        lines = snap(shot)
+        if is_detail(lines):
+            break
+    return shot, lines
+
+
+def reread_level(name: str, lvl: int | None, expect: int | None = None) -> int | None:
+    """`lvl` (first read of shot `name`); None or != expect -> up to SLOT_REREADS fresh reads."""
+    for i in range(1, SLOT_REREADS + 1):
+        if lvl is not None and expect in (None, lvl):
+            break
+        time.sleep(DETAIL_POLL_WAIT)
+        shot = f"{name}_rr{i}"
+        lines = snap(shot)
+        lvl = slot_level(shot) or (read_level(lines) if is_detail(lines) else None)
+    return lvl
+
+
 def daily_charge() -> int:
     """One x1 level charge on the lowest slot-level hand. Exit: 0 charged
     (read-back +1), 4 skipped for today (blocked / resources / no effect),
@@ -277,13 +308,14 @@ def daily_charge() -> int:
             LAST_HAND.write_text(str(x), encoding="utf-8")
         except OSError:
             pass
-        v.tap((x, HANDS_Y), 3.0)
-        lines = snap(f"hl_daily_pre{attempt}")
+        pre, lines = open_detail(x, f"hl_daily_pre{attempt}")
         if "within 10" in " ".join(lines):
             print(f"    SKIP hand {x}: blocked (hands must be within 10 levels)", flush=True)
             key(4)
             continue
-        before = slot_level(f"hl_daily_pre{attempt}") or (read_level(lines) if is_detail(lines) else None)
+        before = slot_level(pre) or (read_level(lines) if is_detail(lines) else None)
+        if is_detail(lines):                  # != scanned level: stale previous detail
+            before = reread_level(pre, before, levels.get(x))
         if before is None:
             print(f"    SKIP hand {x}: level not readable", flush=True)
             key(4)
@@ -303,6 +335,7 @@ def daily_charge() -> int:
             key(4)
             return 4
         after = slot_level(f"hl_daily_post{attempt}") or read_level(v.ocr_lines(f"hl_daily_post{attempt}"))
+        after = reread_level(f"hl_daily_post{attempt}", after)
         key(4)
         if after is not None and after == before + 1:
             print(f"    charged: hand {x} level {before} -> {after}", flush=True)

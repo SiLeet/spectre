@@ -22,6 +22,8 @@ import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
 
+K = ('key', 4)      # T97: keyevent BACK (v.back)
+
 TEMP = Path.home() / 'AppData' / 'Local' / 'Temp'
 BOSS = ('now6.png', 'shots-75220/r1_0_initial.png', 'shots-75220/r1_1a_popup.png',
         'shots-66808/dr_f1_chances.png',      # older Necrodrakon skin, 'Not Ranked'
@@ -36,7 +38,7 @@ LEVEL_UP = ('livecheck/aftertap.png', 'livecheck/c1.png')   # light the bar prob
 NOT_UI_LESS = ('shots-80660/norm_1.png',      # letterboxed boss mid-load
                'shots-69680/norm_2.png')      # fight intro camera, no HUD
 CLAIM = ['PANEL', 'POPUP', 'PANEL']           # AFK panel, chest popup, after claim
-CLAIM_TAPS = [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK]
+CLAIM_TAPS = [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, K]
 
 
 def real(rel: str):
@@ -116,7 +118,7 @@ class RealFrames(unittest.TestCase):
         frames = [real(r) for r in (CARD[0], UI_LESS[0], BOSS[0], BLACK, BATTLE_MODES)]
         dev = FakeDevice(self, frames + ['WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)                 # old: 1 at once
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.DR_BOSS_BACK, v.BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K, K] + CLAIM_TAPS)
 
 
 class ClaimRound(unittest.TestCase):
@@ -124,14 +126,14 @@ class ClaimRound(unittest.TestCase):
         dev = FakeDevice(self, ['DR_ENDED', 'DR_UI_LESS', 'DR_BOSS_PAGE', 'DR_BLACK',
                                 'BATTLE_MODES', 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.DR_BOSS_BACK, v.BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K, K] + CLAIM_TAPS)
         self.assertIn('after leftover recovery: WORLD', dev.out.getvalue())
 
     def test_a_transition_persists_one_neutral_tap(self):
         dev = FakeDevice(self, ['DR_ENDED', 'DR_UI_LESS', 'DR_UI_LESS', 'DR_BOSS_PAGE',
                                 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.TRANSITION_TAP, v.DR_BOSS_BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.TRANSITION_TAP, K] + CLAIM_TAPS)
 
     def test_transition_with_text_gets_no_tap(self):
         dev = FakeDevice(self, ['DR_UI_LESS'] * (1 + v.RECOVER_WAITS),
@@ -145,13 +147,13 @@ class ClaimRound(unittest.TestCase):
         dev = FakeDevice(self, ['DR_ENDED', 'DR_UI_LESS', 'DR_BOSS_INFO', 'DR_BOSS_PAGE',
                                 'DR_BLACK', 'BATTLE_MODES', 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.DR_BOSS_BACK, v.DR_BOSS_BACK, v.BACK]
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K, K, K]
                          + CLAIM_TAPS)
 
     def test_battle_modes_back_only_once(self):
         dev = FakeDevice(self, ['BATTLE_MODES', 'BATTLE_MODES'])
         self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [v.BACK])
+        self.assertEqual(dev.taps, [K])
 
     def test_b_info_card_boss_world_claim(self):
         self.assertEqual(v.classify(frame('DR_BOSS_INFO')), 'POPUP')
@@ -159,7 +161,7 @@ class ClaimRound(unittest.TestCase):
         dev = FakeDevice(self, ['DR_BOSS_INFO', 'DR_BOSS_PAGE', 'DR_BLACK', 'BATTLE_MODES',
                                 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)                 # old: POPUP -> BACK -> refused
-        self.assertEqual(dev.taps, [v.DR_BOSS_BACK, v.DR_BOSS_BACK, v.BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [K, K, K] + CLAIM_TAPS)
 
     def test_c_budget_exhausted_no_fourth_tap(self):
         dev = FakeDevice(self, ['DR_ENDED'] * 4)
@@ -168,7 +170,7 @@ class ClaimRound(unittest.TestCase):
         dev = FakeDevice(self, ['DR_ENDED', 'DR_UI_LESS', 'DR_UI_LESS', 'DR_BOSS_INFO',
                                 'DR_BOSS_PAGE'])
         self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.TRANSITION_TAP, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.TRANSITION_TAP, K])
 
     def test_d_truly_unknown_refused_without_tap_or_wait(self):
         dev = FakeDevice(self, ['UNKNOWN'])
@@ -190,25 +192,25 @@ class Normalize(unittest.TestCase):
     def test_boss_page_shared_recovery(self):
         dev = FakeDevice(self, ['DR_BOSS_PAGE', 'DR_BLACK', 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)                # old: BACK, blind BACK on black
-        self.assertEqual(dev.taps, [v.DR_BOSS_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K])
 
     def test_card_then_transition_then_boss(self):
         dev = FakeDevice(self, ['DR_ENDED', 'DR_UI_LESS', 'DR_BOSS_PAGE', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K])
 
     def test_card_info_page_shares_one_budget(self):
         # review: the T93 card tap counts against the helper's budget
         dev = FakeDevice(self, ['DR_ENDED', 'DR_BOSS_INFO', 'DR_BOSS_PAGE', 'DR_BLACK',
                                 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, v.DR_BOSS_BACK, v.DR_BOSS_BACK, v.BACK])
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K, K, K])
         dev = FakeDevice(self, ['DR_ENDED', 'DR_ENDED', 'DR_BOSS_INFO', 'DR_BOSS_PAGE'])
         self.assertEqual(afk_normalize.main(), 1)                # 3 taps, no 4th
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, dr.CARD_CLOSE, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, dr.CARD_CLOSE, K])
         dev = FakeDevice(self, ['DR_PREP_GRID', 'DR_BOSS_INFO', 'DR_BOSS_PAGE', 'DR_BOSS_PAGE'])
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK, v.DR_BOSS_BACK, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_black_then_unknown_is_waited_out(self):
         dev = FakeDevice(self, ['DR_BLACK', 'UNKNOWN', 'WORLD'])
@@ -220,12 +222,12 @@ class Normalize(unittest.TestCase):
         dev = FakeDevice(self, ['DR_BLACK', 'POPUP', 'POPUP', 'POPUP', 'POPUP', 'POPUP', 'WORLD'],
                          ocr={'norm_pop1': ['Esperia Monthly']})
         self.assertEqual(afk_normalize.main(), 0)                # WT before: rc 1, no tap
-        self.assertEqual(dev.taps, [v.LOGIN_CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [v.LOGIN_CLAIM, v.BACK])   # rewards card: stays a tap
 
     def test_budget_exhausted_fails(self):
         dev = FakeDevice(self, ['DR_BOSS_PAGE'] * 4)
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [v.DR_BOSS_BACK] * v.RECOVER_BUDGET)
+        self.assertEqual(dev.taps, [K] * v.RECOVER_BUDGET)
 
 
 if __name__ == '__main__':

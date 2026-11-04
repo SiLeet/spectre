@@ -21,6 +21,8 @@ import afk_dream_realm as dr  # noqa: E402
 import afk_normalize  # noqa: E402
 import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
+
+K = ('key', 4)      # T97: keyevent BACK (v.back)
 from test_runtime_fixes import StagePushCase  # noqa: E402
 
 NORMAL_PASS = 9         # 4 x (norm_i + resolver shot) + norm_final, all POPUP
@@ -34,7 +36,7 @@ class NormalizeLadder(unittest.TestCase):
         self.assertIn('5x POPUP in a row', out)
         self.assertIn('ESCAPE: recovered (WORLD) before step back2, cycle 1', out)
         # normal pass: 4 BACKs; ladder: resolver (no OCR hit), BACK, ground tap
-        self.assertEqual(dev.taps, [v.BACK] * 4 + [v.BACK, v.GROUND])
+        self.assertEqual(dev.taps, [K] * 4 + [K, v.GROUND])
 
     def test_gives_up_bounded(self):
         dev = FakeDevice(self, ['POPUP'] * (NORMAL_PASS + 2 * 5 + 1))
@@ -83,7 +85,7 @@ class ArenaZombie(unittest.TestCase):
         self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT, ar.CARD_DISMISS, ar.CARD_DISMISS,
                                         ar.CARD_DISMISS,                         # zombie recovery
                                         ar.OPPONENT_LEFT, ar.ARENA_BATTLE,
-                                        ar.BACK, ar.BACK])                       # exit: lobby, battle modes
+                                        K, K])                       # exit: lobby, battle modes
         self.assertIn('zombie: 2 steps without progress', dev.out.getvalue())
         self.assertIn('exit: back at the world view', dev.out.getvalue())
 
@@ -101,7 +103,7 @@ class ArenaZombie(unittest.TestCase):
         with mock.patch.object(sys, 'argv', ['afk_arena.py']):
             self.assertEqual(ar.main(), 0)
         self.assertEqual(dev.taps[3:], [ar.OPPONENT_LEFT, ar.ARENA_BATTLE,
-                                        ar.SELECT_BACK, ar.BACK, ar.BACK])
+                                        K, K, K])
 
     def test_exit_gives_up_bounded_on_unknown(self):
         dev = FakeDevice(self, ['WORLD', 'BATTLE_MODES', 'ARENA_LOBBY',

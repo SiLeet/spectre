@@ -142,7 +142,7 @@ def main() -> int:
             continue
         st = v.classify(img)
         if st in ('PANEL', 'POPUP', 'DR_BOSS'):   # T94: DR_BOSS was POPUP
-            v.tap(v.BACK, 1.2)
+            v.back(1.2)                           # T97: keyevent, classify says non-world
             continue
         break  # world (or unknown) -> open the events panel next
 
@@ -158,8 +158,10 @@ def main() -> int:
     img = wait_events_panel('dg_panel')
     if img is None and login_btn_visible(v.shot('dg_entry_retry')):
         # live 10-31: the entry tap opened nothing (dg_panel was the world)
-        print('    panel did not open — re-tapping the entry once', flush=True)
-        v.tap(LOGIN_REWARDS, 3.5)
+        # T97: the re-tap is a short press (LIVE: unverified). The 11-04 repeat
+        # (shots-44432) was NOT a dead tap: login_btn_visible hit the wheat field
+        print('    panel did not open — re-tapping the entry once (hold-tap)', flush=True)
+        v.tap_hold(LOGIN_REWARDS, wait=3.5)
         img = wait_events_panel('dg_panel_retry')
     if img is None:
         print('    ERROR: Login Rewards panel did not open', flush=True)

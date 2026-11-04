@@ -31,6 +31,13 @@ gets its own back button, once per screen (select / detail / lobby; a stale
 repeat must not re-tap: (793,1000) on the lobby is its Challenge bar), one
 extra step each.
 
+T97 (live 2026-11-04: every tap on the arena select was dead, 'input keyevent 4'
+x3 got select -> lobby -> world): all navigation backs here are keyevent BACK
+(v.back), only on a frame classify() read as non-WORLD (on the world view BACK
+opens the exit confirm). An arena screen still UNCHANGED after its BACK
+(ar.unchanged) gets ONE more BACK; any other repeat is waited out as before.
+The ladder's 'back2' stays two taps: its second press fires unclassified.
+
 Exit: 0 world/panel reached, 1 still unknown after the cap.
 """
 import sys
@@ -81,7 +88,7 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
                       flush=True)
             elif step == 'back':
                 print(f'    escape {cycle}/{step}: BACK ({st})', flush=True)
-                v.tap(v.BACK, 1.5)
+                v.back(1.5)
             elif step == 'ground':
                 lines = ' '.join(v.ocr_lines(name)).lower()
                 if any(w in lines for w in PURCHASE_WORDS):
@@ -104,7 +111,7 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
 def main() -> int:
     import afk_dream_realm as dr    # lazy: afk_dream_realm imports this module
     import afk_arena as ar          # lazy, like dr: only normalize needs the arena tells
-    popups, steps, i, ends, rec, arena = 0, 4, 0, 0, False, set()
+    popups, steps, i, ends, rec, arena = 0, 4, 0, 0, False, {}   # arena: kind -> sig its BACK fired on
     while i < steps:
         img = v.shot(f'norm_{i}')
         st = v.classify(img)
@@ -115,7 +122,7 @@ def main() -> int:
         if rec and (v.is_dr_boss(img) or st == 'DR_PREP'
                     or dr.is_victory_rewards(img) or dr.is_battle_ended(img)
                     or ar.is_select(img) or ar.is_detail(img) or ar.is_lobby(img)):
-            # T96: recover_leftover owns arena screens it met, no second back tap here
+            # T96: recover_leftover owns arena screens it met, no second BACK here
             print('    normalize: Dream Realm / arena leftover after the recovery — giving up', flush=True)
             return 1
         if not rec and (v.is_dr_boss(img)
@@ -135,7 +142,7 @@ def main() -> int:
         if st == 'DR_PREP' and steps == 4 + ends + len(arena):   # T93/T95 taps add steps too
             steps += 1                  # T91: once — the prep BACK gets its own step
             print('    normalize: Dream Realm prep -> BACK', flush=True)
-            v.tap(DR_PREP_BACK, 2.5)    # boss page loads behind it (norm_1 was mid-load)
+            v.back(2.5)                 # boss page loads behind it (norm_1 was mid-load)
         elif st == 'UNKNOWN' and (dr.is_victory_rewards(img) or dr.is_battle_ended(img)):
             if ends == DR_END_TAPS:
                 break                   # never BACK here (Replay); norm_final decides
@@ -144,18 +151,22 @@ def main() -> int:
             v.tap(dr.CARD_CLOSE, 2.5)
         elif (kind := 'select' if ar.is_select(img) else 'detail' if ar.is_detail(img)
               else 'lobby' if ar.is_lobby(img) else ''):
-            if kind in arena:           # still mid-transition: wait, never the resolver/BACK
-                print(f'    normalize: arena {kind} after its back tap — waiting', flush=True)
+            if kind in arena and arena[kind] and ar.unchanged(arena[kind], img):
+                arena[kind] = None      # T97: ONE more BACK (the first was dropped)
+                print(f'    normalize: arena {kind} unchanged after its BACK -> one more BACK', flush=True)
+                v.back(2.5)
+            elif kind in arena:         # still mid-transition: wait, never the resolver/BACK
+                print(f'    normalize: arena {kind} after its BACK — waiting', flush=True)
                 time.sleep(2.5)
             else:
-                arena.add(kind)
+                arena[kind] = ar.screen_signature(img)
                 steps += 1              # T95: counts toward the T94 budget
                 print(f'    normalize: arena {kind} -> back', flush=True)
-                v.tap(ar.LOBBY_BACK if kind == 'lobby' else ar.SELECT_ARROW, 2.5)
+                v.back(2.5)
         elif st == 'POPUP' and v.resolve_startup_popup(f'norm_pop{i}'):
             time.sleep(1.0)
         else:
-            v.tap(v.BACK, 1.5)
+            v.back(1.5)                 # T97: st is neither WORLD nor PANEL here
         i += 1
     st = v.classify(v.shot('norm_final'))
     print(f'    normalize final: {st}', flush=True)

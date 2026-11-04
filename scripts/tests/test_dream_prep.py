@@ -21,6 +21,8 @@ import afk_claim_vision as v  # noqa: E402
 import afk_dream_realm as dr  # noqa: E402
 import afk_normalize  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
+
+K = ('key', 4)      # T97: keyevent BACK (v.back)
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
 
 PREP = ('shots-66808/dr_f1_prewait1.png', 'shots-80660/norm_0.png')
@@ -85,7 +87,7 @@ class RealFrames(DreamCase):
     def test_normalize_backs_out_of_the_real_prep(self):
         dev = FakeDevice(self, [real(PREP[1]), 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK])
+        self.assertEqual(dev.taps, [K])
 
     def test_back_arrow_is_on_the_button(self):
         self.assertGreater(v.lum(v.avg(real(PREP[0]), (565, 1000))), 200)   # plate right of the arrow
@@ -120,28 +122,28 @@ class SyntheticPrep(DreamCase):
     def test_dream_reach_world_backs_out_of_prep(self):
         dev = FakeDevice(self, ['DR_PREP_GRID', 'WORLD'])
         self.assertTrue(dr.reach_world('dr_world'))                  # old: 4 unknowns -> False
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK])
+        self.assertEqual(dev.taps, [K])
 
 
 class NormalizePrep(unittest.TestCase):
     def test_prep_back_then_world(self):
         dev = FakeDevice(self, ['DR_PREP_GRID', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK])
+        self.assertEqual(dev.taps, [K])
         self.assertIn('Dream Realm prep -> BACK', dev.out.getvalue())
 
     def test_prep_back_is_bounded(self):
         # one extra step for the prep BACK, then the normal 4-step pass
         dev = FakeDevice(self, ['DR_PREP_GRID'] * 6)
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK] + [v.BACK] * 4)
+        self.assertEqual(dev.taps, [K] * 5)
 
     def test_claim_round_backs_out_of_the_prep(self):
         # T94 (was: refused): the round start leaves the prep with its BACK
         dev = FakeDevice(self, ['DR_PREP_GRID', 'WORLD', 'PANEL', 'POPUP', 'PANEL'])
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [afk_normalize.DR_PREP_BACK, v.GROUND, v.AFK_PROGRESS,
-                                    v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [K, v.GROUND, v.AFK_PROGRESS,
+                                    v.CHEST, v.CLAIM, K])
 
 
 if __name__ == '__main__':

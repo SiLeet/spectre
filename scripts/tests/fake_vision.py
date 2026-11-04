@@ -92,6 +92,8 @@ _SPEC = {
     # green both sides of the icon, cream back + Refresh plates
     'ARENA_SELECT_T95': ((110, 63, 66), {(807, 782): (103, 157, 92), (883, 782): (105, 172, 109),
                                          (760, 1000): (253, 250, 244), (1300, 1000): (253, 250, 244)}),
+    # T95 opponent detail view: cream back plate + green Challenge! bar (T97 test)
+    'ARENA_DETAIL_T95': ((110, 63, 66), {(760, 1000): (253, 250, 244), (1300, 1000): (103, 157, 92)}),
     # afk_dailies
     'MENU': ((40, 40, 40), {(480, 1010): (200, 200, 200), (1375, 1028): (200, 200, 200)}),
     'QUESTS': ((40, 40, 40), {(500, 90): (230, 230, 230)}),
@@ -188,11 +190,13 @@ class FakeDevice:
         self.ocr = ocr or {}
         self.taps: list[tuple[int, int]] = []
         self.shots: list[str] = []
+        self.last = None            # frame of the latest shot (T97 world-BACK guard)
         for name, fake in (('adb', self._no_adb), ('tap', self._tap), ('swipe', self._swipe),
                            ('shot', self._shot), ('ocr_lines', self._ocr),
                            # real ocr_region would open v.TMP = .spectre/shots-<pid> (T82 review)
                            ('ocr_region', lambda name, box: []),
-                           ('tap_seq', self._tap_seq), ('key_seq', self._key_seq)):
+                           ('tap_seq', self._tap_seq), ('key_seq', self._key_seq),
+                           ('tap_hold', self._tap_hold)):
             for mod in (v, *also):       # also: modules with their own tap/shot copies
                 if hasattr(mod, name):
                     p = mock.patch.object(mod, name, fake)
@@ -223,8 +227,16 @@ class FakeDevice:
         return True
 
     def _key_seq(self, steps, tolerate=True, dry=False):
+        # T97: keyevent BACK on the world view opens the exit confirm — every flow
+        # must have read the frame as non-WORLD first
+        if (any(k == 4 for k, _ in steps) and self.last is not None
+                and v.classify(self.last) == 'WORLD'):
+            self.test.fail(f'keyevent BACK on the world view (shots: {self.shots})')
         self.taps.extend(('key', k) for k, _ in steps)
         return True
+
+    def _tap_hold(self, xy, ms=120, wait=1.0):
+        self.taps.append(('hold', *xy))
 
     def _swipe(self, *args, **kw):
         self.taps.append(('swipe', *args))
@@ -233,7 +245,8 @@ class FakeDevice:
         self.shots.append(name)
         if not self.frames:
             self.test.fail(f'unscripted shot {name!r} (shots so far: {self.shots})')
-        return self.frames.pop(0)
+        self.last = self.frames.pop(0)
+        return self.last
 
     def _ocr(self, name):
         return list(self.ocr.get(name, []))
@@ -259,3 +272,25 @@ def real_seq(test, rc: int = 0) -> list:
         p.start()
         test.addCleanup(p.stop)
     return calls
+
+
+class DeadTapDevice(FakeDevice):
+    """T97 (live 2026-11-04): taps (plain, batched, hold) change nothing; only
+    keyevent 4 advances `screens` by one. Every shot shows the current screen;
+    more than `max_shots` shots fails the test (unbounded loop)."""
+
+    def __init__(self, test, screens: list, max_shots: int = 40, **kw):
+        super().__init__(test, [], **kw)
+        self.screens, self.pos, self.max_shots = list(screens), 0, max_shots
+
+    def _shot(self, name):
+        self.shots.append(name)
+        if len(self.shots) > self.max_shots:
+            self.test.fail(f'more than {self.max_shots} shots: {self.shots}')
+        self.last = frame(self.screens[self.pos])
+        return self.last
+
+    def _key_seq(self, steps, tolerate=True, dry=False):
+        super()._key_seq(steps, tolerate, dry)
+        self.pos = min(self.pos + sum(k == 4 for k, _ in steps), len(self.screens) - 1)
+        return True

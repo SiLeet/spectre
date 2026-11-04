@@ -52,7 +52,6 @@ import afk_memory  # noqa: E402
 import afk_normalize  # noqa: E402  (bounded escape ladder, T66)
 import _bot_lock  # noqa: E402
 
-BACK = (474, 1010)
 BATTLE_MODES = (890, 1060)
 DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
 BOSS_TAP = (960, 1020)           # green Battle button on the boss page
@@ -299,7 +298,7 @@ def resolve_end_states(img, tag: str):
                 if not _budget():
                     return None
                 print(f'    {tag}: dim popup persists -> BACK', flush=True)
-                v.tap(v.BACK, 2.0)
+                v.back(2.0)             # T97: keyevent, cannot land on a buy button
         elif is_hero_card(img):
             if not _budget():
                 return None
@@ -401,7 +400,7 @@ def wait_for_fight_end(tag: str, max_wait: float):
 
 
 def reach_world(tag: str) -> bool:
-    """BACK-tap back to the world view. UNKNOWN frames never get a BACK
+    """BACK (keyevent, T97) back to the world view. UNKNOWN frames never get a BACK
     (T38 #3): a running fight is waited out, other unknowns are polled a few
     times before aborting (runtime review R13 — every fight frame is UNKNOWN,
     so starting mid-fight used to exit 1 at once)."""
@@ -421,7 +420,7 @@ def reach_world(tag: str) -> bool:
             if v.is_battle_modes(img):
                 print(f'    {tag}: Battle Modes menu -> BACK (A8 fund #1)',
                       flush=True)
-                v.tap(v.BACK, 2.0)
+                v.back(2.0)
                 continue
             if is_fight(img):
                 print(f'    {tag}: fight running — waiting for its end', flush=True)
@@ -436,7 +435,7 @@ def reach_world(tag: str) -> bool:
                 return False
             time.sleep(3)
             continue
-        v.tap(afk_normalize.DR_PREP_BACK if state == 'DR_PREP' else v.BACK, 1.5)
+        v.back(1.5)                     # T97: PANEL/POPUP/DR_PREP/DR_BOSS, never WORLD
     return v.classify(v.shot(f'{tag}_final')) == 'WORLD'
 
 
@@ -475,7 +474,7 @@ def start_fight(fight: int, attempts_max: int = 4) -> str | None:
             if dim_confirmed(f'dr_f{fight}_after{attempt}_{k}', img):
                 print(f'    fight {fight}: dim dialog after the Battle tap — BACK, '
                       'not counted as a fight', flush=True)
-                v.tap(v.BACK, 2.0)
+                v.back(2.0)
                 return 'dialog'
             now = 'prep' if is_prep(img) else 'boss' if is_boss_page(img) else None
             if now is not None and now != cls:
@@ -646,7 +645,7 @@ def run(args) -> int:
     if fights > 0:
         img = v.shot('dr_exit')
         if is_ready(img):
-            v.tap(BACK, 2.0)
+            v.back(2.0)
     img = v.shot('dr_final')
     print(v.wall_summary('dream', walls), flush=True)
     print(f'    done: {fights} fight(s) completed; final state: '

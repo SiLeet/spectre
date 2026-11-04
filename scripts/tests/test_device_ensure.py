@@ -16,6 +16,8 @@ import afk_device_ready as dready  # noqa: E402
 import afk_normalize  # noqa: E402
 from fake_vision import FakeDevice  # noqa: E402
 
+K = ('key', 4)      # T97: keyevent BACK (v.back)
+
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts' / 'device-ensure.sh'
 ARTIFACTS = Path(__file__).resolve().parent / '.artifacts' / 'device_ensure'
 
@@ -36,7 +38,7 @@ class DeviceReady(unittest.TestCase):
     def test_other_popup_gets_back(self):
         dev = FakeDevice(self, ['POPUP', 'POPUP', 'PANEL'], ocr={'dev_pop0': ['Store']})
         self.assertEqual(dready.main([]), 0)
-        self.assertEqual(dev.taps, [v.BACK])
+        self.assertEqual(dev.taps, [K])
 
     def test_timeout_falls_back_to_normalize(self):
         dev = FakeDevice(self, ['UNKNOWN', 'UNKNOWN'])

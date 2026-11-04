@@ -21,9 +21,11 @@ import afk_dream_realm as dr  # noqa: E402
 import afk_duras as du  # noqa: E402
 from fake_vision import FakeDevice  # noqa: E402
 
+K = ('key', 4)      # T97: keyevent BACK (v.back)
+
 ARTIFACTS = Path(__file__).resolve().parent / '.artifacts'
 CYCLE_SHOTS = 5         # escape ladder: resolver (+its own shot), back, ground, back2
-CYCLE_TAPS = [v.BACK, v.GROUND, v.BACK, v.BACK]
+CYCLE_TAPS = [K, v.GROUND, v.BACK, v.BACK]    # T97: 'back' keyevent, 'back2' taps
 
 
 class DreamTwoCycleBound(unittest.TestCase):

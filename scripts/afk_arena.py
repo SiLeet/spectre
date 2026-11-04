@@ -39,7 +39,6 @@ import _bot_lock  # noqa: E402
 
 
 # verified T27 coordinates (TODOS.md, 2026-10-31)
-BACK = (474, 1010)          # back arrow, bottom-left (most screens)
 GROUND = (300, 250)         # world-view dismiss tap
 BATTLE_MODES = (890, 1060)  # Battle Modes entry button, world view
 ARENA_CARD = (1200, 300)    # Arena card inside Battle Modes
@@ -116,6 +115,11 @@ def screen_signature(img: Image.Image) -> tuple[int, int, int]:
     return avg(img, (960, 540)), avg(img, (960, 300)), avg(img, (500, 540))
 
 
+def unchanged(sig, img: Image.Image) -> bool:
+    """T97: img still shows the screen `sig` was taken of (an input there did nothing)."""
+    return sum(dist(a, b) for a, b in zip(sig, screen_signature(img))) < STAGNANT_DIST
+
+
 
 def is_lobby(img: Image.Image) -> bool:
     """Arena lobby: green Challenge bar + cream Formation plate + dark band
@@ -138,7 +142,7 @@ def is_select(img: Image.Image) -> bool:
 def is_detail(img: Image.Image) -> bool:
     """T95 opponent detail view: cream back plate (dark floor left of it) +
     green Challenge! bar where the select screen has its Refresh plate.
-    Leaves via SELECT_ARROW."""
+    Left via keyevent BACK (T97)."""
     back, bar = (avg(img, p, r=4) for p in SELECT_PLATES)
     return (v.lum(back) > 200 and bar[1] - max(bar[0], bar[2]) > 35
             and v.lum(avg(img, DETAIL_GAP, r=4)) < 120)
@@ -180,7 +184,6 @@ def _mark_battle_tap() -> None:
 STAGNANT_STEPS = 2      # LIVE: unchanged steps before the zombie recovery
 STAGNANT_DIST = 40      # LIVE: screen_signature distance below which a step "did nothing"
 CARD_DISMISS = (480, 300)
-SELECT_BACK = (714, 1010)   # live 2026-11-03: the select screen's own back arrow
 
 
 def advance_to_fight(tag: str, steps: int = 6) -> str:
@@ -191,7 +194,11 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
     Zombie guard (T66, night log 2026-11-03: 'steps 0=SELECT, 1..5=RESULT ->
     could not reach a fight (STUCK)'): after STAGNANT_STEPS steps whose state
     and screen did not change, one card dismiss + a fresh select attempt; a
-    second stagnation ends the chain as STUCK at once (bounded)."""
+    second stagnation ends the chain as STUCK at once (bounded).
+    T97 (live 2026-11-04: every sword tap dead, keyevent BACK worked): on the T95
+    select / detail view the recovery is the same tap once more as a short press
+    (v.tap_hold, LIVE: unverified); still stagnant -> ONE keyevent BACK out of
+    select/detail (exit_to_world goes on from there), then STUCK as before."""
     prev = None
     stagnant = 0
     recovered = False
@@ -201,19 +208,26 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
             tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
             return 'DIALOG'
         st = arena_state(img)
-        sig = screen_signature(img)
-        same = prev is not None and prev[0] == st and \
-            sum(dist(a, b) for a, b in zip(prev[1], sig)) < STAGNANT_DIST
+        same = prev is not None and prev[0] == st and unchanged(prev[1], img)
         stagnant = stagnant + 1 if same else 0
-        prev = (st, sig)
+        prev = (st, screen_signature(img))
         print(f'    [{tag}] step {i}: {st}' + (f' (stagnant {stagnant})' if stagnant else ''), flush=True)
         if stagnant >= STAGNANT_STEPS:
+            t95 = SWORD_LEFT if is_select(img) else DETAIL_CHALLENGE if is_detail(img) else None
             if recovered:
                 print(f'    [{tag}] still stagnant after the recovery — giving up', flush=True)
+                if t95:
+                    print(f'    [{tag}] select/detail still up -> keyevent BACK (out of select/detail)', flush=True)
+                    v.back(2.0)
                 return 'STUCK'
-            print(f'    [{tag}] zombie: {stagnant} steps without progress -> card dismiss + re-select',
-                  flush=True)
-            tap(CARD_DISMISS, 1.5)
+            if t95:
+                print(f'    [{tag}] zombie: {stagnant} steps without progress -> hold-tap {t95}',
+                      flush=True)
+                v.tap_hold(t95, wait=2.5)
+            else:
+                print(f'    [{tag}] zombie: {stagnant} steps without progress -> card dismiss + re-select',
+                      flush=True)
+                tap(CARD_DISMISS, 1.5)
             recovered, stagnant, prev = True, 0, None
             continue                        # next step re-reads; SELECT taps the opponent again
         if st == 'RESULT':
@@ -241,6 +255,9 @@ def exit_to_world(max_steps: int = 5) -> bool:
     modes (474) -> world (474); T95 layout: select back arrow SELECT_ARROW
     (793,1000). Result cards are dismissed on the way; an
     unrecognised screen stops the exit (bounded), the run keeps its result.
+    T97: every back arrow here is a keyevent BACK (live 2026-11-04 the SELECT_ARROW
+    tap was dead x5, 'input keyevent 4' left select -> lobby -> world); each fires
+    only after classify() read the frame as non-WORLD.
     """
     for i in range(max_steps):
         img = v.shot(f'arena_exit{i}')
@@ -250,7 +267,7 @@ def exit_to_world(max_steps: int = 5) -> bool:
             tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
             continue
         if v.is_battle_modes(img):
-            tap(BACK, 2.0)
+            v.back(2.0)
             continue
         if arena_state(img) == 'RESULT':
             tap(CARD_DISMISS, 1.5)
@@ -259,10 +276,10 @@ def exit_to_world(max_steps: int = 5) -> bool:
             # live 2026-11-03 (shots-78504): after the LAST fight the game sits
             # on the arena prep screen (hero grid) — its back arrow at (474,1010)
             # goes to the select screen, not to the lobby
-            tap(BACK, 2.5)
+            v.back(2.5)
             continue
         if is_select(img) or is_detail(img):
-            tap(SELECT_ARROW, 2.0)          # T95: v.BACK / SELECT_BACK hit the floor here
+            v.back(2.0)                     # T95: v.BACK / SELECT_BACK taps hit the floor here
             continue
         # Old layout: the positive SELECT rule (refresh badge at (1160,1010) bright
         # white on real select frames). A real lobby already reads PREP above
@@ -271,10 +288,10 @@ def exit_to_world(max_steps: int = 5) -> bool:
         select = arena_state(img) == 'SELECT'
         badge = avg(img, (1160, 1010))
         if select and badge[0] > 190 and badge[1] > 190:
-            tap(SELECT_BACK, 2.0)
+            v.back(2.0)
             continue
         if is_lobby(img):
-            tap(BACK, 2.0)                  # lobby back arrow -> battle modes
+            v.back(2.0)                     # lobby back arrow -> battle modes
             continue
         print(f'    WARN: arena exit step {i}: unrecognised screen — stopping exit',
               flush=True)

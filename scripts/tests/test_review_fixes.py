@@ -27,6 +27,8 @@ gift = importlib.util.module_from_spec(_gs)
 _gs.loader.exec_module(gift)
 from test_parsers import DETAIL_74, DETAIL_NO_BADGE, HALL  # noqa: E402
 
+K = ('key', 4)      # T97: keyevent BACK (v.back)
+
 
 def real(relpath: str):
     path = REPO / '.spectre' / relpath
@@ -338,7 +340,7 @@ class F15SharedChestClaim(unittest.TestCase):
     def test_dailies_uses_claim_round(self):
         dev = FakeDevice(self, ['WORLD', 'PANEL', 'POPUP', 'PANEL'])
         self.assertTrue(dl.afk_chest_claim())
-        self.assertEqual(dev.taps, [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, K])
         self.assertEqual(dev.shots[0], 'dl_afk_0_initial')
 
     def test_unconfirmed_claim_is_failure(self):
@@ -371,7 +373,7 @@ class F9QuestTabs(unittest.TestCase):
     def test_open_menu_closes_popup_with_back(self):
         dev = FakeDevice(self, ['POPUP', 'MENU'])
         self.assertTrue(dl.open_menu())
-        self.assertEqual(dev.taps, [v.BACK])
+        self.assertEqual(dev.taps, [K])
 
 
 
@@ -387,7 +389,7 @@ class F10GiftEntry(unittest.TestCase):
                                  'GIFT_ENTRY', 'EVENTS']                 # entry still there -> retry
                                 + ['EVENTS'] * 7 + ['WORLD'])           # 7 rows (no green badge), close
         self.assertEqual(rc, 0)
-        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, gift.LOGIN_REWARDS, v.BACK])
+        self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, ('hold', *gift.LOGIN_REWARDS), v.BACK])
 
     def test_entry_not_found_is_warn_not_done(self):
         dev, rc = self.run_gift(['WORLD'] + ['WORLD'] * 9)
@@ -632,7 +634,7 @@ class F27NoBlindBackAfterPopup(unittest.TestCase):
         # on the world view (exit confirm) before the AFK chip
         dev = FakeDevice(self, ['POPUP', 'POPUP', 'WORLD', 'WORLD', 'PANEL', 'POPUP', 'PANEL'])
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [v.BACK, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [K, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, K])
 
     def test_stuck_popup_refuses_after_reach_world_fails(self):
         dev = FakeDevice(self, ['POPUP', 'POPUP', 'POPUP'] + ['UNKNOWN'] * 7)
@@ -649,7 +651,7 @@ class T86IntroScreen(unittest.TestCase):
         dev = FakeDevice(self, ['UNKNOWN', 'WORLD', 'WORLD', 'PANEL', 'POPUP', 'PANEL'],
                          ocr={'r1_0_initial': self.INTRO})
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [v.BACK, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [v.BACK, v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, K])   # intro BACK stays a tap
         self.assertIn('r1_1c_intro', dev.shots)
 
     def test_intro_after_popup_close(self):
@@ -657,8 +659,8 @@ class T86IntroScreen(unittest.TestCase):
                                 'POPUP', 'PANEL'],
                          ocr={'r1_1b_recover': ['Welcome to Esperia']})
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [v.BACK, v.BACK, v.GROUND, v.AFK_PROGRESS,
-                                    v.CHEST, v.CLAIM, v.BACK])
+        self.assertEqual(dev.taps, [K, v.BACK, v.GROUND, v.AFK_PROGRESS,
+                                    v.CHEST, v.CLAIM, K])
 
     def test_unknown_without_intro_words_still_refuses(self):
         for words in ([], ['Welcome back!'], ['Esperia Monthly']):

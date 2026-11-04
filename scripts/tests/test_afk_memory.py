@@ -1,0 +1,152 @@
+"""T78: afk_memory — read-batch snapshot, cache, power() through the ONE guard."""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from unittest import mock
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
+import afk_claim_vision as v  # noqa: E402
+import afk_memory as am  # noqa: E402
+import afk_dailies as dl  # noqa: E402
+
+ART = Path(__file__).resolve().parent / '.artifacts'
+PID, BASE, OFF = '1', '0x7964E0000000', 0xA578
+
+
+def batch_rows(lo=259850, hi=0, ptr=0x7964_E123_4560, valid=True):
+    return [{'name': f'Slot.{n}', 'address': '0x0', 'value': val, 'fmt': 'U32', 'valid': valid}
+            for n, val in (('lo', lo), ('hi', hi), ('ptr', ptr))]
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        am._snap_cache.clear()
+        am._power_cache.clear()
+        ART.mkdir(exist_ok=True)
+        self.state = ART / 'power-state-afk-memory.json'
+        self.state.unlink(missing_ok=True)
+        patches = [mock.patch.object(v, 'POWER_STATE', self.state),
+                   mock.patch.object(v, 'TMP', ART / 'afk_memory_tmp')]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.calls = []
+
+    def fake_run(self, rows=None, rc=0, stdout=None, exc=None):
+        def run(cmd, **kw):
+            self.calls.append(cmd)
+            if exc:
+                raise exc
+            out = stdout if stdout is not None else json.dumps(rows)
+            return subprocess.CompletedProcess(cmd, rc, out, '')
+        return mock.patch.object(am.subprocess, 'run', side_effect=run)
+
+
+class TSnapshot(Base):
+    def test_one_call_cached_then_expires(self):
+        y = am.slot_yaml(OFF)
+        with self.fake_run(batch_rows()):
+            with mock.patch.object(am.time, 'monotonic', return_value=100.0):
+                a = am.snapshot(PID, BASE, y)
+                b = am.snapshot(PID, BASE, y)
+            with mock.patch.object(am.time, 'monotonic', return_value=101.6):
+                am.snapshot(PID, BASE, y)
+        self.assertEqual(a['Slot.lo']['value'], 259850)
+        self.assertIs(a, b)
+        self.assertEqual(len(self.calls), 2)          # cache hit, then TTL expiry
+        cmd = self.calls[0]
+        self.assertEqual(cmd[1:3], ['read-batch', '--offsets'])
+        self.assertIn('--json', cmd)
+        self.assertIn('--adb', cmd)
+
+    def test_failures_return_empty_and_are_not_cached(self):
+        y = am.slot_yaml(OFF)
+        for kw in ({'rc': 1}, {'stdout': 'not json'},
+                   {'exc': subprocess.TimeoutExpired('x', 30)}, {'exc': FileNotFoundError()}):
+            with self.subTest(kw=kw), self.fake_run(**kw):
+                self.assertEqual(am.snapshot(PID, BASE, y), {})
+        self.assertEqual(am._snap_cache, {})
+
+    def test_slot_yaml_offsets(self):
+        text = am.slot_yaml(0xA578).read_text()
+        for needle in ('offset: 0xa578', 'offset: 0xa57c', 'offset: 0xa580', 'U64'):
+            self.assertIn(needle, text)
+
+
+class TPower(Base):
+    def seed(self, **kw):
+        st = {'offset': OFF, 'width': 8, 'power': 259850, 'pid': PID, 'base': BASE}
+        st.update(kw)
+        v.save_power_state(st)
+
+    def test_u32_entry_ok_in_one_process_run(self):
+        self.seed(width=4)
+        with self.fake_run(batch_rows()):
+            status, val = am.power(PID, BASE)
+            am.power(PID, BASE)                        # cached
+        self.assertEqual((status, val), ('ok', 259850))
+        self.assertEqual(len(self.calls), 1)
+
+    def test_same_verdict_as_classic_reads(self):
+        """Guard verdicts must match v.memory_preflight with the dump backend."""
+        cases = [  # (state width, lo, hi, ptr, last)
+            (4, 259850, 0x1234, 0x7964_E000_0010, 259850),      # u32 map entry ok
+            (4, 108449240, 0, 0x7964_E000_0010, 259850),        # drift -> disabled
+            (8, 259900, 0, 0x10, 259850),                       # u64 field, no ptr -> ok
+            (8, 259850, 0x55, 0x7964_E000_0010, 259850),        # u64 aliasing a map entry -> disabled
+        ]
+        for width, lo, hi, ptr, last in cases:
+            with self.subTest(width=width, lo=lo, hi=hi):
+                raw = lo.to_bytes(4, 'little') + hi.to_bytes(4, 'little') + ptr.to_bytes(8, 'little')
+
+                def dump(pid, addr, out, size='8', raw=raw):
+                    Path(out).write_bytes(raw[:int(size)])
+                    return True
+                self.seed(width=width, power=last)
+                with mock.patch.object(v, 'adb_exec_dump', side_effect=dump), \
+                     mock.patch.object(v, 'revalidate_power_offset', return_value=None):
+                    classic = v.memory_preflight(PID, BASE)
+                self.seed(width=width, power=last)
+                am._snap_cache.clear()
+                am._power_cache.clear()
+                with self.fake_run(batch_rows(lo, hi, ptr)), \
+                     mock.patch.object(v, 'revalidate_power_offset', return_value=None):
+                    fast = am.power(PID, BASE)
+                self.assertEqual(fast, classic)
+
+    def test_no_read_batch_falls_back_to_classic_dumps(self):
+        self.seed(width=4)
+        with self.fake_run(rc=2), \
+             mock.patch.object(v, 'read_power', return_value=259850) as rp, \
+             mock.patch.object(v, 'read_power_entry_valid', return_value=True):
+            self.assertEqual(am.power(PID, BASE), ('ok', 259850))
+        rp.assert_called_once()
+
+    def test_fail_not_cached(self):
+        self.seed(width=4)
+        with self.fake_run(rc=2), mock.patch.object(v, 'read_power', return_value=None):
+            self.assertEqual(am.power(PID, BASE), ('fail', None))
+        self.assertEqual(am._power_cache, {})
+
+    def test_drift_window_single_rule(self):
+        self.assertEqual(v.drift_window(259850), 25985)
+        self.assertEqual(v.drift_window(1000), 2000)
+
+
+class TConsumer(unittest.TestCase):
+    def test_dailies_power_gate_uses_afk_memory(self):
+        with mock.patch.object(dl.v, 'idle_seconds', return_value=None), \
+             mock.patch.object(dl.afk_memory, 'power', return_value=('fail', None)) as pw, \
+             mock.patch.object(dl.v, 'memory_preflight') as classic, \
+             mock.patch('sys.stdout'):
+            self.assertEqual(dl.run_dailies(0, '1', '0x7964E0000000'), 2)
+        pw.assert_called_once_with('1', '0x7964E0000000')
+        classic.assert_not_called()
+
+
+if __name__ == '__main__':
+    unittest.main()

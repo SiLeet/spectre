@@ -49,6 +49,12 @@ MAX_X10_PER_HAND = 2               # 10 levels per hand per run
 HALL_BTN = (990, 1010)             # bottom-nav Resonating Hall (verified live 2026-11-03)
 LEVEL_NUM_BOX = (1240, 810, 1560, 930)   # big 'Level NN' bottom-right (LIVE 2026-11-03)
 LEVEL_MAX = 300                    # plausibility cap for an OCR'd level
+# T82: 'Resonance Level: NN' header bar of the Resonating Hall (text ~(862..1110, 345..370)),
+# measured on .spectre/shots-69252/hl_entry.png + hl_daily_hall0/1 + hl_scan_hall_850/970/1090/1210
+# (region hit on all 7); region miss on all 14 negatives (detail hl_scan_*/hl_daily_pre*/post1,
+# quests panel shots-47096/hl_entry*) — same verdicts as the full-frame OCR.
+# LIVE: not yet run on the device; a miss only costs the full-OCR fallback (hall_lines).
+HALL_BOX = (740, 315, 1180, 405)
 
 
 def key(keycode, wait=1.5):
@@ -106,6 +112,15 @@ def is_hall(lines):
     return any("Resonance Level" in ln for ln in lines)
 
 
+def hall_lines(name):
+    """OCR of saved shot `name` for the hall gate (T82): the HALL_BOX region
+    first; no 'Resonance Level' there -> the full-frame OCR as before, so a
+    negative (and the is_detail check on it) behaves exactly as without the
+    region. A hit returns only the region lines."""
+    lines = v.ocr_region(name, HALL_BOX)
+    return lines if is_hall(lines) else v.ocr_lines(name)
+
+
 def is_detail(lines):
     """Hero detail: level badge or the detail-only texts (real OCR: 'Affinity
     Not Pinned', 'Hands of Resonance must be within 10 levels ...'). The hall
@@ -121,18 +136,19 @@ def in_hall(tag):
     detail can leave the hall entirely. Detail still open -> one more back;
     town (WORLD) -> re-enter via the bottom nav; anything else -> False."""
     img = v.shot(tag)
-    lines = v.ocr_lines(tag)
+    lines = hall_lines(tag)
     if is_hall(lines):
         return True
     if is_detail(lines):
         key(4)
         img = v.shot(f"{tag}_b")
-        lines = v.ocr_lines(f"{tag}_b")
+        lines = hall_lines(f"{tag}_b")
         if is_hall(lines):
             return True
     if v.classify(img) == "WORLD":
         v.tap(HALL_BTN, 4.0)
-        return is_hall(snap(f"{tag}_reenter"))
+        v.shot(f"{tag}_reenter")
+        return is_hall(hall_lines(f"{tag}_reenter"))
     return False
 
 
@@ -368,7 +384,8 @@ def main():
 
     # navigate: town -> Resonating Hall
     v.tap(HALL_BTN, 4.0)
-    lines = snap("hl_entry")
+    v.shot("hl_entry")
+    lines = hall_lines("hl_entry")
     if not is_hall(lines):
         # one guarded retry (missed tap / slow open): in_hall re-taps only
         # from the town view, never blind

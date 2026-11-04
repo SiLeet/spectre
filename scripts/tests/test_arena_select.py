@@ -21,6 +21,8 @@ import afk_normalize  # noqa: E402
 from fake_vision import FakeDevice  # noqa: E402
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
 
+K = ('key', 4)      # T97: every arena / Battle Modes back is a keyevent BACK
+
 SELECT = ('shots-52268/arena_2_select.png', 'shots-52268/arena_f1_step0.png',
           'shots-52268/arena_exit0.png', 'shots-79700/norm_0.png')
 LOBBY = ('shots-52268/arena_1_lobby.png', 'shots-15028/norm_0.png')
@@ -66,14 +68,14 @@ class RealFrames(unittest.TestCase):
         dev = FakeDevice(self, [real(DETAIL[1]), real(SELECT[0]), real(LOBBY[0]), 'BATTLE_MODES',
                                 'WORLD'], also=(ar,))
         self.assertTrue(ar.exit_to_world())
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.SELECT_ARROW, ar.BACK, ar.BACK])
+        self.assertEqual(dev.taps, [K, K, K, K])
 
     def test_normalize_from_detail(self):
         # old: POPUP -> resolver -> BACK on the carpet -> escape ladder
         dev = FakeDevice(self, [real(DETAIL[0]), real(SELECT[0]), real(LOBBY[0]), 'BATTLE_MODES',
                                 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K, K, K])
 
     def test_tap_spots(self):
         img = real(SELECT[0])
@@ -109,13 +111,13 @@ class RealFrames(unittest.TestCase):
         dev = FakeDevice(self, [real(SELECT[2]), real(LOBBY[0]), 'BATTLE_MODES', 'WORLD'],
                          also=(ar,))
         self.assertTrue(ar.exit_to_world())
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.BACK, ar.BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_normalize_from_select(self):
         # old: BACK x4 on the carpet, rc 1 (shots-79700)
         dev = FakeDevice(self, [real(SELECT[3]), real(LOBBY[0]), 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_normalize_pressed_lobby_skips_the_resolver(self):
         # old: norm_1 POPUP -> OCR 'Daily Rewards' -> LOGIN_CLAIM onto Battle Modes
@@ -123,7 +125,7 @@ class RealFrames(unittest.TestCase):
                                 'BATTLE_MODES', 'WORLD'],
                          ocr={'norm_pop1': ['Daily Rewards']})
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.LOBBY_BACK, v.BACK])     # pressed lobby: wait, no re-tap
+        self.assertEqual(dev.taps, [K, K])      # pressed lobby changed: wait, no second BACK
         self.assertNotIn(v.LOGIN_CLAIM, dev.taps)
 
 
@@ -152,45 +154,46 @@ class Synthetic(unittest.TestCase):
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'],
                          also=(ar,))
         self.assertTrue(ar.exit_to_world())
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.BACK, ar.BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_normalize_select_and_lobby(self):
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_normalize_lobby(self):
         dev = FakeDevice(self, ['ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K])
 
     def test_normalize_arena_is_bounded(self):
-        # one back tap per screen (one extra step), then waits — no BACK, no resolver
+        # one back per screen (one extra step) + T97's one retry, then waits — no resolver
         dev = FakeDevice(self, ['ARENA_SELECT_T95'] * 6)
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW])
+        self.assertEqual(dev.taps, [K, K])
         self.assertEqual(len(dev.shots), 6)                 # norm_0..4 + norm_final
 
     def test_normalize_stale_select_still_backs_the_lobby(self):
-        # shared 2-tap budget: the stale select re-tapped (793,1000) and stranded the lobby
+        # shared 2-tap budget: the stale select re-tapped (793,1000) and stranded the lobby;
+        # T97: the stale select gets one more keyevent (cannot hit the Challenge bar)
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_SELECT_T95', 'ARENA_LOBBY',
                                 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K, K, K])
 
     def test_arena_taps_count_toward_the_recover_budget(self):
         # select + lobby taps use 2 of the 3 T94 taps: one boss-back left
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'DR_BOSS_PAGE', 'DR_BOSS_PAGE',
                                 'DR_BOSS_PAGE'])
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
 
 # T96: two daily runs refused 'initial state: UNKNOWN' on a leftover select screen
 # (15:19 shots-35072, 15:29 shots-17380); hermes' live leftover lives outside .spectre
 STUCK = Path.home() / 'AppData' / 'Local' / 'hermes' / 'cache' / 'scratch' / 'select_stuck.png'
 CLAIM = ['PANEL', 'POPUP', 'PANEL']           # AFK panel, chest popup, after claim
-CLAIM_TAPS = [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, v.BACK]
+CLAIM_TAPS = [v.GROUND, v.AFK_PROGRESS, v.CHEST, v.CLAIM, K]
 
 
 def stuck():
@@ -211,54 +214,55 @@ class RoundStart(unittest.TestCase):
                 dev = FakeDevice(self, [img, real(LOBBY[0]), 'BATTLE_MODES', 'WORLD'] + CLAIM)
                 self.assertEqual(v.claim_round('r1'), 0)        # old: UNKNOWN -> refusing
                 # select + lobby = 2 of the 3 budget taps, Battle Modes BACK uncounted
-                self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK] + CLAIM_TAPS)
+                self.assertEqual(dev.taps, [K, K, K] + CLAIM_TAPS)
 
     def test_real_detail_select_lobby_uses_the_whole_budget(self):
         dev = FakeDevice(self, [real(DETAIL[0]), real(SELECT[0]), real(LOBBY[0]), 'BATTLE_MODES',
                                 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)                # old: POPUP -> BACK on the carpet
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK]
+        self.assertEqual(dev.taps, [K, K, K, K]
                          + CLAIM_TAPS)
 
     def test_real_pressed_lobby_is_waited_not_retapped(self):
+        # T97: the pressed lobby is a changed frame (reads POPUP) -> waited, no second BACK
         dev = FakeDevice(self, [real('shots-17920/norm_0.png'), real('shots-17920/norm_1.png'),
                                 'BATTLE_MODES', 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [ar.LOBBY_BACK, v.BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [K, K] + CLAIM_TAPS)
 
     def test_real_stuck_select_ends_within_the_budget(self):
         img = stuck()
-        dev = FakeDevice(self, [img] * (2 + v.RECOVER_WAITS))
+        dev = FakeDevice(self, [img] * (3 + v.RECOVER_WAITS))
         self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW])           # repeat waited out, no re-tap
-        self.assertEqual(len(dev.shots), 2 + v.RECOVER_WAITS)
+        self.assertEqual(dev.taps, [K, K])        # T97: one more BACK, then waited out
+        self.assertEqual(len(dev.shots), 3 + v.RECOVER_WAITS)
 
     def test_real_normalize_on_select_stuck(self):
         dev = FakeDevice(self, [stuck(), real(LOBBY[0]), 'BATTLE_MODES', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_real_normalize_does_not_retap_after_the_recovery(self):
         # black -> helper taps the detail once, waits it out -> POPUP back to normalize:
         # its own arena branch must not tap it a second time
-        dev = FakeDevice(self, ['DR_BLACK'] + [real(DETAIL[0])] * (2 + v.RECOVER_WAITS))
+        dev = FakeDevice(self, ['DR_BLACK'] + [real(DETAIL[0])] * (3 + v.RECOVER_WAITS))
         self.assertEqual(afk_normalize.main(), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW])
+        self.assertEqual(dev.taps, [K, K])        # T97: the helper's one retry, none after
 
     def test_synthetic_select_lobby_modes_world_claim(self):
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'BATTLE_MODES', 'WORLD'] + CLAIM)
         self.assertEqual(v.claim_round('r1'), 0)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.BACK] + CLAIM_TAPS)
+        self.assertEqual(dev.taps, [K, K, K] + CLAIM_TAPS)
 
     def test_synthetic_arena_taps_share_the_budget(self):
         dev = FakeDevice(self, ['ARENA_SELECT_T95', 'ARENA_LOBBY', 'DR_BOSS_PAGE', 'DR_BOSS_PAGE'])
         self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW, ar.LOBBY_BACK, v.DR_BOSS_BACK])
+        self.assertEqual(dev.taps, [K, K, K])
 
     def test_synthetic_stuck_select(self):
-        dev = FakeDevice(self, ['ARENA_SELECT_T95'] * (2 + v.RECOVER_WAITS))
+        dev = FakeDevice(self, ['ARENA_SELECT_T95'] * (3 + v.RECOVER_WAITS))
         self.assertEqual(v.claim_round('r1'), 1)
-        self.assertEqual(dev.taps, [ar.SELECT_ARROW])
+        self.assertEqual(dev.taps, [K, K])
 
 
 if __name__ == '__main__':

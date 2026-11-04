@@ -18,6 +18,8 @@ import afk_dream_realm as dr  # noqa: E402
 import afk_stage_push as sp  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 
+K = ('key', 4)      # T97: keyevent BACK (v.back)
+
 
 class R1FightMarker(unittest.TestCase):
     """A8a-1: start_fight needs positive evidence, black frames keep polling."""
@@ -148,7 +150,7 @@ class R7Chances(unittest.TestCase):
     def test_dim_dialog_after_tap_is_not_a_fight(self):
         dev = FakeDevice(self, ['DR_BOSS', 'DR_DIM', 'DR_DIM'])
         self.assertEqual(dr.start_fight(1), 'dialog')
-        self.assertEqual(dev.taps, [dr.BOSS_TAP, v.BACK])
+        self.assertEqual(dev.taps, [dr.BOSS_TAP, K])
 
 
 
@@ -205,7 +207,7 @@ class R19BattleModesEscape(unittest.TestCase):
     def test_reach_world_backs_out_of_battle_modes(self):
         dev = FakeDevice(self, ['DR_BATTLE_MODES', 'WORLD'])
         self.assertTrue(dr.reach_world('dr_world'))               # old: 150 s -> False
-        self.assertEqual(dev.taps, [v.BACK])
+        self.assertEqual(dev.taps, [K])
 
 
 class R20HeroDetailGate(unittest.TestCase):

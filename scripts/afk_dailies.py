@@ -58,7 +58,10 @@ def open_menu() -> bool:
         # both bright only while the menu panel is open (world: L 64 / 31)
         if v.lum(v.avg(img, (480, 1010))) > 150 and v.lum(v.avg(img, (1375, 1028))) > 150:
             return True
-        v.tap(v.BACK if v.classify(img) in ('POPUP', 'DR_BOSS') else MENU, 3.0)   # T94: DR_BOSS was POPUP
+        if v.classify(img) in ('POPUP', 'DR_BOSS'):    # T94: DR_BOSS was POPUP
+            v.back(3.0)                                 # T97: keyevent, never on the world
+        else:
+            v.tap(MENU, 3.0)
     return False
 
 
@@ -156,6 +159,15 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
         return 1
     v.tap(QUESTS_ICON, 3.5)
     img = v.shot('dl_questpanel')
+    if (not is_quests_panel(img) and v.lum(v.avg(img, (480, 1010))) > 150
+            and v.lum(v.avg(img, (1375, 1028))) > 150):
+        # T97: the menu is still open (open_menu's probe) -> the icon tap did
+        # nothing: once more as a short press (LIVE: unverified), else give up.
+        # The 11-04 'quest panel did not open' was a detector miss (panel open,
+        # (500,90) L 140), not a dead tap — follow-up
+        print('    quest panel did not open — one hold-tap on the icon', flush=True)
+        v.tap_hold(QUESTS_ICON, wait=3.5)
+        img = v.shot('dl_questpanel_hold')
     if not is_quests_panel(img):
         print('    ERROR: quest panel did not open', flush=True)
         return 1

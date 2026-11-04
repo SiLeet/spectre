@@ -44,7 +44,7 @@ def wait_ready(timeout: float, poll: float) -> bool:
             return True
         if st == 'POPUP':
             if not v.resolve_startup_popup(f'dev_pop{i}'):
-                v.tap(v.BACK, 1.5)
+                v.back(1.5)             # T97: keyevent on the POPUP, never the world
         elif st == 'UNKNOWN' and is_title(v.ocr_lines(tag)):
             print('    title screen -> tap to start', flush=True)
             v.tap(TITLE_TAP, 3.0)

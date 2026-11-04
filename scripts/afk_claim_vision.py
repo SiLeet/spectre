@@ -492,6 +492,21 @@ def key_seq(steps, tolerate: bool = True, dry: bool = False):
                     [w for _, w in steps], tolerate, dry)
 
 
+def back(wait: float = 1.5) -> None:
+    """T97: Android BACK (keyevent 4) instead of a tap on an on-screen back arrow.
+    LIVE 2026-11-04: came through every time on arena select -> lobby -> world while
+    taps there were dead. NEVER on the world view (opens the exit confirm): callers
+    fire it only on a frame classify()/a detector just read as non-WORLD."""
+    key_seq([(4, wait)], tolerate=False)
+
+
+def tap_hold(xy: tuple[int, int], ms: int = 120, wait: float = 1.0) -> None:
+    """T97: a short press ('input swipe x y x y ms') for the ONE retry after a tap
+    left the screen unchanged (Unity UIs can drop zero-duration taps).
+    LIVE: unverified. Retries only — normal taps stay tap()."""
+    swipe(xy[0], xy[1], xy[0], xy[1], ms, wait)
+
+
 def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:
     p = adb('shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(millis))
     if p.returncode != 0:                  # same contract as tap()
@@ -678,20 +693,20 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
                      budget: int = RECOVER_BUDGET) -> tuple[str, str]:
     """T94: bounded, state-proven way out of Dream Realm leftovers at a round
     start (result card / Victory Rewards -> CARD_CLOSE, boss page or its info
-    card -> DR_BOSS_BACK, prep -> DR_PREP_BACK). At most `budget` taps, plus one
+    card / prep -> BACK). At most `budget` taps, plus one
     uncounted BACK on a verified Battle Modes menu; black / UI-less frames (and
     any unknown frame after one of its own taps or waits) are waited out, a
     UI-less frame still up after a wait gets ONE neutral tap (counted). Returns (state, name of the last shot); the
     name is unchanged when the frame was none of these (nothing done).
-    T96: arena leftovers (select / detail -> SELECT_ARROW, lobby -> LOBBY_BACK)
-    get one counted tap per screen kind; a repeat is waited out, never re-tapped
-    ((793,1000) on the lobby is its Challenge bar, as in afk_normalize)."""
+    T96: arena leftovers (select / detail / lobby) get one counted BACK per
+    screen kind. T97: every back-arrow step (boss page, prep, arena, Battle
+    Modes) is a keyevent BACK (back()); an arena screen still UNCHANGED after its
+    BACK (ar.unchanged) gets ONE more (counted), any other repeat is waited out."""
     import afk_dream_realm as dr    # lazy: both import this module
-    import afk_normalize
     import afk_arena as ar          # lazy: afk_arena imports this module
     taps = waits = 0
     prev_ui_less = ui_tapped = modes = False
-    arena: set[str] = set()
+    arena: dict = {}                # kind -> signature its BACK fired on (None: BACKed twice)
     while True:
         st = classify(img)
         if st in ('WORLD', 'PANEL'):
@@ -702,19 +717,19 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
         if dr.is_battle_ended(img) or dr.is_victory_rewards(img):
             what, xy = 'Dream Realm result screen -> tap to close', dr.CARD_CLOSE
         elif is_dr_boss(img):
-            what, xy = f'Dream Realm boss page ({st}) -> back plate', DR_BOSS_BACK
+            what, xy = f'Dream Realm boss page ({st}) -> BACK', None
         elif st == 'DR_PREP':
-            what, xy = 'Dream Realm prep -> BACK', afk_normalize.DR_PREP_BACK
-        elif kind and kind not in arena:
-            arena.add(kind)
-            what, xy = f'arena {kind} ({st}) -> back', (ar.LOBBY_BACK if kind == 'lobby'
-                                                        else ar.SELECT_ARROW)
+            what, xy = 'Dream Realm prep -> BACK', None
+        elif kind and (kind not in arena or (arena[kind] and ar.unchanged(arena[kind], img))):
+            what, xy = (f'arena {kind} ({st}) -> BACK' if kind not in arena
+                        else f'arena {kind} ({st}) unchanged -> one more BACK'), None
+            arena[kind] = None if kind in arena else ar.screen_signature(img)
         elif is_battle_modes(img):
             if modes:
                 return st, name         # the one BACK did not leave it
             modes, prev_ui_less = True, False
             print('    recovery: Battle Modes menu -> BACK (outside the budget)', flush=True)
-            tap(BACK, 2.5)
+            back(2.5)
             name = f'{tag}_0m'
             img = shot(name)
             continue
@@ -722,7 +737,7 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
             ui_tapped = True
             what, xy = 'UI-less transition persists -> one neutral tap', TRANSITION_TAP
         elif (((st == 'UNKNOWN' and (taps or waits or modes or ui_less or dr.is_uniform_dark(img)))
-               or kind)             # arena repeat (pressed lobby reads POPUP): its tap is done
+               or kind)             # arena repeat that changed (pressed lobby reads POPUP): mid-transition
               and waits < RECOVER_WAITS):
             waits, prev_ui_less = waits + 1, ui_less
             print(f'    recovery: transition, waiting ({waits}/{RECOVER_WAITS})', flush=True)
@@ -737,18 +752,22 @@ def recover_leftover(tag: str, img: Image.Image, name: str,
             return st, name
         taps, prev_ui_less = taps + 1, False
         print(f'    recovery {taps}/{budget}: {what}', flush=True)
-        tap(xy, 2.5)
+        if xy:
+            tap(xy, 2.5)
+        else:
+            back(2.5)
         name = f'{tag}_0r{taps}'
         img = shot(name)
 
 
 def reach_world(max_steps: int = 6) -> bool:
-    """Tap BACK until the verified world view is up."""
+    """BACK (keyevent, T97) until the verified world view is up; each BACK only
+    after classify() read the frame as non-WORLD."""
     for i in range(max_steps):
         img = shot(f'rw_{i}')
         if classify(img) == 'WORLD':
             return True
-        tap(BACK, 1.5)
+        back(1.5)
     return classify(shot('rw_final')) == 'WORLD'
 
 
@@ -1004,7 +1023,7 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         if resolve_startup_popup(f'{tag}_1a_popup'):
             state = classify(shot(f'{tag}_1b_recover'))
         else:
-            tap(BACK, 1.5)
+            back(1.5)                   # T97: POPUP, never the world view
             state = classify(shot(f'{tag}_1b_recover'))
         last = f'{tag}_1b_recover'
         print(f'    after close: {state}', flush=True)
@@ -1064,7 +1083,7 @@ def claim_round(tag: str, dry_run: bool = False) -> int:
         state = classify(shot(f'{tag}_4b_retry'))
         print(f'    after claim retry: {state}', flush=True)
     if state == 'PANEL':
-        tap(BACK, 1.0)
+        back(1.0)                       # T97: verified panel -> world
         print('    claim verified (popup closed, panel back)', flush=True)
     else:
         print(f'    ERROR: unexpected state after claim: {state}', flush=True)

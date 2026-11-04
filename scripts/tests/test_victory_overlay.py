@@ -21,6 +21,8 @@ import afk_claim_vision as v  # noqa: E402
 import afk_dream_realm as dr  # noqa: E402
 import afk_normalize  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
+
+K = ('key', 4)      # T97: keyevent BACK (v.back)
 from make_frame_manifest import REPO, load_rgb  # noqa: E402
 
 OVERLAY = ('shots-72816/dr_post1_0.png', 'shots-69680/norm_0.png',
@@ -97,7 +99,7 @@ class Synthetic(DreamCase):
                          + ['DR_ENDED', 'DR_VICTORY_REWARDS'] + ['DR_BOSS'] * 3)
         self.assertEqual(dr.run(argparse.Namespace(fights=1, wait_fight=150)), 0)
         self.assertEqual(dev.taps, [dr.BOSS_TAP, dr.SPEED_X2, dr.CARD_CLOSE,
-                                    dr.CARD_CLOSE, dr.BACK])
+                                    dr.CARD_CLOSE, K])
         self.assertIn('Victory Rewards overlay -> tap to close', dev.out.getvalue())
 
     def test_overlay_dismiss_is_bounded(self):
@@ -120,7 +122,7 @@ class Synthetic(DreamCase):
         # the T91 once-guard must not depend on how many T93 taps came first
         dev = FakeDevice(self, ['DR_VICTORY_REWARDS', 'DR_PREP_GRID', 'DR_BOSS', 'WORLD'])
         self.assertEqual(afk_normalize.main(), 0)
-        self.assertEqual(dev.taps, [dr.CARD_CLOSE, afk_normalize.DR_PREP_BACK, v.BACK])
+        self.assertEqual(dev.taps, [dr.CARD_CLOSE, K, K])
 
     def test_normalize_overlay_card_world(self):
         dev = FakeDevice(self, ['DR_VICTORY_REWARDS', 'DR_ENDED', 'WORLD'])

@@ -21,7 +21,7 @@ def bash_path(path: Path | str) -> str:
 
 
 class DailyWrapperExitCode(unittest.TestCase):
-    def _run_wrapper(self, **fake_results: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    def _run_wrapper(self, runs: int = 1, **fake_results: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
         with tempfile.TemporaryDirectory(prefix="afk-daily-wrapper-") as temp:
             root = Path(temp)
             (root / "scripts").mkdir()
@@ -87,13 +87,14 @@ esac
             env["FAKE_CALLS"] = bash_path(calls_file)
             env.update(fake_results)
 
-            result = subprocess.run(
-                [shutil.which("bash") or "bash", bash_path(wrapper_path), "--scheduled"],
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
+            for _ in range(runs):        # same temp root = same .spectre markers / same day
+                result = subprocess.run(
+                    [shutil.which("bash") or "bash", bash_path(wrapper_path), "--scheduled"],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
             calls = calls_file.read_text(encoding="utf-8").splitlines() if calls_file.exists() else []
             self.markers = sorted(p.name for p in (root / ".spectre").glob("*-last.txt"))
             return result, calls
@@ -135,6 +136,13 @@ esac
         self.assertLess(self._index(calls, "afk_dream_realm.py"), self._index(calls, "afk_hero_level.py"))
         self.assertLess(self._index(calls, "afk_hero_level.py"), self._index(calls, "afk_stage_push.py"))
         self.assertIn("level-last.txt", self.markers)
+
+    def test_leveling_once_per_day_over_two_runs(self):
+        # T70 (review gap): the level-last.txt gate across runs on the same day
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(sum("afk_hero_level.py" in c for c in calls), 1, calls)
+        self.assertEqual(sum("afk_claim_vision.py" in c for c in calls), 2, calls)   # both runs ran
 
     def test_resources_out_marks_the_day(self):
         result, calls = self._run_wrapper(FAKE_LEVEL_RC="4")

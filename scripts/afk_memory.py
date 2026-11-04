@@ -11,8 +11,11 @@ two reads (value + map-entry shape) for one read-batch of the stored slot.
 If read-batch is unavailable (old release binary) it falls back to the
 classic dump reads, so the result never gets worse than before.
 
-Rule: a bot script that needs an offset value uses this module instead of
-calling adb/spectre itself.
+Rule (T81): kein Skript liest Offsets direkt, wenn afk_memory reicht. A bot
+script that needs an offset value uses this module instead of calling
+adb/spectre itself; only afk_claim_vision (the guard definition) and this
+module call memory_preflight / read_power / adb_exec_dump. Enforced by the
+grep-assert in scripts/tests/test_afk_memory.py (TRollout).
 
 CLI:  python scripts/afk_memory.py --show --pid P --base 0x...
       [--offsets games/afk-journey/offsets.yaml]   (absolute base_offsets: --base 0x0)

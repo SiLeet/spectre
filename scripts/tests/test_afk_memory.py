@@ -1,7 +1,10 @@
 """T78: afk_memory — read-batch snapshot, cache, power() through the ONE guard."""
 from __future__ import annotations
 
+import contextlib
+import importlib.util
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -146,6 +149,63 @@ class TConsumer(unittest.TestCase):
             self.assertEqual(dl.run_dailies(0, '1', '0x7964E0000000'), 2)
         pw.assert_called_once_with('1', '0x7964E0000000')
         classic.assert_not_called()
+
+
+def _load_daily_gift():
+    spec = importlib.util.spec_from_file_location(
+        'afk_daily_gift', Path(__file__).resolve().parents[1] / 'afk-daily-gift.py')
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TRollout(unittest.TestCase):
+    """T81: every bot runtime power read goes through afk_memory.power."""
+    ARGS = ['--pid', PID, '--base', BASE]
+
+    def assert_wired(self, main, extra_patches=()):
+        with contextlib.ExitStack() as stack:
+            pw = stack.enter_context(mock.patch.object(am, 'power', return_value=('fail', None)))
+            classic = stack.enter_context(mock.patch.object(v, 'memory_preflight'))
+            stack.enter_context(mock.patch.object(v, 'prune_shot_dirs', return_value=0))
+            stack.enter_context(mock.patch.object(sys, 'argv', ['x'] + self.ARGS))
+            stack.enter_context(mock.patch('sys.stdout'))
+            for p in extra_patches:
+                stack.enter_context(p)
+            self.assertEqual(main(), 2)   # 'fail' branch unchanged: ERROR + exit 2
+        pw.assert_called_once_with(PID, BASE)
+        classic.assert_not_called()
+
+    def lock_patches(self, mod):
+        return [mock.patch.object(mod._bot_lock, 'acquire', return_value=True),
+                mock.patch.object(mod._bot_lock, 'release_at_exit')]
+
+    def test_consumers_call_afk_memory_power(self):
+        import afk_dream_realm as dr
+        import afk_stage_push as sp
+        for name, main, extra in (
+                ('afk_claim_vision', v.main, ()),
+                ('afk-daily-gift', _load_daily_gift().main, ()),
+                ('afk_dream_realm', dr.main, self.lock_patches(dr)),
+                ('afk_stage_push', sp.main, self.lock_patches(sp))):
+            with self.subTest(name):
+                self.assert_wired(main, extra)
+
+    def test_no_script_reads_power_offsets_directly(self):
+        """grep-assert: only the guard definition + afk_memory touch the raw readers."""
+        pat = re.compile(r'\b(memory_preflight|read_power|read_power_entry_valid|'
+                         r'revalidate_power_offset|adb_exec_dump)\(')
+        # direct spectre value reads (subcommand literal on a line naming the binary)
+        spectre_read = re.compile(r'''['"](dump|read|read-batch)['"]''')
+        allowed = {'afk_memory.py', 'afk_claim_vision.py'}
+        # wallet-hunt-all.py: research whole-region heap dump hunt, not a runtime value reader
+        allowed_spectre = allowed | {'wallet-hunt-all.py'}
+        hits = [f'{f.name}:{n}' for f in sorted(Path(__file__).resolve().parents[1].glob('*.py'))
+                for n, line in enumerate(f.read_text(encoding='utf-8').splitlines(), 1)
+                if (f.name not in allowed and pat.search(line))
+                or (f.name not in allowed_spectre and 'spectre' in line.lower()
+                    and spectre_read.search(line))]
+        self.assertEqual(hits, [], 'use afk_memory.power instead of the raw readers')
 
 
 if __name__ == '__main__':

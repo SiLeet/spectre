@@ -825,7 +825,8 @@ def main() -> int:
             print(f'    idle check ok ({idle:.0f}s)', flush=True)
 
     if args.pid and args.base and not args.dry_run:
-        status, power = memory_preflight(args.pid, args.base)
+        import afk_memory  # local: afk_memory imports this module at top level (circular)
+        status, power = afk_memory.power(args.pid, args.base)
         if status == 'fail':
             print('    ERROR: team_power preflight could not read memory', flush=True)
             return 2

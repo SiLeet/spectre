@@ -198,16 +198,23 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
     T97 (live 2026-11-04: every sword tap dead, keyevent BACK worked): on the T95
     select / detail view the recovery is the same tap once more as a short press
     (v.tap_hold, LIVE: unverified); still stagnant -> ONE keyevent BACK out of
-    select/detail (exit_to_world goes on from there), then STUCK as before."""
+    select/detail (exit_to_world goes on from there), then STUCK as before.
+    T97b: that retry is v.tap_retry (next tap mode, hold-tap once the chain is
+    exhausted); the mode sticks only on the expected progress at the next step
+    (select -> detail/PREP, detail -> PREP)."""
     prev = None
     stagnant = 0
     recovered = False
+    retry = None                            # T97b: (mode, retried tap xy)
     for i in range(steps):
         img = v.shot(f'{tag}_step{i}')
         if v.is_confirm_dialog(img):
             tap(v.CONFIRM_CANCEL, 1.5)      # CANCEL — never confirm a purchase
             return 'DIALOG'
         st = arena_state(img)
+        if retry:   # only the expected progress counts: a mis-aimed retry must not make its mode stick
+            v.tap_result(retry[0], st == 'PREP' or (retry[1] == SWORD_LEFT and is_detail(img)))
+            retry = None
         same = prev is not None and prev[0] == st and unchanged(prev[1], img)
         stagnant = stagnant + 1 if same else 0
         prev = (st, screen_signature(img))
@@ -221,9 +228,9 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
                     v.back(2.0)
                 return 'STUCK'
             if t95:
-                print(f'    [{tag}] zombie: {stagnant} steps without progress -> hold-tap {t95}',
+                print(f'    [{tag}] zombie: {stagnant} steps without progress -> tap retry {t95}',
                       flush=True)
-                v.tap_hold(t95, wait=2.5)
+                retry = (v.tap_retry(t95, wait=2.5), t95)
             else:
                 print(f'    [{tag}] zombie: {stagnant} steps without progress -> card dismiss + re-select',
                       flush=True)

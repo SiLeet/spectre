@@ -21,6 +21,7 @@ afk_claim_vision docstring, 2026-10-31):
 from __future__ import annotations
 
 import io
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,9 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 from PIL import Image, ImageDraw  # noqa: E402
 
+os.environ.pop('AFK_TAP_MODE', None)   # T97b: a caller's AFK_TAP_MODE must not leak into tests
 import afk_claim_vision as v  # noqa: E402
+v.TAP_MODE, v._SENDEVENT = 'tap', False   # also if imported earlier; no discovery (adb) in tests
 
 # Test isolation (Race-Fund-Fix, 2026-11-03): suite runs must never touch the
 # real .spectre/afk-bot.lock. _bot_lock resolves its default at call time, so
@@ -207,7 +210,10 @@ class FakeDevice:
         self.metrics.parent.mkdir(exist_ok=True)
         self.metrics.unlink(missing_ok=True)
         for p in (mock.patch.object(v, 'prune_shot_dirs', lambda *a, **k: 0),
-                  mock.patch.object(v, 'METRICS', self.metrics)):
+                  mock.patch.object(v, 'METRICS', self.metrics),
+                  # T97b: per-test tap-mode state; sendevent discovery 'unavailable' (no adb)
+                  mock.patch.object(v, 'TAP_MODE', 'tap'), mock.patch.object(v, '_TAP_DEAD', set()),
+                  mock.patch.object(v, '_SENDEVENT', False)):
             p.start()
             test.addCleanup(p.stop)
         self.out = io.StringIO()   # driver prints, kept off the test runner output
@@ -219,8 +225,10 @@ class FakeDevice:
     def _no_adb(self, *args, **kw):
         self.test.fail(f'real adb call: {args}')
 
-    def _tap(self, xy, wait=1.0):
-        self.taps.append(tuple(xy))
+    def _tap(self, xy, wait=1.0, mode=None):
+        mode = mode or v.TAP_MODE           # T97b: non-default modes are logged as (mode, x, y)
+        self.taps.append(tuple(xy) if mode == 'tap' else (mode, *xy))
+        return mode
 
     def _tap_seq(self, steps, tolerate=True, dry=False):    # T75: one batch = taps in order
         self.taps.extend((x, y) for x, y, _ in steps)
@@ -279,9 +287,14 @@ class DeadTapDevice(FakeDevice):
     keyevent 4 advances `screens` by one. Every shot shows the current screen;
     more than `max_shots` shots fails the test (unbounded loop)."""
 
-    def __init__(self, test, screens: list, max_shots: int = 40, **kw):
+    def __init__(self, test, screens: list, max_shots: int = 40, live_modes=(), **kw):
         super().__init__(test, [], **kw)
         self.screens, self.pos, self.max_shots = list(screens), 0, max_shots
+        self.live_modes = live_modes        # T97b: tap modes that DO advance the screen
+
+    def _tap(self, xy, wait=1.0, mode=None):
+        if super()._tap(xy, wait, mode) in self.live_modes:
+            self.pos = min(self.pos + 1, len(self.screens) - 1)
 
     def _shot(self, name):
         self.shots.append(name)

@@ -450,11 +450,151 @@ def adb(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
     return subprocess.run([str(ADB), '-s', SERIAL, *args], capture_output=True, timeout=timeout)
 
 
-def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
-    p = adb('shell', 'input', 'tap', str(xy[0]), str(xy[1]))
+# --- tap modes (T97b) --------------------------------------------------------
+# LIVE 2026-11-04 ~16:00: every 'input tap' dead (manual ones too), 'input keyevent 4'
+# always worked. A dead tap still returns rc 0, so tap() cannot fall back by itself:
+# the stall sites retry ONCE in the next mode (tap_retry) and their own screen check
+# makes it sticky (tap_result). AFK_TAP_MODE picks the start mode per process.
+# LIVE: 'touchscreen' may not help - 'input tap' already defaults to the touchscreen
+# source on Android 9; 'sendevent' (raw evdev, bypasses InputManager) is the real
+# alternative and is unverified on BlueStacks.
+TAP_CHAIN = ('tap', 'touchscreen', 'sendevent')
+
+
+def _env_tap_mode() -> str:
+    mode = os.environ.get('AFK_TAP_MODE', 'tap')
+    if mode not in TAP_CHAIN:
+        print(f'    WARN: AFK_TAP_MODE={mode!r} unknown -> tap', flush=True)
+        return 'tap'
+    return mode
+
+
+TAP_MODE = _env_tap_mode()
+_TAP_DEAD: set[str] = set()   # modes whose stall retry changed nothing (this process)
+_SENDEVENT = None             # discovery cache: None untried, False unavailable, else the device
+SCREEN_W, SCREEN_H = 1920, 1080
+
+
+def parse_getevent(text: str) -> dict | None:
+    """First touch device (ABS_MT_POSITION_X and _Y) in `getevent -pl` output:
+    {'path', 'x': (min, max), 'y': (min, max), 'tid', 'btn', 'slot'}, else None."""
+    import re
+    dev = None
+    for line in text.splitlines():
+        if m := re.match(r'add device \d+: (\S+)', line):
+            if dev and 'x' in dev and 'y' in dev:
+                return dev
+            dev = {'path': m[1], 'tid': False, 'btn': False, 'slot': False}
+        elif dev is not None:
+            if m := re.search(r'ABS_MT_POSITION_([XY])\s*:.*?min (-?\d+), max (-?\d+)', line):
+                dev[m[1].lower()] = (int(m[2]), int(m[3]))
+            dev['tid'] |= 'ABS_MT_TRACKING_ID' in line
+            dev['btn'] |= 'BTN_TOUCH' in line
+            dev['slot'] |= 'ABS_MT_SLOT' in line
+    return dev if dev and 'x' in dev and 'y' in dev else None
+
+
+def sendevent_cmds(dev: dict, x: int, y: int, ms: int = 0) -> list[str]:
+    """A tap (ms > 0: a press of ms) at screen (x, y) as raw sendevent commands,
+    scaled from 1920x1080 to the device's axis ranges. With ABS_MT_TRACKING_ID:
+    MT protocol B, else protocol A (SYN_MT_REPORT). LIVE: unverified - axis
+    orientation (BlueStacks landscape) and whether the game needs PRESSURE/TOUCH_MAJOR."""
+    def ev(typ, code, val):
+        return f'sendevent {dev["path"]} {typ} {code} {val}'
+
+    def scale(c, n, rng):
+        return rng[0] + round(c * (rng[1] - rng[0]) / (n - 1))
+    pos = [ev(3, 53, scale(x, SCREEN_W, dev['x'])), ev(3, 54, scale(y, SCREEN_H, dev['y']))]
+    btn = [ev(1, 330, 1)] if dev['btn'] else []
+    btn_up = [ev(1, 330, 0)] if dev['btn'] else []
+    if dev['tid']:      # protocol B: slot 0, tracking id 1 down, -1 up
+        slot = [ev(3, 47, 0)] if dev['slot'] else []
+        down = [*slot, ev(3, 57, 1), *pos, *btn, ev(0, 0, 0)]
+        up = [*slot, ev(3, 57, -1), *btn_up, ev(0, 0, 0)]
+    else:               # protocol A: SYN_MT_REPORT per contact, an empty one on release
+        down = [*pos, ev(0, 2, 0), *btn, ev(0, 0, 0)]
+        up = [ev(0, 2, 0), *btn_up, ev(0, 0, 0)]
+    return down + ([f'sleep {ms / 1000:g}'] if ms else []) + up
+
+
+def sendevent_device() -> dict | None:
+    """One-time discovery for TAP_MODE 'sendevent': `getevent -pl` -> touch device,
+    plus the T85 speed-profile root check (`su -c id` -> uid=0: sendevent runs under su).
+    None = unavailable (logged once): the tap chain stops before 'sendevent'.
+    LIVE: unverified - that getevent -pl exits by itself and that shell (group
+    input) may write /dev/input without root on BlueStacks."""
+    global _SENDEVENT
+    if _SENDEVENT is None:
+        _SENDEVENT = False
+        try:
+            p = adb('shell', 'getevent -pl', timeout=10)
+            dev = parse_getevent(p.stdout.decode(errors='replace')) if p.returncode == 0 else None
+            if dev:
+                dev['root'] = 'uid=0' in adb('shell', 'su -c id', timeout=10).stdout.decode(errors='replace')
+                _SENDEVENT = dev
+        except (OSError, subprocess.SubprocessError) as exc:
+            print(f'    sendevent discovery failed: {exc}', flush=True)
+        print(f'    sendevent device: {_SENDEVENT or "unavailable (tap chain stops here)"}', flush=True)
+    return _SENDEVENT or None
+
+
+def _tap_cmd(x: int, y: int, ms: int = 0, mode: str | None = None) -> str:
+    """The ONE place that builds a tap's device command line (ms > 0: a press)."""
+    mode = mode or TAP_MODE
+    x, y = int(x), int(y)
+    if mode == 'sendevent' and (dev := sendevent_device()):
+        line = ' && '.join(sendevent_cmds(dev, x, y, ms))
+        return f'su -c "{line}"' if dev['root'] else line
+    src = 'input touchscreen' if mode == 'touchscreen' else 'input'
+    return f'{src} swipe {x} {y} {x} {y} {ms}' if ms else f'{src} tap {x} {y}'
+
+
+def _press(xy, ms: int, wait: float, mode: str | None, what: str) -> None:
+    # adb joins shell argv with ' ' (no re-quoting), so split == the same device line;
+    # 'tap' mode keeps the exact pre-T97b argv `adb -s SERIAL shell input tap X Y`
+    p = adb('shell', *_tap_cmd(xy[0], xy[1], ms, mode).split())
     if p.returncode != 0:
-        raise RuntimeError(f'adb tap failed at {xy}: {p.stderr[:120]!r}')
+        raise RuntimeError(f'adb {what} failed at {xy}: {p.stderr[:120]!r}')
     time.sleep(wait)
+
+
+def tap(xy: tuple[int, int], wait: float = 1.0, mode: str | None = None) -> None:
+    _press(xy, 0, wait, mode, 'tap')
+
+
+def tap_retry(xy: tuple[int, int], wait: float = 1.0) -> str | None:
+    """T97b stall stage 1: the ONE retry of a tap that left the screen unchanged, in
+    the next TAP_CHAIN mode after TAP_MODE not yet dead in this process ('sendevent'
+    only if discovery finds a device). Returns that mode - the caller reports its
+    own screen check via tap_result(). Chain exhausted: T97's hold-tap, None."""
+    nxt = next((m for m in TAP_CHAIN[TAP_CHAIN.index(TAP_MODE) + 1:]
+                if m not in _TAP_DEAD and (m != 'sendevent' or sendevent_device())), None)
+    if nxt is None:
+        tap_hold(xy, wait=wait)
+        return None
+    print(f'    tap retry at {xy} via {nxt}', flush=True)
+    try:
+        tap(xy, wait, mode=nxt)
+    except RuntimeError as exc:     # e.g. sendevent without write access to /dev/input
+        _TAP_DEAD.add(nxt)
+        print(f'    tap mode {nxt} failed: {exc} -> hold-tap', flush=True)
+        tap_hold(xy, wait=wait)
+        return None
+    return nxt
+
+
+def tap_result(mode: str | None, changed: bool) -> None:
+    """The stall site's verdict on tap_retry(): screen changed -> `mode` sticks for
+    the rest of the process, else it is dead and the next stall tries the one after."""
+    global TAP_MODE
+    if mode is None:
+        return
+    if changed:
+        TAP_MODE = mode
+        print(f'    TAP_MODE -> {mode} (taps were dead)', flush=True)
+    else:
+        _TAP_DEAD.add(mode)
+        print(f'    tap mode {mode}: no effect either', flush=True)
 
 
 def _run_seq(cmds: list[str], waits: list[float], tolerate: bool, dry: bool):
@@ -482,7 +622,7 @@ def tap_seq(steps, tolerate: bool = True, dry: bool = False):
     steps: [(x, y, wait_s), ...]. Returns True/False (tolerate=True) or raises
     RuntimeError like tap() (tolerate=False); dry=True returns the shell line.
     Only for BLIND runs - a step that needs a screenshot in between stays tap()."""
-    return _run_seq([f'input tap {int(x)} {int(y)}' for x, y, _ in steps],
+    return _run_seq([_tap_cmd(x, y) for x, y, _ in steps],
                     [w for _, _, w in steps], tolerate, dry)
 
 
@@ -503,8 +643,8 @@ def back(wait: float = 1.5) -> None:
 def tap_hold(xy: tuple[int, int], ms: int = 120, wait: float = 1.0) -> None:
     """T97: a short press ('input swipe x y x y ms') for the ONE retry after a tap
     left the screen unchanged (Unity UIs can drop zero-duration taps).
-    LIVE: unverified. Retries only — normal taps stay tap()."""
-    swipe(xy[0], xy[1], xy[0], xy[1], ms, wait)
+    LIVE: unverified. Retries only — normal taps stay tap(). T97b: in TAP_MODE."""
+    _press(xy, ms, wait, None, 'hold-tap')
 
 
 def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1.0) -> None:

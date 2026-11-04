@@ -158,11 +158,12 @@ def main() -> int:
     img = wait_events_panel('dg_panel')
     if img is None and login_btn_visible(v.shot('dg_entry_retry')):
         # live 10-31: the entry tap opened nothing (dg_panel was the world)
-        # T97: the re-tap is a short press (LIVE: unverified). The 11-04 repeat
-        # (shots-44432) was NOT a dead tap: login_btn_visible hit the wheat field
-        print('    panel did not open — re-tapping the entry once (hold-tap)', flush=True)
-        v.tap_hold(LOGIN_REWARDS, wait=3.5)
+        # T97b: the re-tap goes through the tap-mode chain (LIVE: unverified). The
+        # 11-04 repeat (shots-44432) was NOT a dead tap: login_btn_visible hit the wheat field
+        print('    panel did not open — re-tapping the entry once (tap retry)', flush=True)
+        mode = v.tap_retry(LOGIN_REWARDS, wait=3.5)
         img = wait_events_panel('dg_panel_retry')
+        v.tap_result(mode, img is not None)
     if img is None:
         print('    ERROR: Login Rewards panel did not open', flush=True)
         return 1

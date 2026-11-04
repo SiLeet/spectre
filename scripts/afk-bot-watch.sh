@@ -309,6 +309,22 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         *) echo "afk-bot-watch: homestead build rc=$hs_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
+    # T103: homestead phase 2, start the Radiant Spire upgrade when its requirements
+    # are 7/7 (never diamonds). Soft phase like the build: rc 0 started / 4 nothing
+    # to do (Spire not selected, requirements missing, queue full) -> done for today;
+    # other rc logged, no marker. AFK_HOMESTEAD_UPGRADE=0 = off.
+    if [ "${AFK_HOMESTEAD_UPGRADE:-1}" = "1" ] &&        [ "$(cat "$OUT_DIR/homestead-upgrade-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "homestead upgrade"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) homestead upgrade (radiant spire)"
+        "$PY" scripts/afk_homestead_upgrade.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      hu_rc="${PIPESTATUS[0]}"
+      case "$hu_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/homestead-upgrade-last.txt" ;;
+        *) echo "afk-bot-watch: homestead upgrade rc=$hu_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     normalize_or_abort "stage push"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \

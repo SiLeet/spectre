@@ -48,6 +48,16 @@ OPPONENT_LEFT = (750, 500)  # left opponent card (weakest of the 3)
 ARENA_BATTLE = (960, 1010)  # Battle button on the arena prep screen
 CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 
+# T92 lobby gate. LIVE: shots-63812/arena_1_lobby (+ shots-59516/arena_1_lobby,
+# shots-15028|17920/norm_*): bar (101,156,91) G-max 55, plate L 250, band L 13.
+# Same back+plate+green-bar row on the DR prep (band L 229) and hero detail
+# (band L 226): only the dark band tells those apart (their plate reads L 250
+# too). The DR boss page also fails the plate (L 132). The old
+# lum(1080,1004)>150 read L 132 here.
+LOBBY_BAR = ((800, 1000), (1400, 1000))   # Challenge bar, both sides of the label
+LOBBY_PLATE = (685, 975)                  # Formation plate, top-right corner (r=4)
+LOBBY_BAND = (1100, 1068)                 # dark navy band under the bar (r=6)
+
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
     """v.tap (raises on an adb failure) with one retry. The old copy ignored
@@ -74,6 +84,16 @@ def screen_signature(img: Image.Image) -> tuple[int, int, int]:
     """Cheap fingerprint of the centre of the screen to detect state changes."""
     return avg(img, (960, 540)), avg(img, (960, 300)), avg(img, (500, 540))
 
+
+
+def is_lobby(img: Image.Image) -> bool:
+    """Arena lobby: green Challenge bar + cream Formation plate + dark band
+    below the bar, and the dark hall at (480,270) (not Battle Modes)."""
+    gmax = lambda c: c[1] - max(c[0], c[2])
+    return (all(gmax(avg(img, p)) > 35 for p in LOBBY_BAR)
+            and v.lum(avg(img, LOBBY_PLATE, r=4)) > 200
+            and v.lum(avg(img, LOBBY_BAND, r=6)) < 40
+            and v.lum(avg(img, (480, 270))) < 200)
 
 
 def arena_state(img: Image.Image) -> str:
@@ -185,16 +205,16 @@ def exit_to_world(max_steps: int = 5) -> bool:
             # goes to the select screen, not to the lobby
             tap(BACK, 2.5)
             continue
-        # The positive SELECT rule first: on select, the lobby probe also
-        # matches (bright bar at (1080,1004)) — only the refresh badge at
-        # (1160,1010) (bright white on real select frames) tells them apart.
+        # The positive SELECT rule first (refresh badge at (1160,1010) bright
+        # white on real select frames). A real lobby already reads PREP above
+        # (bar under (960,1010)) and leaves via the same BACK; is_lobby here
+        # covers lobbies that do not.
         select = arena_state(img) == 'SELECT'
         badge = avg(img, (1160, 1010))
         if select and badge[0] > 190 and badge[1] > 190:
             tap(SELECT_BACK, 2.0)
             continue
-        lobby = v.lum(avg(img, (1080, 1004))) > 150 and v.lum(avg(img, (480, 270))) < 200
-        if lobby:
+        if is_lobby(img):
             tap(BACK, 2.0)                  # lobby back arrow -> battle modes
             continue
         print(f'    WARN: arena exit step {i}: unrecognised screen — stopping exit',
@@ -238,8 +258,7 @@ def main() -> int:
     print('--- Arena card -> lobby', flush=True)
     tap(ARENA_CARD, 4.0)
     img = v.shot('arena_1_lobby')
-    lobby = v.lum(v.avg(img, (1080, 1004))) > 150 and v.lum(v.avg(img, (480, 270))) < 200
-    if not lobby:
+    if not is_lobby(img):
         print('    ERROR: arena lobby did not open', flush=True)
         return 1
 

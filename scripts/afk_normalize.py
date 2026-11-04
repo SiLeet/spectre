@@ -17,6 +17,13 @@ Dream Realm result screens (T93: Victory Rewards overlay / BATTLE ENDED card,
 both UNKNOWN) get dr.CARD_CLOSE instead of BACK (BACK on the card hits Replay),
 at most DR_END_TAPS times, one extra step each; never BACK there.
 
+T94: a Dream Realm boss page (DR_BOSS, also under its info card) or a black /
+UI-less transition hands over to v.recover_leftover (the round-start helper
+claim_round uses), once: v.RECOVER_BUDGET minus the T91/T93 Dream taps already
+made, transitions waited out instead of BACK. It ends WORLD/PANEL -> 0; POPUP ->
+normalize's own pass goes on (login resolver / escape ladder) but a Dream
+leftover after it -> 1; anything else -> 1.
+
 Exit: 0 world/panel reached, 1 still unknown after the cap.
 """
 import sys
@@ -89,7 +96,7 @@ def escape_ladder(tag: str = 'esc', cycles: int = ESCAPE_CYCLES) -> bool:
 
 def main() -> int:
     import afk_dream_realm as dr    # lazy: afk_dream_realm imports this module
-    popups, steps, i, ends = 0, 4, 0, 0
+    popups, steps, i, ends, rec = 0, 4, 0, 0, False
     while i < steps:
         img = v.shot(f'norm_{i}')
         st = v.classify(img)
@@ -97,6 +104,24 @@ def main() -> int:
         if st in ('WORLD', 'PANEL'):
             return 0
         popups = popups + 1 if st == 'POPUP' else 0
+        if rec and (v.is_dr_boss(img) or st == 'DR_PREP'
+                    or dr.is_victory_rewards(img) or dr.is_battle_ended(img)):
+            print('    normalize: Dream Realm leftover after the recovery — giving up', flush=True)
+            return 1
+        if not rec and (v.is_dr_boss(img)
+                        or (st == 'UNKNOWN' and (dr.is_uniform_dark(img) or v.is_ui_less(img)))):
+            # T94: boss page (+ info card) / black / UI-less transition: the shared
+            # bounded recovery; each T91/T93 Dream tap above added one step
+            rec = True
+            st, _ = v.recover_leftover('norm_rec', img, f'norm_{i}',
+                                       budget=max(0, v.RECOVER_BUDGET - (steps - 4)))
+            print(f'    normalize: after leftover recovery: {st}', flush=True)
+            if st in ('WORLD', 'PANEL'):
+                return 0
+            if st != 'POPUP':
+                return 1
+            i += 1                      # login/promo popup: normalize's own pass resolves it
+            continue
         if st == 'DR_PREP' and steps == 4 + ends:   # T93 result taps add steps too
             steps += 1                  # T91: once — the prep BACK gets its own step
             print('    normalize: Dream Realm prep -> BACK', flush=True)

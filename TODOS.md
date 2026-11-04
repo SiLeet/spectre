@@ -1259,3 +1259,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   byte-identisch zu dump; power() ok 258488). 3 CONCERNs GEFIXT: mem_probe
   SCAN_TIMEOUT 300->1200 (reale Scanzeit gemessen 13m39s), hot-WARN/ANSI-Prefix
   toleriert (+Test), read-batch note-Dedupe (+Assert). Praxislauf gestartet.
+- ✅ Wave-6 (F1–F5) [2026-11-04 ~04:3x]: afk_memory-Rollout, Region-OCR-Rollout,
+  tap_seq II, Dura's im Daily, speed_profile ops-ready. 5 Merges konfliktfrei
+  (d2ec11d), Delta-Suite 379 OK, Release-Build unnoetig (kein Rust). Worktrees
+  entfernt. Erst-Review via headless claude -p laeuft (Token-Regel). Live-Checks:
+  docs/reports/claude-wave-6-run.md.

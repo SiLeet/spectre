@@ -51,7 +51,11 @@ _bot_lock.describe = lambda *a, **k: 'test stub'
 
 _SPEC = {
     'WORLD': ((62, 70, 50), {v.BACK: (62, 70, 50), (564, 1010): (62, 70, 50),
-                             v.AFK_PROGRESS: (150, 150, 150)}),
+                             v.AFK_PROGRESS: (150, 150, 150), v.AFK_BAR: (52, 168, 167)}),
+    # T89 daytime world (shots-79040/norm_0): dark back over a lighter strip,
+    # lb-lg -33 — below the old -8 POPUP cliff, only the teal HUD bar says WORLD
+    'WORLD_DAY': ((62, 70, 50), {v.BACK: (21, 21, 21), (564, 1010): (54, 54, 54),
+                                 v.AFK_PROGRESS: (172, 160, 146), v.AFK_BAR: (52, 168, 167)}),
     'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230)}),
     'POPUP': ((40, 40, 40), {v.BACK: (62, 58, 57), (564, 1010): (100, 100, 100),
                              v.CLAIM: (233, 179, 117)}),
@@ -81,7 +85,8 @@ _SPEC = {
     'QUESTS': ((40, 40, 40), {(500, 90): (230, 230, 230)}),
     # afk-daily-gift
     'GIFT_ENTRY': ((62, 70, 50), {(1804, 662): (230, 80, 60), v.BACK: (62, 70, 50),
-                                  (564, 1010): (62, 70, 50), v.AFK_PROGRESS: (150, 150, 150)}),
+                                  (564, 1010): (62, 70, 50), v.AFK_PROGRESS: (150, 150, 150),
+                                  v.AFK_BAR: (52, 168, 167)}),
     'EVENTS': ((40, 40, 40), {(960, 100): (220, 220, 220), v.BACK: (200, 200, 200)}),
     # afk_dream_realm (A8; values from the dream docstrings / runtime review)
     'DR_BOSS': ((60, 60, 80), {(960, 1040): (109, 154, 100), (1280, 1010): (109, 154, 100)}),

@@ -95,3 +95,16 @@ Die „Complete Now"-Regel (automatisch, wenn Diamanten ≥ 10× Kosten) ist **n
 - T101b: Verhalten nach der Bestätigung in der Vorschau (schließt sie oder zeigt 101 » 102?) — beides wird behandelt, ungesehen.
 - T101: „tap missed" (rc 1) hat keine Obergrenze über Zyklen; nichts wird verbraucht.
 - T102c/T103b: neue Detektoren live ungetippt; T103 „Go"-Wege, 7/7-Dialog, Kitchen/Kochen offen.
+
+## Nachtrag T103c (22:28-Läufe)
+
+`feature/T103c-homestead-camera` @ `edf23aa` (Basis `98d972b`) — **bitte mergen**. 75 Homestead-Tests OK, volle Suite `Ran 668 tests … OK (skipped=201)`.
+
+| Punkt | Brief sagte | Tatsächlich (Beleg) | Fix |
+|---|---|---|---|
+| Upgrade-Phase „nothing to do" | Kamera verschoben, Icon-Scan auf x 350–1300 verbreitern | Ein Lauf (shots-9308) startete auf dem Dialog „Are you sure you want to exit the game?". Im anderen (shots-80480) war die Kitchen ausgewählt. Das Spire-Icon wäre bei ~(507,373) im Bild gewesen, war aber nicht gezeichnet (vermutlich, weil ein anderes Gebäude den Fokus hat). x-Verbreiterung hilft nicht (Scan läuft schon über x 300–1600). | Exit-Dialog → X (1014,710), nie der Haken. Kein Radial/Icon → Abwahl (GROUND), dann höchstens 2 Drags mit Neusuche; weiter nichts → rc 4. Das Kitchen-Radial gilt nie als Spire (Label muss über dem eigenen „Level Up" stehen). |
+| „Tap to Complete" einsammeln | als begrenzter Schritt | Marker (760,877) lag außerhalb des alten Suchfensters | Build-Phase sammelt vor dem Menü bis 3 Marker in (250,150)–(1700,1000). Sweep 1806 Frames: 17 Treffer auf WORLD, alle echt; `MARK_PX` 2000 (Kitchen-Sprechblase ~930 px). |
+| „Tap to close" per BACK | zuverlässig | übernommen | Nur als Fallback: genau ein BACK, wenn derselbe erkannte Toast nach dem Tap noch steht; nie auf Welt/Menü. |
+| Ore Refinery | Upgrade-Kette vormerken | — | nur Notiz |
+
+LIVE offen: ob Drags die Homestead-Kamera bewegen, ob nach der Abwahl das Spire-Icon erscheint, mehrere Marker hintereinander.

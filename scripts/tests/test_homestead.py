@@ -39,7 +39,8 @@ WORLD = lambda: paint('WORLD', [BTN])                                       # no
 MENU = lambda: paint('UNKNOWN', [(hs.EXIT_BTN, 12, (198, 187, 183)), (hs.BUILD_TAB, 12, (146, 183, 134)),  # noqa: E731
                                  (hs.LAYOUT_TAB, 12, (230, 223, 221)),
                                  (hs.PRODUCTION_TAB, 12, (145, 184, 138))])
-RING = lambda: paint('UNKNOWN', [((1089, 562), 7, (60, 200, 60)), ((842, 557), 7, (220, 40, 40))])  # noqa: E731
+RING = lambda: paint('UNKNOWN', [((1089, 562), 30, (250, 250, 250)), ((842, 557), 30, (250, 250, 250)),  # noqa: E731
+                                 ((1089, 562), 7, (60, 200, 60)), ((842, 557), 7, (220, 40, 40))])
 MARK = lambda: paint('WORLD', [BTN, ((964, 560), 20, (254, 238, 93))])       # noqa: E731
 TOAST = lambda: frame('UNKNOWN')                                            # noqa: E731
 CHECK, CANCEL = (1089, 562), (842, 557)
@@ -69,6 +70,31 @@ class Detectors(unittest.TestCase):
                 self.assertLessEqual(abs(xx - 842) + abs(xy - 558), 8)    # cancel disc centre
                 self.assertGreater(cy, 527)     # (1090,520) missed live: above the disc
                 self.assertFalse(hs.is_build_menu(img))
+
+    def test_ring_follows_the_ghost(self):
+        # T102c live: the radial sits around the ghost - (934,544) was outside the old window
+        spectre = Path(r'C:\Users\Sigi\spectre\.spectre')
+        cases = [(spectre / 'shots-47000' / 'hs_b0_place.png', (933, 550)),
+                 (spectre / 'shots-67544' / 'hs_b0_place.png', (1176, 491)),
+                 (HERMES / 'pl3.png', (1284, 574))]
+        ran = 0
+        for path, (cx, cy) in cases:
+            if not path.exists():
+                continue
+            with self.subTest(str(path)):
+                (gx, gy), (rx, ry) = hs.find_ring(load_rgb(path))
+                self.assertLessEqual(abs(gx - cx) + abs(gy - cy), 8)
+                self.assertLessEqual(abs(gx - rx - hs.X_DX), 15)
+            ran += 1
+        if not ran:
+            raise unittest.SkipTest('no live placement frames')
+
+    def test_dream_realm_red_green_is_not_a_ring(self):
+        # T102c sweep: the only band-wide geometry hit without white discs
+        path = Path(r'C:\Users\Sigi\spectre\.spectre\shots-41820\dr_f1_w6.png')
+        if not path.exists():
+            raise unittest.SkipTest('frame missing')
+        self.assertIsNone(hs.find_ring(load_rgb(path)))
 
     def test_marker_and_world(self):
         img = hermes('hm_confirmed2.png')

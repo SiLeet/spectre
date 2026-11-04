@@ -32,9 +32,10 @@ import argparse
 import re
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
@@ -54,8 +55,19 @@ LAYOUT_TAB = (1015, 1022)      # LIVE: cream 'Layout' pill (230,223,221) L225
 PRODUCTION_TAB = (640, 605)    # LIVE: active (green) tab (145,184,138) G-max 39; Functions (505,605)
                                # inactive cream (223,220,216). A Functions-active frame was not seen.
 FIELD_TILE = (515, 700)        # LIVE: brief's point; inside the Field tile bbox x462-565 y652-830
-FIELD_BOX = (462, 652, 565, 830)   # LIVE: whole Field tile; OCR x3 -> ['12/16', 'Field', '? 10', '0100']
-                                   # (x1 reads only '12'; x2 '12/16')
+# T102b: the counter is white italic text on the field picture (14/16 at bbox (528,714)-(568,736),
+# Hermes hm_menu_now). The whole-tile crop read 12/16 and 13/16 but never 14/16 live (shots-67544
+# hs_1_read, shots-68276 hs_0_read: 'Field counter not readable'). No single crop/scale reads all
+# of 12/13/14; seven OCR variants vote instead (LIVE, measured on hm_build_menu 12/16 x5,
+# shots-67544/hs_0_read 13/16 x3, hs_1_read + shots-68276/hs_0_read + hm_menu_now 14/16 x3 each;
+# the runner-up never had more than 1 vote, e.g. 'i3/16' -> (3,16)).
+COUNTER_WIDE = (500, 700, 600, 750)
+COUNTER_TIGHT = (515, 705, 585, 745)  # Hermes: generous left/bottom padding, the '1' touches the icon edge
+COUNTER_VARIANTS = ((COUNTER_WIDE, 2, ''), (COUNTER_WIDE, 3, ''), (COUNTER_WIDE, 4, ''),
+                    (COUNTER_WIDE, 5, ''), (COUNTER_WIDE, 3, 'bw'), (COUNTER_TIGHT, 5, ''),
+                    (COUNTER_TIGHT, 3, 'pad'))   # (box, upscale, '' grey | 'bw' >215 dark | 'pad' bw+border)
+COUNTER_BW = 215
+COUNTER_SETTLE = 2.0           # T102b: the tile animates right after a build -> one settled re-read
 RES_BOX = (1060, 8, 1500, 48)  # LIVE: resource bar; OCR x3 -> ['@ 653,402 3848', '460'] (gold, amber,
                                # silver); x2 drops the gold number
 FIELD_COST = (100, 10)         # LIVE: (gold, amber) on the Field tile and the radial cost pill (12/16)
@@ -156,15 +168,41 @@ def ocr_scaled(name: str, box, tag: str) -> list[str]:
     return v.ocr_lines(f'{name}_{tag}')
 
 
-def parse_counter(lines: list[str]):
-    """(built, limit) from the Field tile ('12/16'), None unless 'Field' is read too."""
-    if not any('field' in ln.lower() for ln in lines):
-        return None
-    for ln in lines:
-        m = re.search(r'(\d{1,2})\s*/\s*(\d{1,2})', ln)
-        if m and int(m.group(1)) <= int(m.group(2)):
-            return int(m.group(1)), int(m.group(2))
+def counter_votes(lines_per_variant) -> tuple[int, int] | None:
+    """(built, limit) that most variants read ('14/16', "14'/16"), when >= 2 agree and it
+    beats the runner-up; None otherwise (unreadable or split vote)."""
+    votes = Counter()
+    for lines in lines_per_variant:
+        for ln in lines:
+            for a, b in re.findall(r"(\d{1,2})['`]?\s*/\s*(\d{1,2})", ln):
+                if int(a) <= int(b) <= 40:
+                    votes[(int(a), int(b))] += 1
+    top = votes.most_common(2)
+    if top and top[0][1] >= 2 and (len(top) == 1 or top[0][1] > top[1][1]):
+        return top[0][0]
     return None
+
+
+def read_counter(name: str) -> tuple[int, int] | None:
+    """Field counter of the saved menu shot `name` (T102b): every COUNTER_VARIANTS crop is
+    saved as `{name}_cnt{i}` and OCR'd on its own, then counter_votes decides."""
+    try:
+        with Image.open(v.TMP / f'{name}.png') as im:
+            src = im.convert('RGB')
+    except (OSError, ValueError):
+        src = None               # ocr_lines then finds no variant file and returns []
+    reads = []
+    for i, (box, scale, mode) in enumerate(COUNTER_VARIANTS):
+        if src is not None:
+            g = ImageOps.grayscale(src.crop(box))
+            g = g.resize((g.width * scale, g.height * scale), Image.Resampling.LANCZOS)
+            if mode:
+                g = g.point(lambda p: 0 if p > COUNTER_BW else 255)
+            if mode == 'pad':
+                g = ImageOps.expand(g, border=40, fill=255)
+            g.save(v.TMP / f'{name}_cnt{i}.png')
+        reads.append(v.ocr_lines(f'{name}_cnt{i}'))
+    return counter_votes(reads)
 
 
 def parse_resources(lines: list[str]):
@@ -190,19 +228,48 @@ def tap_until(xy, wait: float, tag: str, ok, still):
 
 
 def leave(img) -> None:
-    """Back to the world: cancel a placement, Exit the menu, then reach_world."""
+    """Back to the world: cancel a placement, Exit the menu, then reach_world. T102b: keyevent 4
+    inside the Build menu opens 'exit game?' (Hermes, live) - reach_world (BACK) only runs once
+    the menu is gone; a menu still up after Exit gets one T97b retry of the Exit button."""
     ring = find_ring(img)
     if ring:
         v.tap(ring[1], 2.0)
         img = v.shot('hs_leave_x')
     if is_build_menu(img):
-        v.tap(EXIT_BTN, 2.5)
-    v.reach_world()
+        img = tap_until(EXIT_BTN, 2.5, 'hs_leave_exit', lambda im: not is_build_menu(im),
+                        is_build_menu)
+        if img is None:
+            print('    WARN: Build menu still open after Exit - no BACK (exit-game dialog)', flush=True)
+            return
+    if v.classify(img) != 'WORLD':
+        v.reach_world()
+
+
+def production_menu(img, tag: str):
+    """Menu frame -> Production tab active. The menu frame, or 1."""
+    if not production_active(img):
+        img = tap_until(PRODUCTION_TAB, 1.5, f'{tag}_prod',
+                        lambda im: is_build_menu(im) and production_active(im), is_build_menu)
+        if img is None:
+            print('    ERROR: Production tab not active after the tab tap', flush=True)
+            return 1
+    return img
 
 
 def open_menu(tag: str):
-    """World -> Avalon Creator (Production tab). The menu frame, or the exit code."""
-    if not v.reach_world():
+    """World -> Avalon Creator (Production tab). The menu frame, or the exit code.
+    T102b: the 2nd live run started inside the menu left open by a failed run - a menu
+    already up is used as is, a placement left open is cancelled (X) first; BACK
+    (reach_world) only for other non-world screens."""
+    img = v.shot(f'{tag}_start')
+    ring = find_ring(img)
+    if ring:
+        v.tap(ring[1], 2.0)
+        img = v.shot(f'{tag}_start_x')
+    if is_build_menu(img):
+        print('    Build menu already open', flush=True)
+        return production_menu(img, tag)
+    if v.classify(img) != 'WORLD' and not v.reach_world():
         print('    ERROR: world view not reached', flush=True)
         return 1
     v.tap(v.GROUND, 0.8)                   # dismiss a selected building's radial
@@ -218,13 +285,7 @@ def open_menu(tag: str):
     if img is None:
         print('    ERROR: Avalon Creator menu not recognised after Build', flush=True)
         return 1
-    if not production_active(img):
-        img = tap_until(PRODUCTION_TAB, 1.5, f'{tag}_prod',
-                        lambda im: is_build_menu(im) and production_active(im), is_build_menu)
-        if img is None:
-            print('    ERROR: Production tab not active after the tab tap', flush=True)
-            return 1
-    return img
+    return production_menu(img, tag)
 
 
 def build_one(k: int) -> int:
@@ -301,9 +362,16 @@ def main(argv: list[str] | None = None) -> int:
             return img if not built else 1
         name = f'{tag}_read'
         img = v.shot(name)
-        counter = parse_counter(ocr_scaled(name, FIELD_BOX, 'field')) if is_build_menu(img) else None
+        counter = read_counter(name) if is_build_menu(img) else None
+        if counter is None or (k and counter[0] != expect):
+            # T102b: settle + ONE re-read (the tile animates after a build; split OCR vote)
+            print(f'    Field counter read {counter} - settling, one re-read', flush=True)
+            time.sleep(COUNTER_SETTLE)
+            name = f'{tag}_read2'
+            img = v.shot(name)
+            counter = read_counter(name) if is_build_menu(img) else None
         if counter is None:
-            print('    ERROR: Field counter not readable (LIVE: FIELD_BOX)', flush=True)
+            print('    ERROR: Field counter not readable (LIVE: COUNTER_VARIANTS)', flush=True)
             leave(v.shot(f'{tag}_fail'))
             return 1
         have, limit = counter

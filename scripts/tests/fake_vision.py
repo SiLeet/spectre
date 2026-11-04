@@ -76,7 +76,10 @@ _SPEC = {
     # probes follow is_battle_modes' LIVE 2026-11-04 re-calibration (dcd9772)
     'BATTLE_MODES': ((40, 40, 40), {(480, 270): (240, 235, 225), (890, 960): (240, 240, 240),
                                     (500, 900): (173, 85, 46), (1300, 940): (149, 82, 78)}),
-    'ARENA_LOBBY': ((40, 40, 40), {(1080, 1004): (150, 200, 150)}),
+    # T92 is_lobby probes, measured on shots-63812/arena_1_lobby: Challenge bar
+    # both sides, cream Formation plate, dark navy band under the bar
+    'ARENA_LOBBY': ((40, 40, 40), {(800, 1000): (101, 156, 91), (1400, 1000): (101, 156, 91),
+                                   (685, 975): (253, 250, 244), (1100, 1068): (11, 11, 26)}),
     'ARENA_PREP': ((40, 40, 40), {(960, 1010): (60, 180, 60)}),
     'ARENA_RESULT': ((40, 40, 40), {(960, 300): (240, 240, 240)}),   # T66: bright card
     # 2026-11-03 live fund: the season-skinned Select screen lights (960,300)

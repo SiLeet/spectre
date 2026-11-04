@@ -45,6 +45,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import afk_memory  # noqa: E402
 import afk_normalize  # noqa: E402  (bounded escape ladder, T66)
 import _bot_lock  # noqa: E402
 
@@ -511,7 +512,7 @@ def main() -> int:
               else '    idle unknown', flush=True)
 
     if args.pid and args.base:
-        status, power = v.memory_preflight(args.pid, args.base)
+        status, power = afk_memory.power(args.pid, args.base)
         if status == 'fail':
             print('    ERROR: memory preflight failed', flush=True)
             return 2

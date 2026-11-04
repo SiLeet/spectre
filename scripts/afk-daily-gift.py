@@ -166,6 +166,7 @@ def main() -> int:
     print('    events panel open', flush=True)
 
     claimed = []
+    closed = False                           # T83: closing BACK already sent in a batch
     for y in ROW_YS:
         img = v.shot(f'dg_row_{y}')
         if not is_events_panel(img):
@@ -193,7 +194,11 @@ def main() -> int:
             v.tap((700, 500), 2.0)          # dismiss the reward popup
             img = v.shot(f'dg_dismiss_{y}')
             if is_dimmed(img):
-                v.tap((700, 500), 2.0)      # second dimmed layer, dismiss again
+                # second dimmed layer: dismiss again + the closing BACK, nothing read
+                # between (gate shot above, dg_back shot below) -> one adb round trip
+                # LIVE: batched dismiss+BACK not yet run on device
+                v.tap_seq([(700, 500, 2.0), (*v.BACK, 1.5)], tolerate=False)
+                closed = True
             break                            # one daily claim is all there is
         if is_events_tooltip(img):
             # claimed row: opens the item info instead — dismiss and continue
@@ -205,7 +210,8 @@ def main() -> int:
             # next row check re-verifies the panel and stops if it is gone
             v.tap(v.BACK, 1.2)
 
-    v.tap(v.BACK, 1.5)
+    if not closed:
+        v.tap(v.BACK, 1.5)
     img = v.shot('dg_back')
     st = v.classify(img)
     print(f'    after close: {st}; claimed rows: {claimed or "none (already claimed today)"}', flush=True)

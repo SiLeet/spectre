@@ -21,6 +21,7 @@ afk_claim_vision docstring, 2026-10-31):
 from __future__ import annotations
 
 import io
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -177,3 +178,25 @@ class FakeDevice:
 
     def _ocr(self, name):
         return list(self.ocr.get(name, []))
+
+
+_REAL_TAP_SEQ = v.tap_seq
+
+
+def real_seq(test, rc: int = 0) -> list:
+    """T83: FakeDevices created after this call run the REAL v.tap_seq on a fake
+    adb that answers `rc`; returns the list of (args, kwargs) adb calls (taps
+    batched this way do not show up in dev.taps). Class-level, so it also
+    reaches a FakeDevice built inside a helper."""
+    calls = []
+
+    def adb(dev, *args, **kw):
+        calls.append((args, kw))
+        return subprocess.CompletedProcess([], rc, b'', b'device offline')
+    for p in (mock.patch.object(FakeDevice, '_no_adb', adb),
+              mock.patch.object(FakeDevice, '_tap_seq',
+                                lambda dev, steps, tolerate=True, dry=False:
+                                _REAL_TAP_SEQ(steps, tolerate, dry))):
+        p.start()
+        test.addCleanup(p.stop)
+    return calls

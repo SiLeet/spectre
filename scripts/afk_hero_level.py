@@ -327,8 +327,10 @@ def daily_charge() -> int:
             return 4
         if res is None:
             print("    LIVE: cost lines not read — charging, read-back decides", flush=True)
-        v.tap(LEVEL_X1, 2.5)                  # 1st tap: opens the upgrade preview panel
-        v.tap(LEVEL_X1, 3.0)                  # 2nd tap: confirms inside the panel (same spot)
+        # T83: 1st tap opens the upgrade preview panel, 2nd confirms inside it (same
+        # spot); nothing is read between them -> one adb round trip, same waits.
+        # LIVE: batched charge not yet run on device (on-device sleep instead of host sleep)
+        v.tap_seq([(*LEVEL_X1, 2.5), (*LEVEL_X1, 3.0)], tolerate=False)
         if v.is_confirm_dialog(v.shot(f"hl_daily_post{attempt}")):
             v.tap(v.CONFIRM_CANCEL, 1.5)      # a 'use diamonds?' prompt: never confirm
             print("    SKIP: confirm/purchase dialog after the charge — cancelled", flush=True)

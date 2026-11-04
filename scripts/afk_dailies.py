@@ -147,9 +147,10 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
     # 2. Quests: menu -> Quests -> each tab -> Quick Claim
     print('--- Quests', flush=True)
     img = v.shot('dl_pre_quests')
-    if is_dimmed(img):                      # leftover dim popup
-        v.tap(DISMISS, 2.0)
-    v.tap(v.BACK, 1.2)                      # make sure we are on the world view
+    if is_dimmed(img):                      # leftover dim popup: dismiss + BACK, nothing read between
+        v.tap_seq([(*DISMISS, 2.0), (*v.BACK, 1.2)], tolerate=False)   # T83: 1 round trip
+    else:
+        v.tap(v.BACK, 1.2)                  # make sure we are on the world view
     if not open_menu():
         print('    ERROR: main menu did not open', flush=True)
         return 1

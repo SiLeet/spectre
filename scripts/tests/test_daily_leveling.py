@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 import afk_hero_level as hl  # noqa: E402
-from fake_vision import FakeDevice  # noqa: E402
+from fake_vision import FakeDevice, real_seq  # noqa: E402
 from test_parsers import HALL  # noqa: E402
 
 ARTIFACTS = Path(__file__).resolve().parent / '.artifacts'
@@ -99,6 +99,29 @@ class DailyCharge(unittest.TestCase):
                                     frames=['UNKNOWN'] * (6 + 2 * hl.DETAIL_POLLS))
         self.assertEqual(rc, 4)
         self.assertNotIn(hl.LEVEL_X1, dev.taps)
+
+    CHARGE_OCR = {'hl_scan_710': detail(80), 'hl_scan_840': detail(78),
+                  'hl_daily_pre0': detail(78), 'hl_daily_post0': ['Lvl. 79']}
+
+    def test_charge_taps_go_out_as_one_adb_shell(self):
+        # T83: panel + confirm tap = ONE adb shell, waits unchanged, read only after it
+        calls = real_seq(self, rc=0)
+        dev, rc, _ = self.run_level(self.CHARGE_OCR)
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [(('shell', 'input tap 1100 985; sleep 2.5; input tap 1100 985; sleep 3'),
+                                  {'timeout': 20})])
+        self.assertNotIn(hl.LEVEL_X1, dev.taps)                   # not as two single taps
+        self.assertEqual(dev.taps[-1], ('key', 4))
+        self.assertIn('charged: hand 840 level 78 -> 79', dev.out.getvalue())
+
+    def test_charge_adb_failure_raises_like_tap(self):
+        # tolerate=False: adb transport failure (shell rc != 0) -> RuntimeError, no read-back.
+        # Not the full v.tap contract: the line ends in 'sleep', so a failing
+        # 'input tap' inside the batch is not seen (';'-joined steps).
+        calls = real_seq(self, rc=1)
+        with self.assertRaises(RuntimeError):
+            self.run_level(self.CHARGE_OCR)
+        self.assertEqual(len(calls), 1)
 
 
 class ResourceGate(unittest.TestCase):

@@ -39,6 +39,20 @@ KITCHEN_BOXES = [(1761, 17, 67, 13, '3000/3000'), (1033, 326, 57, 13, 'Kitchen')
 KITCHEN = SPECTRE / 'shots-80480' / 'hu_world.png'
 EXIT_GAME = SPECTRE / 'shots-9308' / 'hu_world.png'
 DRAGS = [('swipe', *d, hu.CAMERA_MS, 1.5) for d in hu.CAMERA_DRAGS]
+# T103d: the tower tap fallback. Real WinRT boxes of tower_tap.png (Hermes: after a tower tap)
+TOWER_TAP = HERMES / 'tower_tap.png'
+TOWER_BOXES = [(25, 781, 37, 13, 'Build'), (180, 901, 63, 20, 'Refinery'), (927, 731, 66, 15, 'Interact'),
+               (1068, 1056, 42, 14, 'Guild')]
+INTERACT = (953, 683)
+TOWER_K = (507, 528)                      # spire_tower on shots-80480 (operator tapped ~(520,450))
+TOWERS = {TOWER_TAP: (915, 500), KITCHEN: TOWER_K, HERMES / 'spire_sel.png': (917, 304),
+          HERMES / 'hm_requests.png': (898, 284), HERMES / 'hm_confirmed2.png': (904, 282),
+          HERMES / 'ck2.png': (504, 510),                                        # deep night
+          SPECTRE / 'shots-66556' / 'norm_3.png': (813, 148),                    # day, tower at the top
+          SPECTRE / 'shots-47000' / 'hs_0_world.png': (917, 264),                # sunset
+          SPECTRE / 'shots-8632' / 'hu_world.png': (916, 308)}
+NO_TOWER = [SPECTRE / 'shots-76112' / 'dg_cam_3.png', SPECTRE / 'shots-76112' / 'dg_cam_4.png',  # sunset
+            SPECTRE / 'shots-79852' / 'dg_cam_3.png', HERMES / 'hm_up3.png']        # night wheat, dialog
 
 
 def real(path):
@@ -58,6 +72,17 @@ def icon_frame(xy, arrow='up', disc=(234, 230, 229), head=15):
     if arrow:
         d.polygon([(x, y + 19 * s), (x - head, y + 7 * s), (x + head, y + 7 * s)], fill=(102, 83, 85))
         d.rectangle((x - 5, min(y + 7 * s, y - 14 * s), x + 5, max(y + 7 * s, y - 14 * s)), fill=(102, 83, 85))
+    return img
+
+
+def beams_frame(axis=(960, 400), s=220, skip=()):
+    """Synthetic WORLD frame with the 4 tower beams (measured colour) around axis: outer pair at
+    +-s/2, inner pair at +-s/4 and 60 px lower; `skip` drops beams by index (0..3, left to right)."""
+    img = frame('WORLD')
+    d, (x, y) = ImageDraw.Draw(img), axis
+    for i, (dx, dy) in enumerate(((-s / 2, 0), (-s / 4, 60), (s / 4, 60), (s / 2, 0))):
+        if i not in skip:
+            d.rectangle((x + dx - 5, y + dy - 50, x + dx + 5, y + dy + 50), fill=(245, 220, 112))
     return img
 
 
@@ -146,6 +171,41 @@ class Detectors(unittest.TestCase):
         ImageDraw.Draw(big).rectangle((700, 100, 1100, 400), fill=(234, 230, 229))
         ImageDraw.Draw(big).rectangle((905, 160, 925, 180), fill=(102, 83, 85))
         self.assertIsNone(hu.spire_icon(big))                              # cloud / cream panel
+
+    def test_spire_tower_on_the_live_frames(self):
+        for path, xy in TOWERS.items():
+            with self.subTest(path.name):
+                got = hu.spire_tower(real(path))
+                self.assertIsNotNone(got)
+                self.assertLessEqual(max(abs(a - b) for a, b in zip(got, xy)), 3)
+
+    def test_spire_tower_not_on_other_frames(self):
+        # golden wheat / reeds at sunset and night, the dialog; synthetic world
+        for path in NO_TOWER:
+            with self.subTest(path.name):
+                self.assertIsNone(hu.spire_tower(real(path)))
+        self.assertIsNone(hu.spire_tower(frame('WORLD')))
+
+    def test_spire_tower_is_searched_between_the_beams(self):
+        for axis in ((960, 400), (500, 520), (1300, 200)):
+            with self.subTest(axis):
+                self.assertEqual(hu.spire_tower(beams_frame(axis)), axis)        # on the axis, never a beam
+        self.assertEqual(hu.spire_tower(beams_frame(skip=(0,))), (960, 400))     # 3 of 4 (flicker)
+        self.assertEqual(hu.spire_tower(beams_frame(skip=(3,))), (960, 400))
+        self.assertIsNone(hu.spire_tower(beams_frame(skip=(1, 2))))              # one pair alone
+        self.assertIsNone(hu.spire_tower(beams_frame(skip=(0, 3))))
+        self.assertIsNone(hu.spire_tower(beams_frame(s=120)))                    # wrong spacing
+        self.assertIsNone(hu.spire_tower(beams_frame((960, 900))))               # tap point off the world
+
+    def test_interact_disc_after_the_tower_tap(self):
+        img = real(TOWER_TAP)
+        self.assertEqual(v.classify(img), 'WORLD')
+        self.assertEqual(hu.find_interact(img, TOWER_BOXES), INTERACT)
+        self.assertIsNone(hu.find_radial(img, TOWER_BOXES))                   # no Level Up here
+        self.assertIsNone(hu.find_interact(img, [b for b in TOWER_BOXES if b[4] != 'Interact']))
+        self.assertIsNone(hu.find_interact(img, [(927, 1031, 66, 15, 'Interact')]))  # outside the radial
+        self.assertIsNone(hu.find_interact(hermes('hm_confirmed2.png'), TOWER_BOXES))  # word, no disc
+        self.assertIsNone(hu.find_interact(frame('WORLD'), TOWER_BOXES))
 
     def test_dialog_already_open_start_frame(self):
         img = real(SPECTRE / 'shots-82892' / 'hu_world.png')            # live T103 run start frame
@@ -255,11 +315,12 @@ class Flow(unittest.TestCase):
 
     def test_spire_not_selected_is_nothing_to_do(self):
         # T103c: deselect + the bounded drags first, the icon re-searched after each
-        dev, rc = self.run_hu(['hm_confirmed2.png'] * 4, {'hu_world': WORLD_BOXES[1:]})
+        # (T103d: synthetic worlds - hm_confirmed2 shows the tower, which is tapped now)
+        dev, rc = self.run_hu(['WORLD'] * 4, {'hu_world': WORLD_BOXES[1:]})
         self.assertEqual(rc, 4)
         self.assertEqual(dev.taps, [v.GROUND, *DRAGS])
         self.assertEqual(dev.shots, ['hu_world', 'hu_cam0', 'hu_cam1', 'hu_cam2'])
-        self.assertIn('no upgrade icon, also after the camera search', dev.out.getvalue())
+        self.assertIn('no tower, also after the camera search', dev.out.getvalue())
 
     def test_drags_stay_off_the_hud(self):
         for x1, y1, x2, y2 in hu.CAMERA_DRAGS:
@@ -269,21 +330,53 @@ class Flow(unittest.TestCase):
             self.assertGreaterEqual(((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5, 300)
 
     def test_camera_search_finds_the_icon(self):
-        dev, rc = self.run_hu(['hm_confirmed2.png', 'hm_confirmed2.png', 'spire_sel.png', 'spire_sel2.png',
+        dev, rc = self.run_hu(['WORLD', 'WORLD', 'spire_sel.png', 'spire_sel2.png',
                                'spire_sel2.png', 'hm_confirmed2.png'],
                               {'hu_world': [], 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, DRAGS[0], ICON, hu.BACK_PLATE])
 
     def test_kitchen_selected_live_frame(self):
-        # T103c live (shots-80480): no Spire radial/icon -> camera search, never the Kitchen's Level Up
-        k = real(KITCHEN)
-        dev, rc = self.run_hu([k, k, k, k], {'hu_world': KITCHEN_BOXES})
+        # T103c live (shots-80480): no Spire radial/icon, never the Kitchen's Level Up. T103d: the
+        # tower is on screen -> tower tap -> tower_tap.png (Hermes) -> Interact -> dialog 5/7
+        dev, rc = self.run_hu([real(KITCHEN), real(TOWER_TAP), 'spire_sel2.png', 'spire_sel2.png',
+                               'hm_confirmed2.png'],
+                              {'hu_world': KITCHEN_BOXES, 'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
-        self.assertEqual(dev.taps, [v.GROUND, *DRAGS])
+        self.assertEqual(dev.taps, [TOWER_K, INTERACT, hu.BACK_PLATE])
+        self.assertIn('tapping the Spire tower', dev.out.getvalue())
+
+    def test_tower_tap_all_met_starts_the_upgrade(self):
+        dev, rc = self.run_hu([real(KITCHEN), real(TOWER_TAP), 'spire_sel2.png', 'spire_sel2.png',
+                               'hm_confirmed2.png'],
+                              {'hu_world': KITCHEN_BOXES, 'hu_tower': TOWER_BOXES, 'hu_read': dialog('7/7')})
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps, [TOWER_K, INTERACT, hu.LEVEL_UP_BTN])
+
+    def test_tower_tap_without_interact_stops(self):
+        # radial not read / another screen after the tower tap: bounded stop, no blind tap
+        for name, after, boxes in (('no OCR', real(TOWER_TAP), []), ('no disc', 'hm_confirmed2.png', TOWER_BOXES),
+                                   ('not world', 'UNKNOWN', TOWER_BOXES)):
+            with self.subTest(name):
+                dev, rc = self.run_hu([real(KITCHEN), after], {'hu_world': KITCHEN_BOXES, 'hu_tower': boxes})
+                self.assertEqual(rc, 1, dev.out.getvalue())
+                self.assertEqual(dev.taps, [TOWER_K])
+
+    def test_interact_tap_retried_once_then_stops(self):
+        t = real(TOWER_TAP)
+        dev, rc = self.run_hu([real(KITCHEN), t, t, t], {'hu_world': KITCHEN_BOXES, 'hu_tower': TOWER_BOXES})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual([x[-2:] for x in dev.taps], [TOWER_K, INTERACT, INTERACT])
+
+    def test_camera_search_finds_the_tower(self):
+        dev, rc = self.run_hu(['WORLD', 'WORLD', real(KITCHEN), real(TOWER_TAP), 'spire_sel2.png',
+                               'spire_sel2.png', 'hm_confirmed2.png'],
+                              {'hu_world': [], 'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [v.GROUND, DRAGS[0], TOWER_K, INTERACT, hu.BACK_PLATE])
 
     def test_camera_search_off_the_world_stops(self):
-        dev, rc = self.run_hu(['hm_confirmed2.png', 'hm_confirmed2.png', 'UNKNOWN'], {'hu_world': []})
+        dev, rc = self.run_hu(['WORLD', 'WORLD', 'UNKNOWN'], {'hu_world': []})
         self.assertEqual(rc, 1, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, DRAGS[0]])
 

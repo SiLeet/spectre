@@ -25,6 +25,15 @@ via its X; no radial and no icon (shots-80480: Kitchen selected after a 'Go', Sp
 'Level Up' whose 'Radiant Spire' label stands above it (never the Kitchen's radial).
 Not implemented, noted: quest 'Upgrade the Ore Refinery to Level 5' = a further upgrade chain.
 
+T103d (Hermes live: the icon is FLAKY, sometimes not drawn -> 'nothing to do'): order (a) Level Up
+radial / floating icon, (b) spire_tower() - the tower found by its 4 golden light beams, tapped on
+its body -> radial -> find_interact() 'Interact' disc (OCR word + cream disc, tower_tap.png) -> the
+dialog, verified by OCR as before; no Interact after the tower tap -> rc 1 without a further tap.
+The tower is tried on the start frame and on every camera-search frame (after the icon).
+(c) 'Radiant Spire' label tap: NOT implemented - the label is only drawn while the Spire is
+selected (hm_requests/hm_req2/hs_0_world, always with its radial up -> (a)); it floats over the
+tower top, so a tap there is a tower tap; no frame shows what a label tap opens.
+
 LIVE-open (no frame): the icon with the Spire elsewhere on screen / off screen, the
 same icon on other buildings (topmost wins; OCR rejects their dialog), what 'Go'
 opens (the missing-requirement recursion is NOT implemented), a 7/7 dialog, the screen after
@@ -38,7 +47,8 @@ unrecognised screen stops the run (rc 1) without a tap.
 
 Usage: python scripts/afk_homestead_upgrade.py [--dry-run] [--min-idle S]
 Exit codes: 0 upgrade started (dialog closed after Level Up), 1 stuck / unknown
-screen, 4 nothing to do (no Level Up radial and no Spire upgrade icon after the camera search,
+screen (also: no Interact radial after the tower tap), 4 nothing to do (no Level Up radial,
+no Spire upgrade icon and no tower after the camera search,
 requirements missing, queue full, Level Up refused), 5 skipped (PC in use),
 7 tap lock held by another run.
 """
@@ -49,6 +59,8 @@ import math
 import re
 import sys
 from pathlib import Path
+
+from PIL import ImageChops
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
@@ -104,6 +116,34 @@ ICON_CLUSTER = 40              # hits this close to the first hit belong to the 
 # y 80..1000), off the joystick (960,835) and the quest tracker; 350/408 px over 600 ms = a drag.
 CAMERA_DRAGS = ((1300, 350, 1300, 650), (1150, 650, 1500, 440))
 CAMERA_MS = 600
+# --- T103d: the upgrade icon is FLAKY live (Hermes 2026-11-04: sometimes not drawn) -> tap the
+# TOWER: the Spire gets selected and shows a radial with a white 'Interact' disc (tower_tap.png),
+# whose tap opens the 'Upgrade Requirement' dialog (operator, live). The camera moves, so the tower
+# is found on the frame. Tell: 4 golden light beams rise from the tower's buttresses - an outer pair
+# at axis +-s/2 and an inner pair at axis +-s/4, 20..125 px lower. LIVE (outer dx / inner dx / axis /
+# inner-mid minus outer-mid): tower_tap 229/116/915/+67, shots-80480 229/114/504/+85 (door (512,705)),
+# norm_3 200/98/813/+40, hm_requests 208/105/898/+53 (door (905,430)), hs_0_world 211/107/917/+105,
+# spire_sel 210/109/917/+50 (door (920,450)). The beams flicker (one may be missing or short on a
+# frame) -> any 3 of the 4 at their geometric places. Sweep: 162 hits on the 358 WORLD frames of
+# .spectre (+trash) + hermes scratch, all on the tower body (contact sheets); misses = tower cut by
+# the screen edge / HUD or toasts over the beams (quest1).
+BEAM_WIN = (120, 60, 1800, 1000)   # world area searched (HUD columns outside)
+BEAM_D = 14                    # streak contrast against the pixels BEAM_D left and right (beams 6..22 px)
+BEAM_DAY = (170, 40, 25)       # R >=, G-B >=, G-B above both neighbours by >=. LIVE beam (245,220,112),
+                               # beside it (127,131,126) (hm_requests); sunset (219,185,67) vs (228,166,109)
+BEAM_NIGHT = (150, 148, 40)    # R >=, R-B+128 >= (R-B >= 20), R-B above both neighbours by >=. LIVE deep
+                               # night ck2: beam (211,194,142) vs (147,158,157)/(40,117,206) - G-B fails there
+BEAM_H, BEAM_W, BEAM_ASPECT = 35, 30, 2.5  # a beam: >= 35 px tall, <= 30 px wide, h >= 2.5 w (LIVE 37..140 tall)
+BEAM_PAIR_DY = 40              # a pair's beams: mid heights within 40 px (LIVE <= 26)
+INNER_DX = (80, 130)           # LIVE inner pair spacing 98..116
+OUTER_DX = (160, 260)          # LIVE outer pair spacing 200..229
+INNER_DROP = (20, 125)         # inner mid below outer mid, LIVE +40..+105
+BEAM_TOL = 12                  # x tolerance of the 3rd/4th beam at its expected place (LIVE axis spread <= 7)
+TOWER_WAIT = 2.0               # LIVE-unverified: the camera recentres on the selected tower (tower_tap)
+INTERACT_RING = ((-30, 0), (30, 0), (0, -30), (0, 30))  # cream (L > 215) around the 'Interact' disc centre.
+                               # LIVE tower_tap: OCR box (927,731,66,15), 5024 cream px, median (953,683),
+                               # ring L 245/245/249/249, disc radius ~43; the hand glyph sits off-centre
+                               # (no dark centre like the Level Up arrow -> disc_at does not apply)
 # --- Spire dialog (hm_up3; same layout on shots-62772/80500 hl_entry*) -------------
 REQ_RE = re.compile(r'requirement\D{0,4}(\d)\s*/\s*(\d)', re.I)  # LIVE: 'Upgrade Requirement (5/7)'
 CARD_ROW = (590, 625)          # LIVE: card label boxes y 601..617 ('Level 5 Kitchen' .. 'AFK stage: 80')
@@ -148,6 +188,15 @@ def disc_at(img, xy) -> bool:
             and all(v.lum(v.avg(img, (x + dx, y), r=3)) > 200 for dx in (-DISC_DX, DISC_DX)))
 
 
+def _disc_above(img, box):
+    """Median of the cream disc px above a radial's OCR text box, else None."""
+    cx, cy = _centre(box)
+    dx, up, down = DISC_WIN
+    pts = hs._pixels(img, (cx - dx, cy - up, cx + dx, cy - down),
+                     lambda r, g, b: min(r, g, b) > 215 and max(r, g, b) - min(r, g, b) < 30)
+    return hs._median(pts) if len(pts) >= DISC_PX else None
+
+
 def find_radial(img, boxes):
     """Tap point of the selected Spire's 'Level Up' disc, else None. T103c: the 'Radiant Spire'
     label must belong to this radial (above it, LABEL_DX) - another building's radial (Kitchen,
@@ -159,13 +208,109 @@ def find_radial(img, boxes):
     if not any(abs(_centre(b)[0] - cx) <= LABEL_DX and _centre(b)[1] < cy
                for b in boxes if SPIRE_LABEL in b[4].lower()):
         return None
-    dx, up, down = DISC_WIN
-    pts = hs._pixels(img, (cx - dx, cy - up, cx + dx, cy - down),
-                     lambda r, g, b: min(r, g, b) > 215 and max(r, g, b) - min(r, g, b) < 30)
-    if len(pts) < DISC_PX:
+    xy = _disc_above(img, lu)
+    return xy if xy and disc_at(img, xy) else None
+
+
+def interact_at(img, xy) -> bool:
+    return all(v.lum(v.avg(img, (xy[0] + dx, xy[1] + dy), r=3)) > 215 for dx, dy in INTERACT_RING)
+
+
+def find_interact(img, boxes):
+    """T103d: the 'Interact' disc of the radial after OUR tower tap (no label on tower_tap), else None."""
+    it = _line(boxes, 'interact', RADIAL_WIN)
+    xy = it and _disc_above(img, it)
+    return xy if xy and interact_at(img, xy) else None
+
+
+def _beams(img):
+    """(x centre, top, bottom) of every narrow vertical warm streak in BEAM_WIN (the tower's light beams)."""
+    r, g, b = img.convert('RGB').split()
+
+    def cut(ch, t):
+        return ch.point(lambda p: 255 if p >= t else 0)
+
+    def streak(diff, rmin, dmin, con):           # warm enough, and warmer than both neighbours
+        m = ImageChops.multiply(cut(r, rmin), cut(diff, dmin))
+        for dx in (BEAM_D, -BEAM_D):
+            m = ImageChops.multiply(m, cut(ImageChops.subtract(diff, ImageChops.offset(diff, dx, 0)), con))
+        return m
+    mask = ImageChops.lighter(streak(ImageChops.subtract(g, b), *BEAM_DAY),
+                              streak(ImageChops.subtract(r, b, 1, 128), *BEAM_NIGHT)).crop(BEAM_WIN)
+    w, data = mask.width, mask.tobytes()
+    runs = []                                     # vertical runs per column, gaps <= 4 px bridged
+    for x in range(w):
+        y0 = last = None
+        for y in (i for i, p in enumerate(data[x::w]) if p):
+            if y0 is None:
+                y0 = y
+            elif y - last > 4:
+                runs.append((x, y0, last))
+                y0 = y
+            last = y
+        if y0 is not None:
+            runs.append((x, y0, last))
+    par = list(range(len(runs)))                  # union runs of columns 1..2 apart that overlap in y
+
+    def root(i):
+        while par[i] != i:
+            par[i] = par[par[i]]
+            i = par[i]
+        return i
+    byx = {}
+    for i, (x, y0, y1) in enumerate(runs):
+        byx.setdefault(x, []).append(i)
+        for j in byx.get(x - 1, []) + byx.get(x - 2, []):
+            if runs[j][1] <= y1 + 2 and y0 <= runs[j][2] + 2:
+                par[root(i)] = root(j)
+    comps = {}
+    for i, run in enumerate(runs):
+        comps.setdefault(root(i), []).append(run)
+    out = []
+    for rs in comps.values():
+        x0, x1 = min(q[0] for q in rs), max(q[0] for q in rs)
+        y0, y1 = min(q[1] for q in rs), max(q[2] for q in rs)
+        if y1 - y0 >= BEAM_H and x1 - x0 <= BEAM_W and y1 - y0 >= BEAM_ASPECT * (x1 - x0 + 1):
+            out.append(((x0 + x1) / 2 + BEAM_WIN[0], y0 + BEAM_WIN[1], y1 + BEAM_WIN[1]))
+    return sorted(out)
+
+
+def spire_tower(img):
+    """T103d: tap point ON the Spire's tower body, else None: on the beams' axis at the outer beams'
+    mid height. Any pair (inner or outer) + >= 1 beam at its expected place; most beams, then the
+    smallest x error wins. The point is >= s/4 (~50 px) off every beam: the beams are flickering
+    particle light (no collider to expect) - the tower body is what the operator tapped live."""
+    bs = _beams(img)
+    mid = lambda q: (q[1] + q[2]) / 2  # noqa: E731
+    best = None
+    for i, a in enumerate(bs):
+        for b in bs[i + 1:]:
+            dx, cx, m = b[0] - a[0], (a[0] + b[0]) / 2, (mid(a) + mid(b)) / 2
+            if abs(mid(a) - mid(b)) > BEAM_PAIR_DY:
+                continue
+            if INNER_DX[0] <= dx <= INNER_DX[1]:        # inner pair -> outer beams at cx +- dx, higher
+                exp = [(cx + s * dx, m - INNER_DROP[1], m - INNER_DROP[0]) for s in (-1, 1)]
+            elif OUTER_DX[0] <= dx <= OUTER_DX[1]:      # outer pair -> inner beams at cx +- dx/4, lower
+                exp = [(cx + s * dx / 4, m + INNER_DROP[0], m + INNER_DROP[1]) for s in (-1, 1)]
+            else:
+                continue
+            more, err = [], 0
+            for ex, lo, hi in exp:
+                c = [q for q in bs if abs(q[0] - ex) <= BEAM_TOL and lo <= mid(q) <= hi]
+                if c:
+                    q = min(c, key=lambda q: abs(q[0] - ex))
+                    more.append(q)
+                    err += abs(q[0] - ex)
+            if not more:
+                continue
+            y = m if dx >= OUTER_DX[0] else sum(map(mid, more)) / len(more)
+            hit = (len(more), -err, round(cx), round(y))
+            if best is None or hit[:2] > best[:2]:
+                best = hit
+    if best is None:
         return None
-    xy = hs._median(pts)
-    return xy if disc_at(img, xy) else None
+    l, t, r, b = WORLD_WIN
+    return best[2:] if l <= best[2] <= r and t <= best[3] <= b else None
 
 
 def _white(c) -> bool:
@@ -206,20 +351,21 @@ def spire_icon(img):
 
 
 def camera_search():
-    """T103c: no radial and no icon on the start frame -> deselect (GROUND), then up to
-    len(CAMERA_DRAGS) drags; spire_icon after each, only on the world view.
-    (icon xy or None, last frame)."""
+    """T103c: no radial, no icon (T103d: and no tower) on the start frame -> deselect (GROUND),
+    then up to len(CAMERA_DRAGS) drags; spire_icon, then spire_tower after each, only on the
+    world view. (icon xy or None, tower xy or None, last frame)."""
     _tap(v.GROUND, 0.8)
     for i, drag in enumerate((None, *CAMERA_DRAGS)):
         if drag:
             v.swipe(*drag, CAMERA_MS, 1.5)
         img = v.shot(f'hu_cam{i}')
         if v.classify(img) != 'WORLD':
-            return None, img
+            return None, None, img
         xy = spire_icon(img)
-        if xy:
-            return xy, img
-    return None, img
+        tower = None if xy else spire_tower(img)
+        if xy or tower:
+            return xy, tower, img
+    return None, None, img
 
 
 def parse_requirement(boxes):
@@ -308,16 +454,33 @@ def main(argv: list[str] | None = None) -> int:
             disc = spire_icon(img)
             still = lambda im: v.classify(im) == 'WORLD' and spire_icon(im) is not None  # noqa: E731
         selected = _line(boxes, SPIRE_LABEL, WORLD_WIN) is not None
-        if disc is None and not selected:        # T103c: another building focused / camera moved
-            disc, img = camera_search()
-            if v.classify(img) != 'WORLD':
-                print('    ERROR: camera search left the world view - stopping without a tap', flush=True)
+        tower = None
+        if disc is None and not selected:        # T103d: icon flaky live -> the tower itself
+            tower = spire_tower(img)
+            if tower is None:                    # T103c: another building focused / camera moved
+                disc, tower, img = camera_search()
+                if v.classify(img) != 'WORLD':
+                    print('    ERROR: camera search left the world view - stopping without a tap', flush=True)
+                    return 1
+                if disc:
+                    print(f'    upgrade icon at {disc} after the camera search', flush=True)
+        if tower:
+            print(f'    no upgrade icon: tapping the Spire tower at {tower}', flush=True)
+            _tap(tower, TOWER_WAIT)
+            img = v.shot('hu_tower')
+            boxes = v.ocr_boxes('hu_tower') if v.classify(img) == 'WORLD' else []
+            disc = find_radial(img, boxes)       # label-paired Level Up, as on the start frame
+            still = lambda im: v.classify(im) == 'WORLD' and disc_at(im, disc)  # noqa: E731
+            if disc is None:
+                disc = find_interact(img, boxes)
+                still = lambda im: v.classify(im) == 'WORLD' and interact_at(im, disc)  # noqa: E731
+            if disc is None:
+                print(f'    ERROR: no Interact/Level Up radial after the tower tap '
+                      f'(OCR {[b[4] for b in boxes][:6]}) - stopping without a tap', flush=True)
                 return 1
-            if disc:
-                print(f'    upgrade icon at {disc} after the camera search', flush=True)
         if disc is None:
             why = ('Spire selected but no Level Up on its radial (upgrading / max?)' if selected else
-                   'no Level Up radial and no upgrade icon, also after the camera search')
+                   'no Level Up radial, no upgrade icon and no tower, also after the camera search')
             print(f'    nothing to do: {why}', flush=True)
             return 4
         img = hs.tap_until(disc, 2.5, 'hu_dialog', lambda im: v.classify(im) != 'WORLD', still)

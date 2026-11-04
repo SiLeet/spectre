@@ -1234,3 +1234,9 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   strukturstabile Slots. Kein Code-Change in diesem Lauf. Ein weiterer
   mentaler Hex-Slip (0xA68114 statt 0xA67A54) rechtzeitig durch den
   Python-Check gefangen — Regel bleibt: nie Hex mental rechnen.
+- 🟨 T72-LIVE-Befund [2026-11-04 00:3x]: HAND_XS-Neusatz + Scan-Retry live
+  geprüft — alle 5 Slots erreichbar (Reads kamen nach Retry), Retry bounded +
+  geloggt OK. OFFEN (an Wave-5/T80b gebrieft): Timing-Race im Charge-Pfad —
+  nach Hand-Tap ersten Read 4/5x None; bei Hand 1090 las der pre-Read noch den
+  ALTEN Wert (85) des Vorgänger-Details -> 'no effect'-SKIP. Fix: bounded wait
+  bis is_detail statt fixe 3 s. Tagescharge 04.11. unklar; 05:10-Daily läuft eh.

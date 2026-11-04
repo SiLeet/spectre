@@ -1292,3 +1292,11 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   bestaetigt: Karte existiert, holt sie per kurzen Swipes (y1200->700, max 4) und
   hat 'not available yet (Coming Soon) skip'. NAECHSTES wenn Karte erscheint:
   Swipe-Loop + Kartenposition live messen; DURAS_CARD dann justieren.
+- ✅ T86-T90 [2026-11-04 11:20-13:55]: Erkennungs-Schicht live gehaertet (Auftraege an
+  Claude-Session; Hermes nur Live-Vermessung): T86 Intro/Welcome-Screen (Daily-Stopper),
+  T87 Dura-Entry soft+swipe, T88 AFK-Panel-Palette, T89 Tag-Welt vs POPUP (chip-Tell),
+  T90 Panel-Tell stabil (animiertes Glow-Pixel). Alle gemergt (fc1ef88), Suite 409 OK,
+  gepusht. LIVE-BEFUND: classify-Schicht war nie gegen Tag-/aktuelle UI verifiziert;
+  Abbruch-Kette der Laeufe: Intro -> Panel -> TagWelt -> Dream-Prep. OFFEN: T91
+  Dream-Prep (Tap+classify, laeuft), Arena-Lobby ("did not open", 12:2x, unvermessen),
+  danach naechster Gesamtlauf; +1-Charge/mem_probe warten weiter auf Gold.

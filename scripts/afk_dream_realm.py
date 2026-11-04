@@ -52,7 +52,6 @@ import afk_memory  # noqa: E402
 import afk_normalize  # noqa: E402  (bounded escape ladder, T66)
 import _bot_lock  # noqa: E402
 
-BATTLE_MODES = (890, 1060)
 DREAM_CARD = (960, 280)          # Dream Realm card in the Battle Modes menu
 BOSS_TAP = (960, 1020)           # green Battle button on the boss page
 PREP_TAP = (1280, 1010)          # green Battle button on the prep screen
@@ -79,7 +78,10 @@ HERO_PROBE = (474, 1010)         # hero card covers even the back arrow
 BACK_ARROW = (474, 1010)         # dim overlays darken even the back arrow
 BOTBAR = (890, 1060)             # bottom-nav Battle Modes button: bright on
                                  # world view + boss page, dark under a dim
-                                 # overlay
+                                 # overlay. LIVE (T98): world L 70-84 in HUD layout A,
+                                 # down to 24 in layout B (bar shifted) -- no margin
+                                 # there; back/glow gates still reject all 251 WORLD
+                                 # frames. Probe, kept apart from v.BATTLE_MODES_BTN.
 HERO_PROBE2 = (1450, 850)        # second hero-card probe (T38 #5: the PANEL
                                  # back-arrow lum ~178 is too close to a
                                  # single-probe threshold)
@@ -257,7 +259,7 @@ def enter_dream(tag: str) -> bool:
     """From the world view: open Battle Modes (probe-verified) and tap the
     Dream Realm card. Never fires both taps unverified (T38 #7)."""
     for i in range(2):
-        v.tap(BATTLE_MODES, 3.0)
+        v.tap(v.BATTLE_MODES_BTN, 3.0)
         img = v.shot(f'{tag}_bm{i}')
         if v.is_battle_modes(img):
             v.tap(DREAM_CARD, 4.0)

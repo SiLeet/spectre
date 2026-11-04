@@ -24,6 +24,9 @@ import afk_claim_vision as v  # noqa: E402
 import afk_memory  # noqa: E402
 import _bot_lock  # noqa: E402
 
+# Hamburger, bottom right. LIVE (T98): on the drawn icon in layout-A world frames (88/89,
+# the miss a scene-wipe frame); layout B draws no hamburger, yet this tap opened the menu
+# in 5/6 B runs (shots-53520..82080; shots-75292 at 11:54: 5 taps unanswered).
 MENU = (1880, 1030)
 QUESTS_ICON = (1140, 610)
 MAIL_ICON = (840, 750)

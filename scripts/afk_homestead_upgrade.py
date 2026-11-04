@@ -58,6 +58,7 @@ import argparse
 import math
 import re
 import sys
+import time
 from pathlib import Path
 
 from PIL import ImageChops
@@ -165,6 +166,22 @@ BACK_PLATE = (478, 1007)       # LIVE: cream back plate x 432..525 y ~967..1046,
 BACK_CORNERS = ((445, 980), (510, 980), (445, 1035), (510, 1035))
 COMPLETE_NOW = (538, 967, 1005, 1047)  # LIVE: 1800-diamond plate (brief x 538-1005 / y 967-1047,
                                        # grey plate from x 539) - NEVER tapped
+# T103f: live shots-49372/hu_read - the dialog opened, OCR read 'Upgrade Requirement (5/7)' and
+# every card, but NOT the 'Radiant Spire' title (still fading in) -> 'dialog not recognised'.
+# The dialog = requirement line + back plate; the title is re-read once after TITLE_SETTLE.
+TITLE_SETTLE = 1.5
+# T103f 'Go' on a missing building card (one level, bounded). The 'Go' pill sits under the card
+# label: label 'Level 5 Kitchen' centre (531,616) -> pill centre (531,640) (hu_read, hm_up3: white
+# L>=246 at x +-25, 'Go' text L~175). Go -> world with that building selected (kitchen_go.png,
+# shots-80480): its small 'Level Up' radial disc (1054,730) sits 30 px above its 'Level U' text
+# (centre (1051,760)), cream L>=226 at +-25 px, dark arrow L 80..117. LIVE: the building's own
+# upgrade dialog after that tap was never seen - only the generic dialog check guards it.
+GO_DY = 24
+GO_PILL_DX = 25
+SMALL_DISC_DY = 30
+SMALL_DISC_R = 25
+GO_WAIT = 3.0
+BUILDING_RE = re.compile(r'level\s*\d+\s+([a-z][a-z ]+)', re.I)   # 'Level 5 Kitchen' -> kitchen
 BTN_NEAR = 40                  # an OCR 'Level Up' box centre must be this close to LEVEL_UP_BTN
 
 
@@ -385,9 +402,8 @@ def camera_search():
 
 
 def parse_requirement(boxes):
-    """(met, total) of the Spire dialog, None unless 'Radiant Spire' is on it too."""
-    if _line(boxes, SPIRE_LABEL) is None:
-        return None
+    """(met, total) of an 'Upgrade Requirement (a/b)' dialog line, else None. T103f: the title
+    ('Radiant Spire') is no longer required - it was still fading in on the live dialog."""
     for b in boxes:
         m = REQ_RE.search(b[4])
         if m and int(m.group(1)) <= int(m.group(2)):
@@ -397,6 +413,11 @@ def parse_requirement(boxes):
 
 def missing_cards(img, boxes) -> list[str]:
     """Labels of the requirement cards without a green check."""
+    return [b[4] for b in missing_boxes(img, boxes)]
+
+
+def missing_boxes(img, boxes) -> list:
+    """OCR boxes of the requirement card labels without a green check."""
     out = []
     dx, y0, y1 = CHECK_BOX
     for b in boxes:
@@ -405,8 +426,38 @@ def missing_cards(img, boxes) -> list[str]:
             continue
         box = (cx - dx, b[1] + y0, cx + dx, b[1] + y1)
         if len(hs._pixels(img, box, lambda r, g, b_: g - max(r, b_) > 40)) < CHECK_PX:
-            out.append(b[4])
+            out.append(b)
     return out
+
+
+def go_pill(img, xy) -> bool:
+    """White 'Go' pill under a missing card label."""
+    return all(v.lum(v.avg(img, (xy[0] + dx, xy[1]), r=2)) > 225 for dx in (-GO_PILL_DX, GO_PILL_DX))
+
+
+def small_disc_at(img, xy) -> bool:
+    """A building's small radial 'Level Up' disc: dark arrow at xy, cream ring at SMALL_DISC_R."""
+    x, y = xy
+    r = SMALL_DISC_R
+    return (v.lum(v.avg(img, xy, r=2)) < 160
+            and all(v.lum(v.avg(img, (x + dx, y + dy), r=2)) > 200
+                    for dx, dy in ((-r, 0), (r, 0), (0, -r), (0, r))))
+
+
+def building_level_up(img, boxes, name: str):
+    """Tap point of the selected `name` building's radial 'Level Up' disc ('Level U' as read),
+    with its own name label above it (LABEL_DX), else None."""
+    for b in boxes:
+        if not b[4].lower().startswith('level u'):
+            continue
+        cx, cy = _centre(b)
+        if not any(name in lb[4].lower() and abs(_centre(lb)[0] - cx) <= LABEL_DX and _centre(lb)[1] < cy
+                   for lb in boxes):
+            continue
+        for x in range(cx - 8, cx + 9, 4):      # the arrow sits a few px right of the text centre
+            if small_disc_at(img, (x, cy - SMALL_DISC_DY)):
+                return x, cy - SMALL_DISC_DY
+    return None
 
 
 def parse_queue(boxes):
@@ -523,15 +574,33 @@ def main(argv: list[str] | None = None) -> int:
               flush=True)
         return 1
     req = parse_requirement(boxes)
-    if req is None:
+    if req is None or not back_plate(img):
         print(f'    ERROR: Spire dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)
         close_dialog(img)
         return 1
-    met, total = req
+    if _line(boxes, SPIRE_LABEL) is None:      # T103f: title still fading in -> one settled re-read
+        time.sleep(TITLE_SETTLE)
+        img2 = v.shot('hu_read2')
+        boxes2 = v.ocr_boxes('hu_read2')
+        if back_plate(img2) and parse_requirement(boxes2):
+            img, boxes = img2, boxes2
+        title = 'Radiant Spire' if _line(boxes, SPIRE_LABEL) else 'title unread (reached via the Spire)'
+        print(f'    dialog: {title}', flush=True)
+    return upgrade_or_go(img, boxes, 'Radiant Spire', args.dry_run, go=True)
+
+
+def upgrade_or_go(img, boxes, name: str, dry_run: bool, go: bool) -> int:
+    """Open requirement dialog of `name`: 7/7 + queue free -> Level Up; a missing building card
+    -> its 'Go' (only when go=True: one level, bounded); else close. Exit code."""
+    met, total = parse_requirement(boxes)
     queue = parse_queue(boxes)
-    print(f'    Radiant Spire requirements {met}/{total}, build queue {queue}', flush=True)
+    print(f'    {name} requirements {met}/{total}, build queue {queue}', flush=True)
     if met < total:
-        print(f'    missing: {missing_cards(img, boxes)} - Go/recursion is LIVE-open', flush=True)
+        missing = missing_boxes(img, boxes)
+        print(f'    missing: {[b[4] for b in missing]}', flush=True)
+        building = next((b for b in missing if BUILDING_RE.search(b[4])), None)
+        if go and building and not dry_run:
+            return go_building(img, building, dry_run)
         return 4 if close_dialog(img) else 1
     if queue and queue[0] >= queue[1]:
         print('    build queue full', flush=True)
@@ -541,7 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         print('    ERROR: dialog Level Up button not read at its place', flush=True)
         close_dialog(img)
         return 1
-    if args.dry_run:
+    if dry_run:
         print('    dry run: 7/7, not tapping Level Up', flush=True)
         return 0 if close_dialog(img) else 1
     _tap(LEVEL_UP_BTN, 3.0)
@@ -551,13 +620,49 @@ def main(argv: list[str] | None = None) -> int:
         print('    confirm/purchase dialog after Level Up -> cancelled', flush=True)
         return 4 if close_dialog(v.shot('hu_cancelled')) else 1
     if v.classify(img) == 'WORLD':
-        print('    upgrade started: dialog closed after Level Up (LIVE-open: 3 h timer)', flush=True)
+        print(f'    {name} upgrade started: dialog closed after Level Up (LIVE-open: timer)', flush=True)
         return 0
     if parse_requirement(v.ocr_boxes('hu_after')):
         print('    Level Up refused: dialog still up', flush=True)
         return 4 if close_dialog(img) else 1
     print('    ERROR: unknown screen after Level Up - stopping without a tap', flush=True)
     return 1
+
+
+def go_building(img, label_box, dry_run: bool) -> int:
+    """T103f: 'Go' under a missing 'Level N <Building>' card -> that building selected on the world
+    -> its radial 'Level Up' -> its requirement dialog -> upgrade_or_go without a further Go.
+    Every step verified on its frame; anything unexpected -> stop without a blind tap."""
+    name = BUILDING_RE.search(label_box[4]).group(1).strip().lower()
+    cx, cy = _centre(label_box)
+    go = (cx, cy + GO_DY)
+    if not go_pill(img, go):
+        print(f'    no Go pill under {label_box[4]!r} - closing', flush=True)
+        return 4 if close_dialog(img) else 1
+    print(f'    Go -> {name} (requirement {label_box[4]!r})', flush=True)
+    _tap(go, GO_WAIT)
+    img = v.shot('hu_go')
+    if v.classify(img) != 'WORLD':
+        print('    ERROR: Go did not lead to the world view - stopping without a tap', flush=True)
+        return 1
+    disc = building_level_up(img, v.ocr_boxes('hu_go'), name)
+    if disc is None:
+        print(f'    nothing to do: no {name} Level Up radial after Go (LIVE: maxed / not selected?)',
+              flush=True)
+        return 4
+    img = hs.tap_until(disc, 2.5, 'hu_bdialog', lambda im: v.classify(im) != 'WORLD',
+                       lambda im: v.classify(im) == 'WORLD' and small_disc_at(im, disc))
+    if img is None:
+        print(f'    ERROR: {name} dialog did not open after its Level Up at {disc}', flush=True)
+        return 1
+    img = v.shot('hu_bread')
+    boxes = v.ocr_boxes('hu_bread')
+    if not (back_plate(img) and parse_requirement(boxes)):
+        print(f'    ERROR: {name} dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)
+        if back_plate(img):
+            close_dialog(img)
+        return 1
+    return upgrade_or_go(img, boxes, name, dry_run, go=False)
 
 
 if __name__ == '__main__':

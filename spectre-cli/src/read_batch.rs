@@ -75,7 +75,7 @@ pub fn plan(file: &YamlGameFile, base: u64) -> Vec<Planned> {
             let field_type = resolve_field_type(f);
             let error = hits.iter().any(|i| i.severity == Severity::Error) || field_type.is_none();
             let mut notes: Vec<String> = hits.iter().map(|i| i.message.clone()).collect();
-            if field_type.is_none() {
+            if field_type.is_none() && !notes.iter().any(|n| n.starts_with("unknown field type")) {
                 notes.push(format!("unknown field type '{}'", f.field_type));
             }
             out.push(Planned {
@@ -203,6 +203,7 @@ structures:
         assert_eq!(p[2].field_type, Some(FieldType::String(8)));
         assert!(!p[3].valid);
         assert!(p[3].note.as_deref().unwrap().contains("unknown field type"));
+        assert_eq!(p[3].note.as_deref().unwrap().matches("unknown field type").count(), 1);
     }
 
     #[test]

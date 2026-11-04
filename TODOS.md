@@ -1254,3 +1254,8 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   127.0.0.1:5555` reaktiviert (kein kill-server). Release-Binary neu gebaut
   (read-batch vorhanden). Rest-Live offen: T75/76 im Feld, T80 frida (rc3 ohne
   frida), mem_probe-Praxislauf.
+- ✅ R21 [2026-11-04 03:3x]: Wave-5-Review (Fresh-Eyes): kein FAIL — 7/7
+  Reversionen gefangen; live gegengeprueft (raw-Shot 2,1s vs 2,4s PNG; read-batch
+  byte-identisch zu dump; power() ok 258488). 3 CONCERNs GEFIXT: mem_probe
+  SCAN_TIMEOUT 300->1200 (reale Scanzeit gemessen 13m39s), hot-WARN/ANSI-Prefix
+  toleriert (+Test), read-batch note-Dedupe (+Assert). Praxislauf gestartet.

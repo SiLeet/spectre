@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import struct
 import subprocess
 import sys
@@ -27,7 +28,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 SPECTRE = REPO / 'target' / 'release' / 'spectre.exe'
 TYPES = {'u32': ('<I', 'U32'), 'i32': ('<i', 'I32'), 'u64': ('<Q', 'U64'), 'i64': ('<q', 'I64')}
-SCAN_TIMEOUT = 300     # hot greps the whole heap on the device: seconds, not minutes
+SCAN_TIMEOUT = 1200    # hot greps the whole heap on the device (measured 13m39s, 11/2026)
 MAX_SHOWN = 10
 
 
@@ -46,7 +47,17 @@ def hot_scan(pid: str, value: int, typ: str, base: str, limit: int) -> list[int]
     if p.returncode != 0:
         return None
     try:
-        return [int(a, 16) for a in json.loads(p.stdout)]
+        text = p.stdout
+        cut = text.find('\n[')          # tracing WARN lines (ANSI) may precede the JSON array
+        if cut >= 0:
+            text = text[cut + 1:]
+        else:
+            text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+            cut = text.find('[')
+            if cut < 0:
+                return None
+            text = text[cut:]
+        return [int(a, 16) for a in json.loads(text)]
     except (ValueError, TypeError):
         return None
 

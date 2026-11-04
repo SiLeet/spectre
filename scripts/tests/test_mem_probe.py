@@ -109,5 +109,24 @@ class TProbe(unittest.TestCase):
         self.assertIn('offset: 0x10', out.getvalue())
 
 
+class WarnPrefix(unittest.TestCase):
+    def test_ansi_warn_lines_before_json_are_tolerated(self):
+        calls = []
+
+        def run(cmd, **kw):
+            calls.append(kw)
+            return subprocess.CompletedProcess(
+                cmd, 0,
+                '\x1b[33mWARN spectre_adb::reader: skipping unreadable chunk\x1b[0m\n'
+                '[\"0x796590a6fa74\"]', '')
+
+        with mock.patch.object(mp.subprocess, 'run', side_effect=run), \
+             mock.patch('sys.stdout', new=io.StringIO()):
+            out = mp.hot_scan('5176', 258488, 'u32', '0x796590000000', 50)
+        self.assertEqual(out, [0x796590a6fa74])
+        self.assertGreaterEqual(mp.SCAN_TIMEOUT, 900)
+        self.assertGreaterEqual(calls[0].get('timeout', 0), 900)
+
+
 if __name__ == '__main__':
     unittest.main()

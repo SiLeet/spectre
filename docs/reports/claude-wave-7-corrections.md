@@ -129,3 +129,11 @@ LIVE offen: ob der Turm-Tap den Spire wählt (und den Helden nicht laufen lässt
 | Nach Turm-Tap kein Interact, vermutlich Held-Nähe nötig | Der Startframe hatte den Spire **schon ausgewählt** (Interact-Scheibe (953,683)). Unser Turm-Tap (916,508) hat die Auswahl **aufgehoben**; danach (hu_tower) stand statt eines Radials das Upgrade-Icon bei (915,378) im Bild. Beide Detektoren lesen diese Frames korrekt — es lag an der Reihenfolge, nicht an der Held-Nähe. | Interact auf dem Startframe zählt als Spire-Interact, wenn es direkt unter der gefundenen Turmachse liegt (dx ≤ 100, dy 60–300; gemessen 37/175). Nach einem Turm-Tap ohne Radial wird auf demselben Frame das Icon gesucht. Die Dialog-Prüfung bleibt das Netz. |
 
 Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie gehört zur Build-Phase und braucht erst einen Live-Beleg, was sie öffnet.
+
+## Nachtrag T103f (Dialog-Erkennung + Go)
+
+`feature/T103f-dialog-go` @ `9d2a7dc` — liegt auf T103e → T103d → T103c; alle vier zusammen mergen. Suite `Ran 685 tests … OK (skipped=201)`.
+
+- **Ursache „Spire dialog not recognised" (shots-49372/hu_read):** Der Titel „Radiant Spire" blendete noch ein und wurde nicht gelesen; der Check verlangte ihn. Neu: Dialog = „Upgrade Requirement (a/b)" + Zurück-Fläche; Titel wird nach 1,5 s einmal nachgelesen und nur geloggt.
+- **Go (eine Ebene, begrenzt):** Fehlt eine Karte „Level N <Gebäude>", wird ihr „Go" getippt (Pille 24 px unter dem Kartenlabel, weiß bei ±25 px; live (531,640)). Danach: Welt mit dem Gebäude ausgewählt → dessen kleines Radial-„Level Up" (Kitchen auf shots-80480: (1051,730), 30 px über seinem „Level U"-Text, Gebäudename darüber) → dessen Dialog → bei 7/7 + freier Queue „Level Up", sonst schließen. Kein zweites Go; Ressourcen-Karten (3854/28K) bekommen kein Go; `--dry-run` geht nie.
+- LIVE offen: der Kitchen-Upgrade-Dialog selbst (kein Frame), und ob „Go" die Kitchen immer ausgewählt mit Radial zeigt.

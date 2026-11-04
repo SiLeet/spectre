@@ -418,17 +418,16 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
 
 
 def _run_seq(cmds: list[str], waits: list[float], tolerate: bool, dry: bool):
-    """One `adb shell` for several input commands: 'cmd; sleep W; cmd; ...'.
-    Steps are ';'-joined, so a failing middle step does not stop the rest and
-    only the last command's rc is seen - a trailing `sleep` when its wait > 0, so
-    tolerate=False then only catches adb transport failures (bounded by the
-    waits + 15 s)."""
+    """One `adb shell` for several input commands: 'cmd && sleep W && cmd ...'.
+    Steps are '&&'-joined (wave-6 review: with ';' a failing middle step was
+    swallowed) - a failure stops the rest and its rc reaches tolerate=False
+    like tap(); a trailing `sleep` when its wait > 0; bounded by waits + 15 s."""
     parts = []
     for cmd, wait in zip(cmds, waits):
         parts.append(cmd)
         if wait > 0:
             parts.append(f'sleep {wait:g}')   # LIVE: fractional sleep (toybox, Android 9 Pie64)
-    line = '; '.join(parts)
+    line = ' && '.join(parts)
     if dry:
         return line
     p = adb('shell', line, timeout=int(sum(waits)) + 15)

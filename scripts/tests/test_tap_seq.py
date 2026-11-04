@@ -19,16 +19,16 @@ def done(rc: int) -> subprocess.CompletedProcess:
 class TapSeq(unittest.TestCase):
     def test_dry_command_string(self):
         self.assertEqual(v.tap_seq([(474, 1010, 1.2), (474, 1010, 1.5)], dry=True),
-                         'input tap 474 1010; sleep 1.2; input tap 474 1010; sleep 1.5')
+                         'input tap 474 1010 && sleep 1.2 && input tap 474 1010 && sleep 1.5')
         self.assertEqual(v.tap_seq([(300, 250, 0), (60, 1036, 3)], dry=True),
-                         'input tap 300 250; input tap 60 1036; sleep 3')
+                         'input tap 300 250 && input tap 60 1036 && sleep 3')
         self.assertEqual(v.key_seq([(4, 1.5), (4, 0)], dry=True),
-                         'input keyevent 4; sleep 1.5; input keyevent 4')
+                         'input keyevent 4 && sleep 1.5 && input keyevent 4')
 
     def test_one_adb_round_trip_bounded(self):
         with mock.patch.object(v, 'adb', return_value=done(0)) as adb:
             self.assertTrue(v.tap_seq([(300, 250, 0.8), (60, 1036, 3.0)]))
-        adb.assert_called_once_with('shell', 'input tap 300 250; sleep 0.8; input tap 60 1036; sleep 3',
+        adb.assert_called_once_with('shell', 'input tap 300 250 && sleep 0.8 && input tap 60 1036 && sleep 3',
                                     timeout=18)
 
     def test_failure_tolerated_or_raised(self):
@@ -46,7 +46,7 @@ class TapSeq(unittest.TestCase):
              mock.patch.object(v, 'shot', side_effect=[frame('WORLD'), frame('UNKNOWN')]), \
              mock.patch('time.sleep'), mock.patch.object(sys, 'stdout'):
             self.assertEqual(v.claim_round('r1'), 1)          # stops at UNKNOWN after the batch
-        self.assertEqual(calls, [('shell', 'input tap 300 250; sleep 0.8; input tap 60 1036; sleep 3')])
+        self.assertEqual(calls, [('shell', 'input tap 300 250 && sleep 0.8 && input tap 60 1036 && sleep 3')])
 
 
 class DailiesLeftoverPopup(unittest.TestCase):
@@ -80,7 +80,7 @@ class DailiesLeftoverPopup(unittest.TestCase):
         calls = real_seq(self, rc=0)
         dev, dl = self.run_dailies('DIM')
         self.assertEqual(dl.run_dailies(0), 1)
-        self.assertEqual(calls, [(('shell', 'input tap 480 300; sleep 2; input tap 474 1010; sleep 1.2'),
+        self.assertEqual(calls, [(('shell', 'input tap 480 300 && sleep 2 && input tap 474 1010 && sleep 1.2'),
                                   {'timeout': 18})])
         self.assertEqual(dev.taps, [v.CHEST, v.CHEST, dl.QUESTS_ICON])
 
@@ -125,7 +125,7 @@ class GiftSecondDimLayer(unittest.TestCase):
         calls = real_seq(self, rc=0)
         dev, rc, gift = self.run_gift()
         self.assertEqual(rc, 0)
-        self.assertEqual(calls, [(('shell', 'input tap 700 500; sleep 2; input tap 474 1010; sleep 1.5'),
+        self.assertEqual(calls, [(('shell', 'input tap 700 500 && sleep 2 && input tap 474 1010 && sleep 1.5'),
                                   {'timeout': 18})])
         self.assertEqual(dev.taps, [gift.LOGIN_REWARDS, (gift.ROW_X, 260), (700, 500)])
 

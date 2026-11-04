@@ -131,7 +131,7 @@ class DailyCharge(unittest.TestCase):
         calls = real_seq(self, rc=0)
         dev, rc, _ = self.run_level(self.CHARGE_OCR)
         self.assertEqual(rc, 0)
-        self.assertEqual(calls, [(('shell', 'input tap 1100 985; sleep 2.5; input tap 1100 985; sleep 3'),
+        self.assertEqual(calls, [(('shell', 'input tap 1100 985 && sleep 2.5 && input tap 1100 985 && sleep 3'),
                                   {'timeout': 20})])
         self.assertNotIn(hl.LEVEL_X1, dev.taps)                   # not as two single taps
         self.assertEqual(dev.taps[-1], ('key', 4))

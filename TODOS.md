@@ -1272,3 +1272,11 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Erbung (+2 Tests). LIVE bewiesen 03:55: scans alle 5 Hände lesbar (read_level
   robuster), before=82, "resources short ... no charge today" rc4 OHNE Taps.
   OFFEN: echte +1-Charge (Gold 8138K < 9360K) — nach Gold-Zuwachs (Daily).
+- ✅ R23 [2026-11-04 04:05]: Wave-6-Review (headless claude -p, Token-Regel): kein FAIL.
+  Merge-Integritaet OK, F1-F5-Checks OK, 12/12 Mutationen gefangen, 9/9 F2-Frames
+  gleiches Urteil, Suite gruen, .spectre schreibfrei. 1 CONCERN (4b) GEFIXT: _run_seq
+  jetzt &&-gejoint (Fehler nicht mehr verschluckt), LIVE bewiesen: Bruchteil-Sleeps
+  (frac-ok) + tap_seq-Smoke ok; Test-Erwartungen nachgezogen.
+- mem_probe-Praxislauf [04:05]: Mechanik live gruen (scan1 12 matches, scan2 1, sauberes
+  rc3 "no candidate") — Kandidat fehlte, weil die Charge ausfiel (Gold short). Wiederholung
+  sobald Gold reicht — dann Wert-Paar exakt vorab bekannt.

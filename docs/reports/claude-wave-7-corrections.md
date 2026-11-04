@@ -153,3 +153,11 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 
 - **Befund (shots-68132):** hu_dialog und hu_read zeigen den Dialog noch beim Einblenden (Welt unscharf, Buttons blass) → OCR leer, keine Zurück-Fläche; der Guard hat korrekt nicht getippt.
 - **Fix:** `read_dialog` schießt bis zu 3× im Abstand von 1,5 s (`hu_read`, `_p1`, `_p2`), bis Zurück-Fläche + Requirement-Zeile gelesen sind; ist der Frame wieder die Welt, endet das Polling. Gilt für den Spire-Dialog und den Go-Gebäude-Dialog; Check und Guard entscheiden danach wie bisher.
+
+## Nachtrag T103i (Go-Poll)
+
+`feature/T103i-go-poll` @ `a609121` — liegt auf T103h…T103c; **alle sieben (T103c–T103i) zusammen mergen**. Suite `Ran 691 tests … OK (skipped=201)`.
+
+- (1) Kitchen-„Level Up" ~(1055,730) rechts neben Cook: ist seit T103g drin, (1054,730).
+- (2) Nach „Go" bis zu 3 Frames im Abstand von 1,5 s (`hu_go`, `_p1`, `_p2`), bis die Welt das Radial des Gebäudes zeigt; erst dann „nothing to do: no radial" (Welt) bzw. Stopp ohne Tap (Welt nie erreicht).
+- „Danach Requirement-Haken prüfen und Spire-Level-Up fortsetzen": Das Kitchen-Upgrade braucht seine Bauzeit; der Spire-Haken wird erst danach grün. Das übernimmt der nächste Tageslauf der Phase, nicht derselbe Lauf.

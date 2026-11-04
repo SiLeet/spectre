@@ -732,7 +732,18 @@ def is_confirm_dialog(img: Image.Image) -> bool:
     return False
 
 
-BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
+# Bottom-nav Battle Modes entry, the one definition (T98). Two world-HUD layouts seen:
+# A (11-03, 11-04 >= 16:39): diamond (917,1027) — this point hits its 'Battle' label;
+# B (seen 11-04 10:39-15:53, appeared mid-session; the same game pid drew A on 11-03
+# evening, so B can return without a restart): bar ~100 px right (diamond (1019,1021)),
+# right HUD column + hamburger not drawn. LIVE: this point opened the menu in every
+# run of both layouts (A: 9/9 after one tap, 73788/bm_1 still fading in; B: 8/8,
+# 3 needed the 2nd tap) — B's hit boxes stayed at the A positions, so do NOT tap the
+# drawn B icon.
+BATTLE_MODES_BTN = (890, 1060)
+# Battle Modes menu tab row per layout: tab-bar probe, Routines icon, Events icon.
+BM_TABS = (((890, 934), (500, 920), (1160, 940)),     # A: shots-10184/bm_1, 73788/bm_2
+           ((890, 960), (500, 900), (1300, 940)))     # B: shots-80660/norm_3, 42388/bm_1
 
 
 def is_battle_modes(img: Image.Image) -> bool:
@@ -742,12 +753,21 @@ def is_battle_modes(img: Image.Image) -> bool:
     Defeat/Battle-Ended cards and loading tips (review F6). LIVE 2026-11-04
     re-calibrated: the tab row sits ~26 px lower and the Events icon moved
     right (was (890,934)/(1160,940)); verified 3/3 true on the live menu
-    frames, 0 false positives on all 199 captured frames."""
-    routines = avg(img, (500, 900))
-    return (lum(avg(img, (480, 270))) > 200
-            and lum(avg(img, (890, 960))) > 190
-            and routines[0] > routines[1] + 60 and routines[0] > routines[2] + 80
-            and lum(avg(img, (1300, 940))) < 150)
+    frames, 0 false positives on all 199 captured frames.
+    T98: that was HUD layout B only — layout A was back by 15:39Z and both 'Battle Modes did not open' runs had the menu open
+    (shots-10184/bm_1..final, shots-73788/bm_2..final). Either BM_TABS row
+    counts. LIVE (1241 1920x1080 frames): A 73 hits (bar L>=242, R-G>=87,
+    R-B>=126, Events L<=103), B 27 (231/91/170/93), all Routines menus; nearest
+    misses are the Guild Mode / Events tabs (R-B 71, Events L 141)."""
+    if lum(avg(img, (480, 270))) <= 200:
+        return False
+    for bar, rt, ev in BM_TABS:
+        routines = avg(img, rt)
+        if (lum(avg(img, bar)) > 190
+                and routines[0] > routines[1] + 60 and routines[0] > routines[2] + 80
+                and lum(avg(img, ev)) < 150):
+            return True
+    return False
 
 
 def is_dr_prep(img: Image.Image) -> bool:
@@ -1096,9 +1116,18 @@ def classify(img: Image.Image) -> str:
     # livecheck/after_norm, shots-40348/dg_cam_*); <=36 on every lb<100
     # non-world frame (hall_test2, shots-readonly-1226xx; r1_1a_popup family 1).
     # lbar>172 stays an unconditional POPUP (shots-60424/r1_1a_popup).
+    # T99: ...except under a bright HUD bar — a drifting white world cloud on
+    # CLAIM lit lbar 178-235 on plain world frames (hud 106-115: shots-42960/
+    # norm_pop3 = hermes world_banner_frame, shots-80396/norm_2..final,
+    # shots-77496/dl_menu_*, shots-44432/dg_*) -> BACK opened the exit confirm.
+    # LIVE (1280 frames incl. trash): every lbar>172 POPUP that is not a world
+    # reads hud <= 42 (exit confirm shots-42960/norm_2, login popups r1_1a_popup
+    # 41228/72752/20856; chest popups <= 3; 60424 -27); the Battle Modes
+    # fade-in shots-73788/bm_1 reads 87 and stays POPUP. Cut 95.
     t = avg(img, AFK_BAR, r=4)
-    hud = min(t[1], t[2]) - t[0] > 80
-    if lb < 100 and (lbar > 172 or (lb - lg < -8 and not hud)):
+    tell = min(t[1], t[2]) - t[0]
+    hud = tell > 80
+    if lb < 100 and ((lbar > 172 and tell <= 95) or (lb - lg < -8 and not hud)):
         return 'POPUP'
     # WORLD also needs that tell: the back-arrow probes alone said WORLD on 110
     # non-world frames — battles, Battle Modes, a store bundle popup, a 'Use

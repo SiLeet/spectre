@@ -1300,3 +1300,11 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   Abbruch-Kette der Laeufe: Intro -> Panel -> TagWelt -> Dream-Prep. OFFEN: T91
   Dream-Prep (Tap+classify, laeuft), Arena-Lobby ("did not open", 12:2x, unvermessen),
   danach naechster Gesamtlauf; +1-Charge/mem_probe warten weiter auf Gold.
+- [2026-11-04 abend] Erkennungs-Haertung Runde 2 (T91-T99, alle gemergt bis T98=3eaba11, Suite 510):
+  Dream-Prep-Fix, Arena-Lobby/Select, Victory-Overlay, Initial-Resilienz, Keyevent-Back-
+  Fallbacks, Welt-HUD-Koordinaten, Hub-Klassifikation (T99 laeuft). LIVE heute: Dream-Fight
+  gewonnen (T91), Arena-Fight gewonnen (Operator), AFK-Chest-Claim 2x verifiziert,
+  Progress-Stage-Push kaempft auto (Stage 287!). BlueStacks-Input-Kollaps ~15:44 durch
+  adb reboot + HD-Player-Neustart geheilt (Merke: keyevent geht immer, Maus-Klick als
+  2. Pfad, Reboot heilt). OFFEN: T99 (Hub/Welt-Klassifikation), dann Lauf arena->dream (7/7),
+  danach Night-Run 02:00.

@@ -152,7 +152,7 @@ class DreamWorldFail(unittest.TestCase):
         out = dev.out.getvalue()
         self.assertIn('escape ladder (max 2 cycles)', out)
         self.assertIn('ESCAPE: recovered (WORLD)', out)
-        self.assertEqual(dev.taps, [dr.BATTLE_MODES, dr.DREAM_CARD])
+        self.assertEqual(dev.taps, [v.BATTLE_MODES_BTN, dr.DREAM_CARD])
 
     def test_world_fail_ladder_gives_up(self):
         dev = FakeDevice(self, ['UNKNOWN'] * 5 + ['UNKNOWN'] * 11)

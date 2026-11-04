@@ -24,6 +24,9 @@ import afk_claim_vision as v  # noqa: E402
 import afk_memory  # noqa: E402
 import _bot_lock  # noqa: E402
 
+# Hamburger, bottom right. LIVE (T98): on the drawn icon in layout-A world frames (88/89,
+# the miss a scene-wipe frame); layout B draws no hamburger, yet this tap opened the menu
+# in 5/6 B runs (shots-53520..82080; shots-75292 at 11:54: 5 taps unanswered).
 MENU = (1880, 1030)
 QUESTS_ICON = (1140, 610)
 MAIL_ICON = (840, 750)
@@ -58,7 +61,8 @@ def open_menu() -> bool:
         # both bright only while the menu panel is open (world: L 64 / 31)
         if v.lum(v.avg(img, (480, 1010))) > 150 and v.lum(v.avg(img, (1375, 1028))) > 150:
             return True
-        if v.classify(img) in ('POPUP', 'DR_BOSS'):    # T94: DR_BOSS was POPUP
+        # T99: the open Battle Modes menu (layout A reads UNKNOWN) gets BACK, not MENU
+        if v.classify(img) in ('POPUP', 'DR_BOSS') or v.is_battle_modes(img):   # T94: DR_BOSS was POPUP
             v.back(3.0)                                 # T97: keyevent, never on the world
         else:
             v.tap(MENU, 3.0)
@@ -111,9 +115,25 @@ def quick_claim_tab(name: str) -> bool | None:
 
 
 def is_quests_panel(img) -> bool:
-    """The quest panel: bright title top-left area, dark reddish edges."""
-    # the panel title sits top-left at (500,90); (960,100) is artwork and dark
-    return (v.lum(v.avg(img, (500, 90))) > 190
+    """The quest panel (any tab, incl. Lucky Flip): dark backdrop both sides +
+    the grey-mauve bottom tab bar at (650,1040) WITHOUT the hamburger plate the
+    Battle Modes menu and the hero hall draw on the same bar (two scales:
+    (1455,1035) / (1612,1035)).
+    T99: the old title probe (500,90) only hit the 'Daily Quests' title of the
+    small layout; the large one and a scrolled list read L 106-141 (shots-67620/
+    80768/82080 dl_questpanel) -> 'quest panel did not open'.
+    LIVE (1280 frames incl. trash): 34 hits, all quest panels (dl_questpanel*,
+    dl_tab_* incl. Lucky Flip, dl_qc_*, normalize's norm_0 leftovers,
+    livecheck/back1); bar max-diff <= 1 (tol 8) vs best other dark-sided,
+    plate-less frame 18 (shots-1915/exit_1_select); plate L <= 98 on panels vs
+    >= 166 on menu/hall. The old rule also hit 48 non-panels (main menu
+    dl_menu_1, Battle Modes, victory cards). Battle Modes layout B shares the
+    bar + dark sides; is_battle_modes is a second, independent veto (0 overlap)
+    so one shifted plate point cannot send QUICK_CLAIM onto the hub."""
+    return (not v.is_battle_modes(img)
+            and v.close_to(v.avg(img, (650, 1040)), (108, 92, 92), 8)
+            and v.lum(v.avg(img, (1455, 1035))) < 130
+            and v.lum(v.avg(img, (1612, 1035))) < 130
             and v.lum(v.avg(img, (200, 270))) < 100
             and v.lum(v.avg(img, (1750, 270))) < 100)
 
@@ -164,7 +184,7 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
         # T97: the menu is still open (open_menu's probe) -> the icon tap did
         # nothing: once more via the tap-mode chain (T97b, LIVE: unverified), else
         # give up. The 11-04 'quest panel did not open' was a detector miss (panel
-        # open, (500,90) L 140), not a dead tap — follow-up
+        # open, (500,90) L 140), not a dead tap — fixed in T99 (tab-bar probe)
         print('    quest panel did not open — one tap retry on the icon', flush=True)
         mode = v.tap_retry(QUESTS_ICON, wait=3.5)
         img = v.shot('dl_questpanel_hold')

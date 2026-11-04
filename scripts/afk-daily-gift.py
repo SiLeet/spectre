@@ -141,7 +141,8 @@ def main() -> int:
             v.tap((1500, 600), 1.2)
             continue
         st = v.classify(img)
-        if st in ('PANEL', 'POPUP', 'DR_BOSS'):   # T94: DR_BOSS was POPUP
+        # T99: + the open Battle Modes menu (layout A reads UNKNOWN; the camera pan swiped on it)
+        if st in ('PANEL', 'POPUP', 'DR_BOSS') or v.is_battle_modes(img):   # T94: DR_BOSS was POPUP
             v.back(1.2)                           # T97: keyevent, classify says non-world
             continue
         break  # world (or unknown) -> open the events panel next

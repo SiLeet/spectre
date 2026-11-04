@@ -487,6 +487,23 @@ class Flow(unittest.TestCase):
         self.assertEqual(rc, 0, dev.out.getvalue())
         self.assertEqual(dev.taps, [DISC, GO, (1054, 730), hu.LEVEL_UP_BTN])
 
+    def test_dialog_still_fading_in_is_polled(self):
+        # T103h live shots-68132: hu_dialog + hu_read blurred/faint, OCR [] -> poll, then read
+        fade = SPECTRE / 'shots-68132' / 'hu_read.png'
+        dev, rc = self.run_hu(['hm_requests.png', real(fade), real(fade), 'hm_up3.png', 'hm_confirmed2.png'],
+                              {'hu_world': WORLD_BOXES, 'hu_read': [], 'hu_read_p1': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.shots[:4], ['hu_world', 'hu_dialog', 'hu_read', 'hu_read_p1'])
+        self.assertEqual(dev.taps, [DISC, GO])
+
+    def test_dialog_never_settles_stops_without_a_tap(self):
+        fade = SPECTRE / 'shots-68132' / 'hu_read.png'
+        dev, rc = self.run_hu(['hm_requests.png'] + [real(fade)] * (1 + hu.DIALOG_POLLS),
+                              {'hu_world': WORLD_BOXES})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps, [DISC])                      # guard: no back plate, no tap
+        self.assertEqual(len(dev.shots), 2 + hu.DIALOG_POLLS)   # bounded
+
     def test_selected_spire_without_level_up_skips_the_camera(self):
         dev, rc = self.run_hu(['hm_requests.png'], {'hu_world': WORLD_BOXES[:2]})
         self.assertEqual(rc, 4)
@@ -544,8 +561,9 @@ class Flow(unittest.TestCase):
                 self.assertEqual(dev.taps, [])
 
     def test_unrecognised_dialog_closes_and_stops(self):
-        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],
-                              {'hu_world': WORLD_BOXES, 'hu_read': []})
+        # T103h: a dialog whose OCR never reads is polled DIALOG_POLLS times, then closed
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png'] + ['hm_up3.png'] * hu.DIALOG_POLLS
+                              + ['hm_confirmed2.png'], {'hu_world': WORLD_BOXES, 'hu_read': []})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps, [DISC, hu.BACK_PLATE])
 

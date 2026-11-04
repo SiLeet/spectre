@@ -170,6 +170,11 @@ COMPLETE_NOW = (538, 967, 1005, 1047)  # LIVE: 1800-diamond plate (brief x 538-1
 # every card, but NOT the 'Radiant Spire' title (still fading in) -> 'dialog not recognised'.
 # The dialog = requirement line + back plate; the title is re-read once after TITLE_SETTLE.
 TITLE_SETTLE = 1.5
+# T103h live (shots-68132): after the icon tap hu_dialog/hu_read showed the dialog still fading
+# in (blurred world, faint buttons) -> OCR [] and no back plate -> 'dialog not recognised'.
+# Poll the dialog DIALOG_POLLS x DIALOG_POLL_WAIT before the check (and its no-tap guard).
+DIALOG_POLLS = 3
+DIALOG_POLL_WAIT = 1.5
 # T103f 'Go' on a missing building card (one level, bounded). The 'Go' pill sits under the card
 # label: label 'Level 5 Kitchen' centre (531,616) -> pill centre (531,640) (hu_read, hm_up3: white
 # L>=246 at x +-25, 'Go' text L~175). Go -> world with that building selected (kitchen_go.png,
@@ -436,6 +441,23 @@ def missing_boxes(img, boxes) -> list:
     return out
 
 
+def read_dialog(tag: str):
+    """(frame, boxes) of a requirement dialog that may still be fading in: up to DIALOG_POLLS
+    shots (`tag`, `tag`_p1, ...) DIALOG_POLL_WAIT apart until back plate + requirement line
+    read; the last shot otherwise (the caller's check then decides)."""
+    for i in range(DIALOG_POLLS):
+        if i:
+            time.sleep(DIALOG_POLL_WAIT)
+        name = tag if i == 0 else f'{tag}_p{i}'
+        img = v.shot(name)
+        boxes = v.ocr_boxes(name)
+        if back_plate(img) and parse_requirement(boxes):
+            break
+        if v.classify(img) == 'WORLD':          # the dialog closed again: no point polling on
+            break
+    return img, boxes
+
+
 def go_pill(img, xy) -> bool:
     """White 'Go' pill under a missing card label."""
     return all(v.lum(v.avg(img, (xy[0] + dx, xy[1]), r=2)) > 225 for dx in (-GO_PILL_DX, GO_PILL_DX))
@@ -582,8 +604,7 @@ def main(argv: list[str] | None = None) -> int:
         if img is None:
             print(f'    ERROR: Spire dialog did not open after the tap at {disc}', flush=True)
             return 1
-        img = v.shot('hu_read')                  # settled frame for OCR + check pixels
-        boxes = v.ocr_boxes('hu_read')
+        img, boxes = read_dialog('hu_read')      # T103h: settled frame for OCR + check pixels
     elif back_plate(img) and parse_requirement(boxes := v.ocr_boxes(name)):
         print('    Spire dialog already open', flush=True)  # T103b: live start frame shots-82892
     else:
@@ -672,8 +693,7 @@ def go_building(img, label_box, dry_run: bool) -> int:
     if img is None:
         print(f'    ERROR: {name} dialog did not open after its Level Up at {disc}', flush=True)
         return 1
-    img = v.shot('hu_bread')
-    boxes = v.ocr_boxes('hu_bread')
+    img, boxes = read_dialog('hu_bread')
     if not (back_plate(img) and parse_requirement(boxes)):
         print(f'    ERROR: {name} dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)
         if back_plate(img):

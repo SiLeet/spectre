@@ -702,12 +702,25 @@ def is_afk_panel(img: Image.Image) -> bool:
     'AFK Rewards' badge (79,148,75) must both be lit; lb>190 excludes POPUP.
     Badge is ratio-only: lum 119 sits near any floor, but G-max 69 vs best
     non-panel 30 (all .spectre frames). shortcut: probe sits in the English
-    title's green tail; a shorter title fails safe (UNKNOWN) -> re-probe then."""
+    title's green tail; a shorter title fails safe (UNKNOWN) -> re-probe then.
+
+    T90: while the panel animates in (or with a locked '?' next stage) the
+    badge and the Battle bar are not drawn yet -> second tell set, both
+    stage-independent: the green chapter emblem left of the stage strip
+    (513,348) and the white strip band above the nodes (y=300, both probes).
+    LIVE: ONE frame, shots-58212/r1_1_panel (12:21 daily; = hermes
+    after_afk_panel_frame): emblem r=8 G-max 39 (33..41 within +-12 px; r=4
+    hotspot 46 drops to 31 at +-4 px, so r=8), gated non-panel <=2 (hl_*);
+    band lum 255/255, gated non-panel min-of-two <=193 (hl_daily_pre0_w3)."""
     gmax = lambda c: c[1] - max(c[0], c[2])
     bar = lambda c: gmax(c) > 35 and lum(c) > 110
-    return (lum(avg(img, BACK)) > 190 and lum(avg(img, (BACK[0] + 90, BACK[1]))) > 230
-            and bar(avg(img, (800, 893))) and bar(avg(img, (1300, 893)))
-            and gmax(avg(img, (712, 207), r=4)) > 35)
+    if not (lum(avg(img, BACK)) > 190 and lum(avg(img, (BACK[0] + 90, BACK[1]))) > 230):
+        return False
+    if bar(avg(img, (800, 893))) and bar(avg(img, (1300, 893))) and gmax(avg(img, (712, 207), r=4)) > 35:
+        return True
+    # LIVE: shots-58212/r1_1_panel only (emblem 39 vs 2, band 255 vs 193; docstring T90)
+    return (gmax(avg(img, (513, 348), r=8)) > 20
+            and min(lum(avg(img, (x, 300), r=4)) for x in (800, 1200)) > 240)
 
 
 def classify(img: Image.Image) -> str:

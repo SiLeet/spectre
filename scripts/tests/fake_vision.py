@@ -64,6 +64,11 @@ _SPEC = {
     'PANEL_NEW': ((40, 40, 40), {v.BACK: (225, 219, 210), (564, 1010): (253, 250, 244),
                                  (800, 893): (107, 157, 97), (1300, 893): (107, 157, 97),
                                  (712, 207): (79, 148, 75)}),
+    # T90 panel still animating in (hermes after_afk_panel_frame): no badge and
+    # no Battle bar yet, only the green chapter emblem + white strip band
+    'PANEL_ANIM': ((40, 40, 40), {v.BACK: (225, 219, 210), (564, 1010): (253, 250, 244),
+                                  (513, 348): (93, 139, 70), (800, 300): (255, 255, 255),
+                                  (1200, 300): (255, 255, 255)}),
     # same light back + cream without the tells (hero hall, shots-13228/hl_scan_850)
     'CREAM_BACK': ((40, 40, 40), {v.BACK: (230, 225, 216), (564, 1010): (253, 250, 244)}),
     'UNKNOWN': ((128, 128, 128), {}),

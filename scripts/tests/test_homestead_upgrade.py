@@ -464,6 +464,29 @@ class Flow(unittest.TestCase):
         self.assertEqual(hu.building_level_up(k, KITCHEN_BOXES, 'kitchen'), KITCHEN_LU)
         self.assertIsNone(hu.building_level_up(k, KITCHEN_BOXES, 'forge'))     # label must match
 
+    def test_kitchen_level_up_without_its_text(self):
+        # T103g live: after Go the Kitchen radial was up but OCR missed / garbled 'Level Up'
+        go = SPECTRE / 'shots-14680' / 'hu_go.png'
+        kn2 = HERMES / 'kn2.png'
+        go_boxes = [(1043, 323, 57, 13, 'Kitchen'), (938, 731, 43, 15, 'Cook')]          # live hu_go
+        kn2_boxes = go_boxes + [(1028, 755, 54, 14, 'l_evel CP')]                        # kn2.png
+        self.assertEqual(hu.building_level_up(real(go), go_boxes, 'kitchen'), (1054, 730))
+        if kn2.exists():
+            self.assertEqual(hu.building_level_up(hermes('kn2.png'), kn2_boxes, 'kitchen')[1] // 10, 73)
+        self.assertIsNone(hu.building_level_up(real(go), go_boxes, 'forge'))            # label must match
+        self.assertIsNone(hu.building_level_up(real(go), [(938, 731, 43, 15, 'Cook')], 'kitchen'))
+
+    def test_live_go_kitchen_chain(self):
+        # T103g: Spire 5/7 -> Go -> live hu_go (no Level Up text) -> Kitchen Level Up -> dialog 7/7
+        go = SPECTRE / 'shots-14680' / 'hu_go.png'
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', real(go), 'hm_up3.png',
+                               'hm_up3.png', 'hm_confirmed2.png'],
+                              {'hu_world': WORLD_BOXES, 'hu_read': DIALOG_BOXES,
+                               'hu_go': [(1043, 323, 57, 13, 'Kitchen'), (938, 731, 43, 15, 'Cook')],
+                               'hu_bread': dialog('7/7')})
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps, [DISC, GO, (1054, 730), hu.LEVEL_UP_BTN])
+
     def test_selected_spire_without_level_up_skips_the_camera(self):
         dev, rc = self.run_hu(['hm_requests.png'], {'hu_world': WORLD_BOXES[:2]})
         self.assertEqual(rc, 4)

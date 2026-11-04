@@ -273,7 +273,7 @@ class Flow(unittest.TestCase):
 
     def test_requirements_missing_goes_to_the_kitchen(self):
         # T103f: 5/7 with 'Level 5 Kitchen' missing -> its Go; no Kitchen radial after it -> rc 4
-        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': WORLD_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [DISC, GO])
@@ -335,7 +335,7 @@ class Flow(unittest.TestCase):
 
     def test_camera_search_finds_the_icon(self):
         dev, rc = self.run_hu(['WORLD', 'WORLD', 'spire_sel.png', 'spire_sel2.png',
-                               'spire_sel2.png', 'hm_confirmed2.png'],
+                               'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': [], 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, DRAGS[0], ICON, GO])
@@ -344,7 +344,7 @@ class Flow(unittest.TestCase):
         # T103c live (shots-80480): no Spire radial/icon, never the Kitchen's Level Up. T103d: the
         # tower is on screen -> tower tap -> tower_tap.png (Hermes) -> Interact -> dialog 5/7
         dev, rc = self.run_hu([real(KITCHEN), real(TOWER_TAP), 'spire_sel2.png', 'spire_sel2.png',
-                               'hm_confirmed2.png'],
+                               'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': KITCHEN_BOXES, 'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [TOWER_K, INTERACT, GO])
@@ -374,7 +374,7 @@ class Flow(unittest.TestCase):
 
     def test_camera_search_finds_the_tower(self):
         dev, rc = self.run_hu(['WORLD', 'WORLD', real(KITCHEN), real(TOWER_TAP), 'spire_sel2.png',
-                               'spire_sel2.png', 'hm_confirmed2.png'],
+                               'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': [], 'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, DRAGS[0], TOWER_K, INTERACT, GO])
@@ -388,7 +388,7 @@ class Flow(unittest.TestCase):
         # T103e live shots-25208: the start frame already had the Spire selected (Interact up);
         # T103d tapped the tower instead, which deselected it -> 'no Interact' stop
         start = SPECTRE / 'shots-25208' / 'hu_world.png'
-        dev, rc = self.run_hu([real(start), 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png'],
+        dev, rc = self.run_hu([real(start), 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [INTERACT, GO])           # no tower tap
@@ -398,7 +398,7 @@ class Flow(unittest.TestCase):
         # T103e live shots-25208/hu_tower: after the tower tap no radial, the upgrade icon instead
         after = SPECTRE / 'shots-25208' / 'hu_tower.png'
         dev, rc = self.run_hu([real(KITCHEN), real(after), 'spire_sel2.png', 'spire_sel2.png',
-                               'hm_confirmed2.png'],
+                               'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': KITCHEN_BOXES, 'hu_tower': [], 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [TOWER_K, (915, 378), GO])
@@ -432,7 +432,7 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps, [DISC, GO, KITCHEN_LU, hu.BACK_PLATE])
 
     def test_go_off_the_world_stops_without_a_tap(self):
-        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'UNKNOWN'],
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
                               {'hu_world': WORLD_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 1, dev.out.getvalue())
         self.assertEqual(dev.taps, [DISC, GO])
@@ -449,7 +449,7 @@ class Flow(unittest.TestCase):
                 (482, 610, 98, 12, 'Level 5 Kitchen'), (600, 610, 60, 12, '3854/28K'),
                 (1201, 984, 102, 29, 'Level Up'), (1440, 85, 22, 12, '0/2')]
         read = SPECTRE / 'shots-49372' / 'hu_read.png'
-        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', real(read), real(read), 'hm_confirmed2.png'],
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', real(read), real(read), 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': WORLD_BOXES, 'hu_read': live, 'hu_read2': live})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertIn('hu_read2', dev.shots)
@@ -490,7 +490,7 @@ class Flow(unittest.TestCase):
     def test_dialog_still_fading_in_is_polled(self):
         # T103h live shots-68132: hu_dialog + hu_read blurred/faint, OCR [] -> poll, then read
         fade = SPECTRE / 'shots-68132' / 'hu_read.png'
-        dev, rc = self.run_hu(['hm_requests.png', real(fade), real(fade), 'hm_up3.png', 'hm_confirmed2.png'],
+        dev, rc = self.run_hu(['hm_requests.png', real(fade), real(fade), 'hm_up3.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': WORLD_BOXES, 'hu_read': [], 'hu_read_p1': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.shots[:4], ['hu_world', 'hu_dialog', 'hu_read', 'hu_read_p1'])
@@ -504,6 +504,25 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps, [DISC])                      # guard: no back plate, no tap
         self.assertEqual(len(dev.shots), 2 + hu.DIALOG_POLLS)   # bounded
 
+    def test_go_radial_appearing_late_is_polled(self):
+        # T103i: the first post-Go frame has no radial yet (loading), the second has it
+        go = SPECTRE / 'shots-14680' / 'hu_go.png'
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'UNKNOWN', real(go),
+                               'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],
+                              {'hu_world': WORLD_BOXES, 'hu_read': DIALOG_BOXES,
+                               'hu_go_p1': [(1043, 323, 57, 13, 'Kitchen'), (938, 731, 43, 15, 'Cook')],
+                               'hu_bread': dialog('7/7')})
+        self.assertEqual(rc, 0, dev.out.getvalue())
+        self.assertEqual(dev.taps, [DISC, GO, (1054, 730), hu.LEVEL_UP_BTN])
+
+    def test_go_without_radial_after_all_polls_is_nothing_to_do(self):
+        dev, rc = self.run_hu(['hm_requests.png', 'hm_up3.png', 'hm_up3.png']
+                              + ['hm_confirmed2.png'] * hu.DIALOG_POLLS,
+                              {'hu_world': WORLD_BOXES, 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [DISC, GO])
+        self.assertEqual(dev.shots[-hu.DIALOG_POLLS:], ['hu_go', 'hu_go_p1', 'hu_go_p2'])
+
     def test_selected_spire_without_level_up_skips_the_camera(self):
         dev, rc = self.run_hu(['hm_requests.png'], {'hu_world': WORLD_BOXES[:2]})
         self.assertEqual(rc, 4)
@@ -512,7 +531,7 @@ class Flow(unittest.TestCase):
 
     def test_exit_game_dialog_on_the_start_frame_is_cancelled(self):
         # T103c live (shots-9308): X, re-shoot, continue - never the green check (exits the game)
-        dev, rc = self.run_hu(['DIALOG', 'hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png'],
+        dev, rc = self.run_hu(['DIALOG', 'hm_requests.png', 'hm_up3.png', 'hm_up3.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world_c': WORLD_BOXES, 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.CONFIRM_CANCEL, DISC, GO])
@@ -524,7 +543,7 @@ class Flow(unittest.TestCase):
 
     def test_unselected_spire_via_the_upgrade_icon(self):
         # T103b live: spire_sel (icon, no radial) -> tap -> spire_sel2 (dialog 5/7)
-        dev, rc = self.run_hu(['spire_sel.png', 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png'],
+        dev, rc = self.run_hu(['spire_sel.png', 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
                               {'hu_world': WORLD_BOXES[1:2], 'hu_read': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [ICON, GO])
@@ -543,7 +562,7 @@ class Flow(unittest.TestCase):
 
     def test_dialog_already_open(self):
         # T103b live: shots-82892 started ON the Spire dialog -> read it, no world needed
-        dev, rc = self.run_hu(['hm_up3.png', 'hm_confirmed2.png'], {'hu_world': DIALOG_BOXES})
+        dev, rc = self.run_hu(['hm_up3.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'], {'hu_world': DIALOG_BOXES})
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [GO])
         self.assertIn('already open', dev.out.getvalue())

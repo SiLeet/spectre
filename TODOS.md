@@ -463,6 +463,21 @@ Queue-Eintrag als Task.
   22 übersprungen; Frame-Regression `checked=62 skipped=0`. Finaler Fresh-Eyes-
   Review ohne sicherheitskritischen Befund; keine Task-/Policy-Änderung nötig.
 
+- Queue-Driver-Review 01:06 CET 2026-11-04: P5 hat weiterhin keine offene
+  aufgabenbezogene `⬜`-Checkbox. `.spectre/logs/afk-bot-2026-11-03.log` blieb
+  unverändert (mtime 17:11); Night/Daily/Progress sind `Ready`, Last Result 0
+  vom 03.11., nächste Läufe heute 02:00/05:10/17:10. Kein Scheduler-Lauf
+  erzwungen, keine Game-Taps.
+  Live-Nachprüfung des `91151af`-Guards (Heap-Churn hat den 23:09-Read-back
+  `0xA67A54` = 259160 inzwischen überholt): der gespeicherte u64-Anker
+  `0xA67A54` las als 55,834,836,546 (Bytes: u32 261698 + Hash 13, kein
+  gültiger Heap-Pointer) und wurde fail-closed neu lokalisiert. `memory_preflight`
+  lieferte `('ok', 258488)` und aktualisierte den State auf Offset
+  10,943,092 (`0xA6FA74`); MCP-Read-back bestätigte PID 5176, Heap-Basis
+  `0x796590000000` und exakt 258488 am neuen Slot `0x796590A6FA74`.
+  Keine weitere Code-/Task-Policy-Änderung aus den unveränderten Scheduler-Logs
+  gerechtfertigt; nächster Post-Fix-Night-Beleg steht nach dem 02:00-Lauf aus.
+
 ## P6 — Idle-Architektur (Sergejs Korrektur, 2026-11-01)
 > 15-Minuten-Chest-Claims bringen bei einem Idle-Game NICHTS (fixe Rate, 12-h-Cap).
 > Der Hebel ist Progression: hohe Stage = hohe Rate, Heldenpower = hohe Stage.

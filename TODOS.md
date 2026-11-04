@@ -1280,3 +1280,15 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
 - mem_probe-Praxislauf [04:05]: Mechanik live gruen (scan1 12 matches, scan2 1, sauberes
   rc3 "no candidate") — Kandidat fehlte, weil die Charge ausfiel (Gold short). Wiederholung
   sobald Gold reicht — dann Wert-Paar exakt vorab bekannt.
+- ✅ R24 [2026-11-04 04:1x-05:1x]: Dura's-Entry LIVE untersucht (2 Fixes, 1 Befund):
+  GEFIXT+live bewiesen: (1) classify() WORLD-Praedikat war fuer die Nacht-Schneewelt
+  gebrochen (lb-lg +14.8 > alte |..|<8; live: reach_world tappte 6x sinnlos) -> Range
+  -8..+25, 199-Frame-Sweep: nur die 7 echten Welt-Frames kippten. (2) is_battle_modes-
+  Pixel waren verschoben (Tab-Leiste -26px, Events-Icon weiter rechts) -> neu
+  kalibriert, live: Menue oeffnet+erkennt (3 true, 0 false auf 199 Frames).
+  BEFUND: 'Dura' fehlt im Battle-Modes-Menue (alle 3 Sub-Tabs geprueft, Liste
+  vollstaendig: Stage/Realm/Arena/LT/AL/HD + Coming-Soon: Supreme League + 2 leere
+  Slots) -> auf H143 offenbar noch nicht freigeschaltet. AdbAutoPlayer (MIT-Ref)
+  bestaetigt: Karte existiert, holt sie per kurzen Swipes (y1200->700, max 4) und
+  hat 'not available yet (Coming Soon) skip'. NAECHSTES wenn Karte erscheint:
+  Swipe-Loop + Kartenposition live messen; DURAS_CARD dann justieren.

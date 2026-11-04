@@ -542,15 +542,17 @@ BATTLE_MODES_BTN = (890, 1060)   # bottom-nav Battle Modes entry (UI-fixed)
 
 def is_battle_modes(img: Image.Image) -> bool:
     """Battle Modes menu open: bright cream body + bright tab bar, plus the
-    menu's own tab icons — orange Routines (500,920) ~(173,85,46) and the dark
-    Events icon (1160,940) L~102. Body + tab bar alone also matched the main
-    menu, Victory/Defeat/Battle-Ended cards and loading tips (review F6; 25 of
-    25 captured menu frames carry both icons, no other frame does)."""
-    routines = avg(img, (500, 920))
+    menu's own tab icons — orange Routines (500,900) and the dark Events icon
+    (1300,940). Body + tab bar alone also matched the main menu, Victory/
+    Defeat/Battle-Ended cards and loading tips (review F6). LIVE 2026-11-04
+    re-calibrated: the tab row sits ~26 px lower and the Events icon moved
+    right (was (890,934)/(1160,940)); verified 3/3 true on the live menu
+    frames, 0 false positives on all 199 captured frames."""
+    routines = avg(img, (500, 900))
     return (lum(avg(img, (480, 270))) > 200
-            and lum(avg(img, (890, 934))) > 200
-            and routines[0] > routines[2] + 80
-            and lum(avg(img, (1160, 940))) < 150)
+            and lum(avg(img, (890, 960))) > 190
+            and routines[0] > routines[1] + 60 and routines[0] > routines[2] + 80
+            and lum(avg(img, (1300, 940))) < 150)
 
 
 def reach_world(max_steps: int = 6) -> bool:
@@ -710,7 +712,9 @@ def classify(img: Image.Image) -> str:
     # battles, Battle Modes, a store bundle popup, a 'Use Diamond' dialog —
     # and on dimmed popups one luminance point from the POPUP cliff (review
     # F7). Without the chip the frame stays UNKNOWN: no taps.
-    if lb < 100 and abs(lb - lg) < 8 and lum(avg(img, AFK_PROGRESS)) > 100:
+    # LIVE 2026-11-04: night-snow world reads lb-lg +14.8 (old limit |..|<8 missed it);
+    # the -8 floor stays the POPUP guard, +25 is the new upper bound.
+    if lb < 100 and -8 < lb - lg < 25 and lum(avg(img, AFK_PROGRESS)) > 100:
         return 'WORLD'
     chip = avg(img, (1390, 704))
     # only trust the chip fallback when the back arrow is clearly NOT dimmed

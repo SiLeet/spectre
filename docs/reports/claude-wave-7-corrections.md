@@ -146,3 +146,10 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 - **Fix:** Jeder OCR-Text mit „evel" zählt als Level-Up-Beschriftung; sonst Anker auf „Cook" (Gebäudename darüber) und Suche ±10 px um den Versatz. Die Cook-Scheibe besteht den Scheibentest auch — deshalb nur am Versatz gesucht.
 - „Loopen bis Requirements erfüllt" läuft über die Tagesphase: pro Lauf ein Level-Up (Spire oder ein Go-Gebäude), sonst schließen.
 - LIVE offen: der Kitchen-Upgrade-Dialog nach dem Tap (weiterhin kein Frame).
+
+## Nachtrag T103h (Dialog-Poll)
+
+`feature/T103h-dialog-poll` @ `1f4ac78` — liegt auf T103g…T103c; alle sechs zusammen mergen. Suite `Ran 689 tests … OK (skipped=201)`.
+
+- **Befund (shots-68132):** hu_dialog und hu_read zeigen den Dialog noch beim Einblenden (Welt unscharf, Buttons blass) → OCR leer, keine Zurück-Fläche; der Guard hat korrekt nicht getippt.
+- **Fix:** `read_dialog` schießt bis zu 3× im Abstand von 1,5 s (`hu_read`, `_p1`, `_p2`), bis Zurück-Fläche + Requirement-Zeile gelesen sind; ist der Frame wieder die Welt, endet das Polling. Gilt für den Spire-Dialog und den Go-Gebäude-Dialog; Check und Guard entscheiden danach wie bisher.

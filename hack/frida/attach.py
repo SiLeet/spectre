@@ -12,7 +12,7 @@ Usage:
   python hack/frida/attach.py attach hack/frida/probe_timescale.js
   python hack/frida/attach.py attach hack/frida/set_timescale.js --params '{"scale": 1.5}'
   python hack/frida/attach.py spawn  hack/frida/probe_timescale.js
-  ... [--serial 127.0.0.1:5555] [--match igame] [--pid N] [--dry-run]
+  ... [--serial 127.0.0.1:5555 | --host 127.0.0.1:PORT] [--match igame] [--pid N] [--dry-run]
 Exit codes: 0 ok, 2 game process not found / not running / bad input,
 3 frida-tools missing, otherwise frida's own exit code.
 """
@@ -51,13 +51,19 @@ def pick_target(ps_output: str, match: str) -> tuple[str, str, str] | None:
     return None
 
 
-def frida_ps(serial: str) -> str:
-    return subprocess.run([tool('frida-ps') or 'frida-ps', '-D', serial, '-ai'],
+def device_args(serial: str, host: str | None = None) -> list[str]:
+    """-H host:port for a frida-server on a non-default port (adb-forwarded), else -D serial."""
+    return ['-H', host] if host else ['-D', serial]
+
+
+def frida_ps(serial: str, host: str | None = None) -> str:
+    return subprocess.run([tool('frida-ps') or 'frida-ps', *device_args(serial, host), '-ai'],
                           capture_output=True, text=True, timeout=60).stdout
 
 
-def build(mode: str, script: str, serial: str, target: str, params: str | None) -> list[str]:
-    cmd = ['frida', '-D', serial]
+def build(mode: str, script: str, serial: str, target: str, params: str | None,
+          host: str | None = None) -> list[str]:
+    cmd = ['frida', *device_args(serial, host)]
     cmd += ['-f', target] if mode == 'spawn' else ['-p', target]
     cmd += ['-l', script]
     if params:
@@ -70,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument('mode', choices=('ps', 'attach', 'spawn'))
     ap.add_argument('script', nargs='?', help='JS file to load (attach/spawn)')
     ap.add_argument('--serial', default=SERIAL)
+    ap.add_argument('--host', default=None,
+                    help='frida-server host:port (adb-forwarded non-default port) instead of -D serial')
     ap.add_argument('--match', default=MATCH, help='substring of the game identifier/name')
     ap.add_argument('--pid', default=None, help='attach to this pid (skips frida-ps)')
     ap.add_argument('--params', default=None, help='JSON handed to rpc.exports.init (frida -P)')
@@ -85,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == 'ps':
         if tool('frida-ps') is None:
             return missing('frida-ps')
-        print(frida_ps(args.serial), end='')
+        print(frida_ps(args.serial, args.host), end='')
         return 0
     if not args.script or not os.path.isfile(args.script):
         print(f'ERROR: script not found: {args.script}', file=sys.stderr)
@@ -95,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     if target is None:
         if tool('frida-ps') is None:
             return missing('frida-ps')
-        hit = pick_target(frida_ps(args.serial), args.match)
+        hit = pick_target(frida_ps(args.serial, args.host), args.match)
         if hit is None:
             print(f'ERROR: no app matching "{args.match}" on {args.serial} (frida-ps -ai)',
                   file=sys.stderr)
@@ -110,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         print('WARN: spawn runs the hooks before login - anti-debug checks see them; '
               'attach after login is the safer default', file=sys.stderr)
 
-    cmd = build(args.mode, args.script, args.serial, target, args.params)
+    cmd = build(args.mode, args.script, args.serial, target, args.params, args.host)
     print('cmd:', ' '.join(cmd))
     if args.dry_run:
         return 0

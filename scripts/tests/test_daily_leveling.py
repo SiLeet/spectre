@@ -94,8 +94,9 @@ class DailyCharge(unittest.TestCase):
         self.assertIn((1100, hl.HANDS_Y), dev.taps)
 
     def test_unreadable_detail_soft_skips_without_charge(self):
+        # T80b: a detail that never shows costs the bounded poll per hand (was one 3 s read)
         dev, rc, _ = self.run_level({'hl_scan_710': detail(80), 'hl_scan_840': detail(78)},
-                                    frames=['UNKNOWN'] * 8)
+                                    frames=['UNKNOWN'] * (6 + 2 * hl.DETAIL_POLLS))
         self.assertEqual(rc, 4)
         self.assertNotIn(hl.LEVEL_X1, dev.taps)
 

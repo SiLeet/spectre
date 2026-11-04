@@ -87,6 +87,7 @@ class DailyCharge(unittest.TestCase):
 
     def test_scan_fails_uses_last_known_hand(self):
         dev, rc, _ = self.run_level({'hl_daily_pre0': detail(90), 'hl_daily_post0': ['Lvl. 91']},
+                                    frames=self.FRAMES + ['UNKNOWN'] * 2,   # T72: 1 retry per hand
                                     last_hand=1100)
         self.assertEqual(rc, 0)
         self.assertIn('LIVE: hand scan read no level — using last known hand 1100', dev.out.getvalue())

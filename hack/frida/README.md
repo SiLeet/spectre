@@ -46,27 +46,90 @@ ADB="$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
    xz -d frida-server-<ver>-android-<abi>.xz
    "$ADB" -s 127.0.0.1:5555 push frida-server-<ver>-android-<abi> /data/local/tmp/frida-server
    "$ADB" -s 127.0.0.1:5555 shell su -c "chmod 755 /data/local/tmp/frida-server"
-   "$ADB" -s 127.0.0.1:5555 shell su -c "/data/local/tmp/frida-server -D"
+   "$ADB" -s 127.0.0.1:5555 shell su -c "/data/local/tmp/frida-server -D -l 127.0.0.1:27142"
    ```
+   Port 27142 = `speed_profile.py` `DEFAULT_PORT` (LIVE: HERMES-SETUP); plain `-D`
+   listens on frida's default 27042, which `speed_profile.py` reports as rc 4.
+   On 27142, `attach.py` needs the adb forward and `--host` (without `--host` it uses
+   `-D`, i.e. port 27042).
 5. **Check** — the game must be running and logged in:
    ```bash
-   python hack/frida/attach.py ps
-   python hack/frida/attach.py attach hack/frida/probe_timescale.js --dry-run
+   "$ADB" -s 127.0.0.1:5555 forward tcp:27142 tcp:27142
+   python hack/frida/attach.py ps --host 127.0.0.1:27142
+   python hack/frida/attach.py attach hack/frida/probe_timescale.js --host 127.0.0.1:27142 --dry-run
    ```
 
 ## Use
 
 ```bash
+# server on 27142 (step 4): adb forward tcp:27142 tcp:27142 must be set (step 5)
 # 1) read-only: what are the current values, who sets timeScale?
-python hack/frida/attach.py attach hack/frida/probe_timescale.js
+python hack/frida/attach.py attach hack/frida/probe_timescale.js --host 127.0.0.1:27142
 # 2) measure the baseline first (T61 metrics: .spectre/metrics/battles.jsonl)
 # 3) set, then measure again with the same fight type
-python hack/frida/attach.py attach hack/frida/set_timescale.js --params '{"scale": 1.5}'
-python hack/frida/attach.py attach hack/frida/set_timescale.js --params '{"scale": 2, "repeat_ms": 1000}'
+python hack/frida/attach.py attach hack/frida/set_timescale.js --host 127.0.0.1:27142 --params '{"scale": 1.5}'
+python hack/frida/attach.py attach hack/frida/set_timescale.js --host 127.0.0.1:27142 --params '{"scale": 2, "repeat_ms": 1000}'
 ```
 
 Undo: detach and **restart the game** (the value never persists). Stop the
 server: `"$ADB" -s 127.0.0.1:5555 shell su -c "pkill frida-server"`.
+
+## Speed-Profil
+
+`scripts/speed_profile.py` (T80a, ops-hardened in T85) wraps the steps above into
+one command. **Live lane only** (touches the device); HERMES-SETUP: Hermes installs
+and starts frida-server, the script only checks/uses it.
+
+```bash
+python scripts/speed_profile.py on  --scale 2            # set once, frida detaches
+python scripts/speed_profile.py on  --scale 1.5 --repeat-ms 1000   # eternalized re-apply
+python scripts/speed_profile.py off                      # scale 1
+python scripts/speed_profile.py status                   # probe_timescale.js (log-only)
+python scripts/speed_profile.py status --json            # one JSON object for scripts
+python scripts/speed_profile.py on --dry-run             # print adb/frida commands only
+python scripts/speed_profile.py on --server-bin frida-server-<ver>-android-<abi>  # push first
+```
+
+**Ports / path / versions** (constants in `speed_profile.py`, all `LIVE:` until Hermes
+confirms them): server binary `SERVER=/data/local/tmp/frida-server`, own port
+`DEFAULT_PORT=27142` (frida default is 27042; override with `FRIDA_PORT` or `--port`).
+Before attaching, the script checks that `frida --version` on the PC equals
+`/data/local/tmp/frida-server --version` on the device (mismatch -> rc 4, both versions
+printed), that frida-server is running and **listens on the port** (`/proc/net/tcp`,
+so a server Hermes started on another port is a clear rc 4, not a misleading
+"game not running"), then sets `adb forward tcp:PORT tcp:PORT` and attaches with
+`frida -H 127.0.0.1:PORT`.
+
+| rc | meaning |
+|---|---|
+| 0 | ok |
+| 2 | game not running / bad input |
+| 3 | frida missing: `frida` / `frida-ps` not on PATH, or `frida --version` answers nothing |
+| 4 | server dead/unreachable: no root, binary missing, not running (`status`) or did not start, not listening on the port, PC/server version mismatch, adb push/forward failed, adb hung/unreachable |
+| 5 | frida / frida-ps timed out |
+| other | frida's own exit code after the attach |
+
+**`status` is read-only**: it never pushes or starts frida-server; a dead server is
+rc 4 (only the adb forward is set). `status --json` prints exactly one JSON object on
+stdout, every log line goes to stderr:
+
+```json
+{"rc": 0, "frida": "17.2.0", "server": {"running": true, "version": "17.2.0", "port": 27142}, "timescale": 1.0, "error": null}
+```
+
+`frida`, `server.version` and `timescale` are `null` when unknown (e.g. probe found no
+il2cpp); `error` carries the message of the failing step (also for a non-zero frida
+exit). `timescale: null` with `rc: 0` means "not observed" — LIVE: `frida -q` may quit
+before the probe's 500 ms interval logs the value.
+
+**OFF / restart semantics**: without `--repeat-ms` the scale is set once and frida
+detaches; the value stays until the game resets it, `off` sets 1 again. With
+`--repeat-ms` the script is `--eternalize`d inside the game and keeps re-applying the
+scale — `off` then only wins after a **game restart**.
+
+**Env gate**: not part of the daily run — `afk-bot-watch.sh` / `afk-night.sh` never call
+it (a test asserts that). Any future hook must be gated by `AFK_SPEED_PROFILE=1`, which
+is **off by default**, until the speed-up is proven live (T61 wall-time metrics).
 
 ## Known unknowns (LIVE to check)
 

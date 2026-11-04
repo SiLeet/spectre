@@ -109,5 +109,52 @@ class BotLockWiring(unittest.TestCase):
                              f'{name}: wrapper does not mark the lock held')
 
 
+class HeroLevelLockBehaviour(unittest.TestCase):
+    """T71: the 5th entrypoint behaves like the other four - a fresh foreign
+    lock stops afk_hero_level before any screenshot or tap (exit 7)."""
+
+    def setUp(self):
+        from fake_vision import FakeDevice  # also stubs the gate globally; re-armed per test
+        import afk_hero_level
+        self.hl, self.FakeDevice = afk_hero_level, FakeDevice
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.lock = Path(self._tmp.name) / 'afk-bot.lock'
+
+    def run_main(self, env, frames):
+        from unittest import mock
+        dev = self.FakeDevice(self, frames)
+        with mock.patch.multiple(self.hl._bot_lock,
+                                 acquire=lambda: acquire(lock=self.lock, env=env),
+                                 describe=lambda: describe(lock=self.lock)), \
+             mock.patch.object(sys, 'argv', ['afk_hero_level.py', '--level']):
+            return dev, self.hl.main()
+
+    def foreign_lock(self, age=0):
+        self.lock.write_text('999999')
+        t = time.time() - age
+        os.utime(self.lock, (t, t))
+
+    def test_fresh_foreign_lock_exits_7_without_any_tap(self):
+        self.foreign_lock()
+        dev, rc = self.run_main({}, [])
+        self.assertEqual(rc, 7)
+        self.assertEqual((dev.taps, dev.shots), ([], []))
+        self.assertIn('SKIP: tap lock held', dev.out.getvalue())
+        self.assertIn('999999', dev.out.getvalue())
+
+    def test_wrapper_held_env_proceeds_and_keeps_the_foreign_lock(self):
+        self.foreign_lock()
+        dev, rc = self.run_main({'AFK_BOT_LOCK_HELD': '1'}, ['UNKNOWN', 'UNKNOWN'])
+        self.assertEqual(dev.taps[0], self.hl.HALL_BTN)          # past the gate
+        self.assertEqual(self.lock.read_text().strip(), '999999')
+
+    def test_stale_lock_is_taken_over(self):
+        self.foreign_lock(age=7200)
+        dev, rc = self.run_main({}, ['UNKNOWN', 'UNKNOWN'])
+        self.assertEqual(dev.taps[0], self.hl.HALL_BTN)
+        self.assertEqual(self.lock.read_text().strip(), str(os.getpid()))
+
+
 if __name__ == '__main__':
     unittest.main()

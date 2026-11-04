@@ -16,13 +16,14 @@ Stand 2026-11-03. Operationale Kurzfassung; Details in `docs/claude-wave-2-plan.
 ## Tap-Lock (Race-Fund-Fix, 2026-11-03)
 
 Direkt laufende Bot-Scripts (`afk_dream_realm`, `afk_arena`, `afk_stage_push`,
-`afk_dailies`) erwerben `.spectre/afk-bot.lock` selbst: Fresh-Lock (< 3600 s) →
+`afk_dailies`, `afk_hero_level`) erwerben `.spectre/afk-bot.lock` selbst: Fresh-Lock (< 3600 s) →
 Exit 7 (SKIP-Zeile mit Owner-PID + Age), Stale → Takeover. Die Wrapper
 (afk-bot-watch.sh / afk-night.sh) exportieren `AFK_BOT_LOCK_HELD=1`, ihre
 Kind-Scripts erben den Lock. Vor jedem direkten Lauf: Lock-Status prüfen
 (`cat .spectre/afk-bot.lock`) ODER einfach laufen lassen — das Gate blockt
-sauber vor dem ersten Tap. `afk_hero_level.py` ist (Stand des Fixes) noch
-nicht verdrahtet → vor Leveling-Läufen fremde shots-Dirs (< 2 min) prüfen.
+sauber vor dem ersten Tap. Seit 2026-11-03 ist auch `afk_hero_level.py`
+verdrahtet (Gate vor dem Hall-Tap, Commit 3084384; Verhaltenstest T71) — alle
+5 direkt laufbaren Entry-Points sind gelockt, der frühere Leveling-Caveat entfällt.
 
 ## spectre-mcp (T59)
 

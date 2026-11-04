@@ -28,7 +28,6 @@ import sys
 import time
 from pathlib import Path
 
-from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402  (shared adb/tap/shot/OCR helpers)
@@ -91,15 +90,7 @@ def slot_level(name):
 
     The full-frame OCR merges the big number with the layout; a region crop
     isolates it (live-verified 2026-11-03: read 80 -> 81 after one charge)."""
-    p = v.TMP / f"{name}.png"
-    try:
-        c = Image.open(p).crop(LEVEL_NUM_BOX)
-        cp = v.TMP / f"{name}_r.png"
-        c.save(cp)
-        lines = v.ocr_png(cp)
-    except (OSError, ValueError):
-        return None
-    for ln in lines:
+    for ln in v.ocr_region(name, LEVEL_NUM_BOX):          # T76: shared crop+OCR helper
         m = re.fullmatch(r"(\d{1,3})", ln.strip())
         if m and 1 <= int(m.group(1)) <= LEVEL_MAX:
             return int(m.group(1))

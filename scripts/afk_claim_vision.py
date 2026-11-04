@@ -348,6 +348,20 @@ def ocr_png(png: Path, timeout: int = 20, check_rc: bool = False) -> list[str]:
         return []
 
 
+def ocr_region(name: str, box: tuple[int, int, int, int]) -> list[str]:
+    """OCR only `box` (l, t, r, b) of the saved shot `name` (T76). A crop
+    isolates small text the full-frame OCR merges with the layout; [] on any
+    failure, like ocr_lines."""
+    try:
+        with Image.open(TMP / f'{name}.png') as im:
+            crop = im.crop(box)
+            out = TMP / f'{name}_r.png'
+            crop.save(out)
+    except (OSError, ValueError):
+        return []
+    return ocr_png(out)
+
+
 def ocr_lines(name: str) -> list[str]:
     """WinRT OCR on a screenshot already saved by shot() (offline, real text)."""
     png = TMP / f'{name}.png'
@@ -432,9 +446,35 @@ def swipe(x1: int, y1: int, x2: int, y2: int, millis: int = 400, wait: float = 1
     time.sleep(wait)
 
 
+RAW_HEADERS = (12, 16)   # screencap raw header: w,h,format (+ colorspace on Android 9+)
+
+
+def _raw_to_image(data: bytes) -> Image.Image | None:
+    """`screencap` raw output -> RGB image; None unless the size is exactly
+    w*h*4 + a known header and the format is RGBA_8888 (1)."""
+    if len(data) < 16:
+        return None
+    w, h, fmt = struct.unpack_from('<III', data, 0)
+    hdr = len(data) - w * h * 4
+    if fmt != 1 or hdr not in RAW_HEADERS or not (0 < w <= 8192 and 0 < h <= 8192):
+        return None
+    return Image.frombytes('RGBA', (w, h), data[hdr:]).convert('RGB')
+
+
 def shot(name: str) -> Image.Image:
     path = TMP / f'{name}.png'
     TMP.mkdir(parents=True, exist_ok=True)
+    # T76 fast path: raw RGBA (no PNG encode on the device). LIVE: header size /
+    # format on this BlueStacks. Anything unexpected -> the PNG path below.
+    try:
+        p = subprocess.run([str(ADB), '-s', SERIAL, 'exec-out', 'screencap'],
+                           capture_output=True, timeout=60)
+        img = _raw_to_image(p.stdout) if p.returncode == 0 else None
+    except (subprocess.SubprocessError, OSError, ValueError):
+        img = None
+    if img is not None:
+        img.save(path, compress_level=1)    # OCR / region crops read the file
+        return img
     with open(path, 'wb') as fh:
         p = subprocess.run([str(ADB), '-s', SERIAL, 'exec-out', 'screencap', '-p'],
                            stdout=fh, timeout=60)

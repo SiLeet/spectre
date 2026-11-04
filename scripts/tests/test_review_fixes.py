@@ -259,6 +259,39 @@ class T88NewPanelPalette(unittest.TestCase):
         self.assertNotEqual(sp.classify_battle(frame('CREAM_BACK')), 'AFK_PANEL')
 
 
+class T90PanelAnimatingIn(unittest.TestCase):
+    """The AFK panel before its title badge / Battle bar are drawn is PANEL."""
+
+    HERMES = Path.home() / 'AppData/Local/hermes/cache/scratch'
+
+    def hermes(self, name: str):
+        path = self.HERMES / name
+        if not path.exists():
+            raise unittest.SkipTest(f'frame missing: {path}')
+        return load_rgb(path)
+
+    def test_real_panel_without_badge(self):
+        img = self.hermes('after_afk_panel_frame.png')
+        self.assertEqual(v.classify(img), 'PANEL')
+        self.assertEqual(sp.classify_battle(img), 'AFK_PANEL')
+
+    def test_real_panel_without_badge_spectre(self):
+        img = real('shots-58212/r1_1_panel.png')     # .spectre copy of the SAME 12:21 frame
+        self.assertEqual(v.classify(img), 'PANEL')
+        self.assertEqual(sp.classify_battle(img), 'AFK_PANEL')
+
+    def test_real_full_panel(self):
+        self.assertEqual(v.classify(self.hermes('afk_panel_frame.png')), 'PANEL')
+
+    def test_synthetic(self):
+        self.assertEqual(v.classify(frame('PANEL_ANIM')), 'PANEL')
+        self.assertEqual(sp.classify_battle(frame('PANEL_ANIM')), 'AFK_PANEL')
+        self.assertNotEqual(v.classify(frame('CREAM_BACK')), 'PANEL')   # back + cream alone
+        img = frame('PANEL_ANIM')                    # emblem without the white band
+        img.paste((40, 40, 40), (786, 286, 814, 314))
+        self.assertNotEqual(v.classify(img), 'PANEL')
+
+
 class T89DayWorld(unittest.TestCase):
     """The daytime world (lb-lg -33, teal HUD bar lit) is WORLD; dimmed popups stay POPUP."""
 

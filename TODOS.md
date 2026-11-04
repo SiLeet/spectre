@@ -1245,3 +1245,12 @@ Resonance-Heroes-74-vs-RL-80-Widerspruch bleibt beobachtungsrelevant.
   E2-Lock-Verhalten scharf (rc7 ohne Shot/Tap, Bypass, Stale-Takeover), E3-
   Retry genau-1x, E4-Mapping exakt (14 Tools, clippy clean @ da970... @20da970),
   Suite 288 OK, .spectre schreibfrei (mtime-Snapshots). Keine offenen Punkte.
+- ✅ W5-LIVE-TEIL [2026-11-04 02:2x]: T77 read-batch + T78 afk_memory live
+  verifiziert — 'afk_memory --show' => 'team_power: ok 258488' (Drift-Re-Location
+  greift am echten Gerät; neue ASLR-Base 0x796590000000, Wrapper-Regel liefert
+  sie dynamisch; yaml-Position stale -> Guard relokalisiert). ZWISCHENFALL+REGEL:
+  adb-Serial 127.0.0.1:5555 kann nach HD-Adb-Kontakt (Server-Version-Konflikt
+  v36 vs v41) verschwinden -> `adb disconnect 127.0.0.1:5555 && adb connect
+  127.0.0.1:5555` reaktiviert (kein kill-server). Release-Binary neu gebaut
+  (read-batch vorhanden). Rest-Live offen: T75/76 im Feld, T80 frida (rc3 ohne
+  frida), mem_probe-Praxislauf.

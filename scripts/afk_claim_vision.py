@@ -53,6 +53,11 @@ SCAN_BYTES = 16 * 1024 * 1024
 GUARD_LO, GUARD_HI = 100_000, 10_000_000_000
 
 
+def drift_window(last: int) -> int:
+    """Allowed |power - last verified| (the ONE drift rule: preflight + re-location)."""
+    return max(2000, int(int(last) * 0.10))
+
+
 def load_power_state() -> dict:
     try:
         return json.loads(POWER_STATE.read_text())
@@ -182,7 +187,7 @@ def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[i
     (offset, width, value) or None.
     """
     anchor = int(last_power)
-    tol = max(2000, int(anchor * 0.10))
+    tol = drift_window(anchor)
     lo = max(GUARD_LO, anchor - tol)
     hi = min(GUARD_HI, int(anchor * 5) + 1_000_000)
     dumps: list[bytes] = []
@@ -263,7 +268,8 @@ def revalidate_power_offset(pid: str, base_int: int, last_power: int) -> tuple[i
     return pick[2], width, pick[3]
 
 
-def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
+def memory_preflight(pid: str, base_hex: str, *, read_value=None,
+                     read_entry=None) -> tuple[str, int | None]:
     """Read team_power as a sanity check for pid + heap base.
 
     Returns (status, value) with status in:
@@ -274,11 +280,17 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
                    the vision gates still protect the taps. Callers log this
                    quietly instead of spamming a WARN every run (T44).
       'fail'     — the read itself failed (dead pid / no adb).
+
+    read_value/read_entry replace read_power/read_power_entry_valid (same
+    signatures) so a faster backend (afk_memory: one read-batch) reuses this
+    guard instead of duplicating it.
     """
+    read_value = read_value or read_power
+    read_entry = read_entry or read_power_entry_valid
     st = load_power_state()
     offset = int(st.get('offset', DEFAULT_POWER_OFFSET))
     width = int(st.get('width', 8))
-    power = read_power(pid, base_hex, offset, width)
+    power = read_value(pid, base_hex, offset, width)
     if power is None:
         return 'fail', None
     last = st.get('power')
@@ -296,7 +308,7 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     entry_valid = True
     if width in (4, 8):
         map_value = power if width == 4 else power & 0xFFFF_FFFF
-        map_entry_shape = read_power_entry_valid(pid, base_hex, offset, map_value)
+        map_entry_shape = read_entry(pid, base_hex, offset, map_value)
         if map_entry_shape is None:
             return 'fail', None
         entry_valid = map_entry_shape if width == 4 else not map_entry_shape
@@ -304,7 +316,7 @@ def memory_preflight(pid: str, base_hex: str) -> tuple[str, int | None]:
     # Direct reads are only trusted for the exact process + heap identity that
     # produced the verified state. A changed PID/base always re-locates, even
     # when the value at the old offset happens to be in tolerance.
-    drift_ok = not last or abs(power - int(last)) <= max(2000, int(int(last) * 0.10))
+    drift_ok = not last or abs(power - int(last)) <= drift_window(last)
     if (identity_matches and entry_valid and GUARD_LO < power < GUARD_HI and drift_ok):
         st.update({'offset': offset, 'width': width, 'power': power,
                    'pid': pid, 'base': base_hex})

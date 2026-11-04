@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
+import afk_memory  # noqa: E402
 import _bot_lock  # noqa: E402
 
 MENU = (1880, 1030)
@@ -127,7 +128,7 @@ def run_dailies(min_idle: float, pid: str | None = None, base: str | None = None
             return 5
         print(f'    idle check ok ({idle:.0f}s)' if idle is not None else '    idle unknown', flush=True)
 
-    status, power = v.memory_preflight(pid, base) if pid and base else ('skip', None)
+    status, power = afk_memory.power(pid, base) if pid and base else ('skip', None)
     if status == 'fail':
         print('    ERROR: memory preflight failed', flush=True)
         return 2

@@ -137,3 +137,12 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 - **Ursache „Spire dialog not recognised" (shots-49372/hu_read):** Der Titel „Radiant Spire" blendete noch ein und wurde nicht gelesen; der Check verlangte ihn. Neu: Dialog = „Upgrade Requirement (a/b)" + Zurück-Fläche; Titel wird nach 1,5 s einmal nachgelesen und nur geloggt.
 - **Go (eine Ebene, begrenzt):** Fehlt eine Karte „Level N <Gebäude>", wird ihr „Go" getippt (Pille 24 px unter dem Kartenlabel, weiß bei ±25 px; live (531,640)). Danach: Welt mit dem Gebäude ausgewählt → dessen kleines Radial-„Level Up" (Kitchen auf shots-80480: (1051,730), 30 px über seinem „Level U"-Text, Gebäudename darüber) → dessen Dialog → bei 7/7 + freier Queue „Level Up", sonst schließen. Kein zweites Go; Ressourcen-Karten (3854/28K) bekommen kein Go; `--dry-run` geht nie.
 - LIVE offen: der Kitchen-Upgrade-Dialog selbst (kein Frame), und ob „Go" die Kitchen immer ausgewählt mit Radial zeigt.
+
+## Nachtrag T103g (Kitchen-„Level Up")
+
+`feature/T103g-kitchen-levelup` @ `87c4719` — liegt auf T103f…T103c; alle fünf zusammen mergen. Suite `Ran 687 tests … OK (skipped=201)`.
+
+- **Befund (shots-14680/hu_go):** Das Kitchen-Radial war da; OCR las „Cook" + „Kitchen", aber den kleinen „Level Up"-Text gar nicht (in deinem kn2.png als „l_evel CP"). Die Scheibe lag auf allen drei Kitchen-Frames (hu_go, kn2, shots-80480) bei (1054,730) = Mitte des „Cook"-Texts + (95,−8).
+- **Fix:** Jeder OCR-Text mit „evel" zählt als Level-Up-Beschriftung; sonst Anker auf „Cook" (Gebäudename darüber) und Suche ±10 px um den Versatz. Die Cook-Scheibe besteht den Scheibentest auch — deshalb nur am Versatz gesucht.
+- „Loopen bis Requirements erfüllt" läuft über die Tagesphase: pro Lauf ein Level-Up (Spire oder ein Go-Gebäude), sonst schließen.
+- LIVE offen: der Kitchen-Upgrade-Dialog nach dem Tap (weiterhin kein Frame).

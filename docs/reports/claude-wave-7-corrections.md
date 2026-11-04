@@ -119,3 +119,13 @@ LIVE offen: ob Drags die Homestead-Kamera bewegen, ob nach der Abwahl das Spire-
 - **(c) Label-Tap nicht umgesetzt:** Das Label „Radiant Spire" erscheint nur, wenn der Spire schon ausgewählt ist — dann greift (a). Kein Frame zeigt, was ein Label-Tap öffnet.
 
 LIVE offen: ob der Turm-Tap den Spire wählt (und den Helden nicht laufen lässt), 2 s Wartezeit bis zur Kamerazentrierung, ob „Interact" auch ohne mögliches Upgrade den Dialog öffnet.
+
+## Nachtrag T103e (23:20-Lauf)
+
+`feature/T103e-spire-selected-start` @ `9b3573f` — liegt auf T103d (`0543b1d`) und T103c; alle drei zusammen mergen. Suite `Ran 679 tests … OK (skipped=201)`.
+
+| Brief sagte | Tatsächlich (shots-25208) | Fix |
+|---|---|---|
+| Nach Turm-Tap kein Interact, vermutlich Held-Nähe nötig | Der Startframe hatte den Spire **schon ausgewählt** (Interact-Scheibe (953,683)). Unser Turm-Tap (916,508) hat die Auswahl **aufgehoben**; danach (hu_tower) stand statt eines Radials das Upgrade-Icon bei (915,378) im Bild. Beide Detektoren lesen diese Frames korrekt — es lag an der Reihenfolge, nicht an der Held-Nähe. | Interact auf dem Startframe zählt als Spire-Interact, wenn es direkt unter der gefundenen Turmachse liegt (dx ≤ 100, dy 60–300; gemessen 37/175). Nach einem Turm-Tap ohne Radial wird auf demselben Frame das Icon gesucht. Die Dialog-Prüfung bleibt das Netz. |
+
+Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie gehört zur Build-Phase und braucht erst einen Live-Beleg, was sie öffnet.

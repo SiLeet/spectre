@@ -35,7 +35,10 @@ import afk_claim_vision as v  # noqa: E402  (shared adb/tap/shot/OCR helpers)
 import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
 
 HANDS_Y = 460                      # hands row (verified: (830,460) opened Koko)
-HAND_XS = [710, 840, 970, 1100, 1220]
+# LIVE: measured card centres (vision measurement 2026-11-03); the old
+# [710, 840, 970, 1100, 1220] was up to ~20 px off. HANDS_Y stayed valid.
+HAND_XS = [730, 850, 970, 1090, 1210]
+SCAN_RETRY_WAIT = 1.5              # LIVE: pause before the one re-read of an unreadable hand
 LEVEL_X10 = (1100, 985)            # same button; x10 assumed via badge (LIVE)
 TARGET_DEFAULT = 95                # stage-253 level cap (rises with stages)
 MAX_X10_PER_HAND = 2               # 10 levels per hand per run
@@ -241,8 +244,16 @@ def scan_hands():
         if i > 0 and not in_hall(f"hl_scan_hall_{x}"):
             break
         v.tap((x, HANDS_Y), 3.0)
-        lines = snap(f"hl_scan_{x}")
-        lvl = (slot_level(f"hl_scan_{x}") or read_level(lines)) if is_detail(lines) else None
+        lvl = None
+        # live 2026-11-03: single hands read None sporadically -> exactly one re-read
+        for name in (f"hl_scan_{x}", f"hl_scan_{x}b"):
+            if name.endswith("b"):
+                print(f"    scan hand {x}: level not readable — one retry", flush=True)
+                time.sleep(SCAN_RETRY_WAIT)
+            lines = snap(name)
+            lvl = (slot_level(name) or read_level(lines)) if is_detail(lines) else None
+            if lvl is not None:
+                break
         if lvl is not None:
             levels[x] = lvl
         print(f"    scan hand {x}: level {lvl}", flush=True)

@@ -76,7 +76,8 @@ class StagePushWall(StagePushCase):
 
 class DreamWall(unittest.TestCase):
     def test_fight_wall(self):
-        dev = FakeDevice(self, ['DR_BOSS', 'DR_BOSS', 'DR_BOSS',      # start, back_to_ready, chances
+        # T100: 'already inside' needs classify's DR_BOSS (the letterboxed page)
+        dev = FakeDevice(self, ['DR_BOSS_PAGE', 'DR_BOSS', 'DR_BOSS',  # start, back_to_ready, chances
                                 'DR_BOSS', 'DR_FIGHT',               # start_fight: pre0, after0_0
                                 'DR_FIGHT',                          # set_speed_x2
                                 'DR_ENDED', 'DR_BOSS',               # wait end, resolve

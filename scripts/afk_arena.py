@@ -56,6 +56,13 @@ CHALLENGE_AGAIN = (1080, 1010)  # after a resolved fight
 # lum(1080,1004)>150 read L 132 here.
 LOBBY_BAR = ((800, 1000), (1400, 1000))   # Challenge bar, both sides of the label
 LOBBY_PLATE = (685, 975)                  # Formation plate, top-right corner (r=4)
+# T100: the wide lobby ('Arena' title, icon column; also its 'Continue' variant)
+# draws the plates smaller: Formation x 550-630, the bar from x 655, so
+# LOBBY_PLATE reads the bar (L 132). LIVE: all 26 wide lobbies (shots-75792/
+# arena_1_lobby, 81308/norm_1, ...): L 250 here. 'Continue <timer>' = an attempt already started (Challenge
+# -> select -> back); CHALLENGE on it reopened the same three opponents, no dialog
+# (trash/shots-6048|62888|42200|78504 arena_1_lobby -> arena_2_select).
+LOBBY_PLATE_W = (615, 975)
 LOBBY_BAND = (1100, 1068)                 # dark navy band under the bar (r=6)
 # LIVE: shots-52268/arena_1_lobby + shots-15028|17920/norm_0: back plate x 478-583,
 # arrow (530,1000) L 186. v.BACK (474,1010) sits 4 px left of the plate (it did
@@ -86,6 +93,21 @@ DETAIL_GAP = (720, 1000)
 # select frames read floor (-33). The old card tap opened this view and the next
 # card tap closed it again (f1_step0..5) — its Challenge! was never pressed.
 DETAIL_CHALLENGE = (1050, 1000)
+# T100 wide layout ('Select Opponent' title, same camera as the wide lobby; seen
+# 11-03 evening and 11-04 18:01, shots-81892/hl_entry): smaller buttons, the T95
+# probes miss (is_select / is_detail False -> the old card tap only toggled the
+# detail). LIVE (1377 frames): 66 wide selects ring G-max 53 both, back/Refresh
+# plates L 237+, sword icon L 255; wide details (trash/shots-62888|42200|78504/
+# arena_f1_step1 + 4 stuck runs) back L 250, Challenge! bar G-max 76 (67 mid-
+# animation), floor L 50 (105 mid-animation); every other back>200 + bar>35 frame
+# (stage/DR preps, defeat card) reads floor L >= 242. The bar spans x 896-1248,
+# so DETAIL_CHALLENGE is on it too; ARENA_BATTLE (960,1010) as well -> the wide
+# detail reads PREP, advance_to_fight checks is_detail first. LIVE: SWORD_LEFT_W
+# not tapped live yet; the card tap (750,500) did open the wide detail (62888 step0->1).
+SWORD_LEFT_W = (760, 812)
+SWORD_RING_W = ((728, 812), (792, 812))
+SELECT_PLATES_W = ((744, 1000), (1196, 1000))
+DETAIL_GAP_W = (650, 1000)
 
 
 def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
@@ -125,26 +147,38 @@ def is_lobby(img: Image.Image) -> bool:
     below the bar, and the dark hall at (480,270) (not Battle Modes)."""
     gmax = lambda c: c[1] - max(c[0], c[2])
     return (all(gmax(avg(img, p)) > 35 for p in LOBBY_BAR)
-            and v.lum(avg(img, LOBBY_PLATE, r=4)) > 200
+            and max(v.lum(avg(img, p, r=4)) for p in (LOBBY_PLATE, LOBBY_PLATE_W)) > 200
             and v.lum(avg(img, LOBBY_BAND, r=6)) < 40
             and v.lum(avg(img, (480, 270))) < 200)
 
 
-def is_select(img: Image.Image) -> bool:
-    """T95 select screen (current layout): left sword ring green on both sides
-    + cream back and Refresh plates (the detail view has the green bar there)."""
+def sword(img: Image.Image) -> tuple[int, int] | None:
+    """T95 select screen: left sword ring green on both sides + cream back and
+    Refresh plates (the detail view has the green bar there). Returns the left
+    sword button of the matching layout (T95 or T100 wide), None if no select."""
     gmax = lambda c: c[1] - max(c[0], c[2])
-    return (all(gmax(avg(img, p, r=4)) > 35 for p in SWORD_RING)
-            and all(v.lum(avg(img, p, r=4)) > 200 for p in SELECT_PLATES))
+    for xy, ring, plates in ((SWORD_LEFT, SWORD_RING, SELECT_PLATES),
+                             (SWORD_LEFT_W, SWORD_RING_W, SELECT_PLATES_W)):
+        if (all(gmax(avg(img, p, r=4)) > 35 for p in ring)
+                and all(v.lum(avg(img, p, r=4)) > 200 for p in plates)):
+            return xy
+    return None
+
+
+def is_select(img: Image.Image) -> bool:
+    return sword(img) is not None
 
 
 def is_detail(img: Image.Image) -> bool:
-    """T95 opponent detail view: cream back plate (dark floor left of it) +
-    green Challenge! bar where the select screen has its Refresh plate.
-    Left via keyevent BACK (T97)."""
-    back, bar = (avg(img, p, r=4) for p in SELECT_PLATES)
-    return (v.lum(back) > 200 and bar[1] - max(bar[0], bar[2]) > 35
-            and v.lum(avg(img, DETAIL_GAP, r=4)) < 120)
+    """T95 opponent detail view (T95 or T100 wide layout): cream back plate
+    (dark floor left of it) + green Challenge! bar where the select screen has
+    its Refresh plate. Left via keyevent BACK (T97)."""
+    for plates, gap in ((SELECT_PLATES, DETAIL_GAP), (SELECT_PLATES_W, DETAIL_GAP_W)):
+        back, bar = (avg(img, p, r=4) for p in plates)
+        if (v.lum(back) > 200 and bar[1] - max(bar[0], bar[2]) > 35
+                and v.lum(avg(img, gap, r=4)) < 120):
+            return True
+    return False
 
 
 def arena_state(img: Image.Image) -> str:
@@ -212,14 +246,15 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
             return 'DIALOG'
         st = arena_state(img)
         if retry:   # only the expected progress counts: a mis-aimed retry must not make its mode stick
-            v.tap_result(retry[0], st == 'PREP' or (retry[1] == SWORD_LEFT and is_detail(img)))
+            det = is_detail(img)            # T100: the wide detail reads PREP itself
+            v.tap_result(retry[0], (st == 'PREP' and not det) or (retry[1] != DETAIL_CHALLENGE and det))
             retry = None
         same = prev is not None and prev[0] == st and unchanged(prev[1], img)
         stagnant = stagnant + 1 if same else 0
         prev = (st, screen_signature(img))
         print(f'    [{tag}] step {i}: {st}' + (f' (stagnant {stagnant})' if stagnant else ''), flush=True)
         if stagnant >= STAGNANT_STEPS:
-            t95 = SWORD_LEFT if is_select(img) else DETAIL_CHALLENGE if is_detail(img) else None
+            t95 = sword(img) or (DETAIL_CHALLENGE if is_detail(img) else None)
             if recovered:
                 print(f'    [{tag}] still stagnant after the recovery — giving up', flush=True)
                 if t95:
@@ -236,16 +271,16 @@ def advance_to_fight(tag: str, steps: int = 6) -> str:
                 tap(CARD_DISMISS, 1.5)
             recovered, stagnant, prev = True, 0, None
             continue                        # next step re-reads; SELECT taps the opponent again
-        if st == 'RESULT':
+        if is_detail(img):                  # T100: first — the wide detail's bar reads PREP
+            tap(DETAIL_CHALLENGE, 3.0)      # T95: detail view (sword or card tap) -> its Challenge!
+        elif st == 'RESULT':
             tap((480, 300), 1.5)            # dismiss the result card
         elif st == 'PREP':
             _mark_battle_tap()              # T61: wall time starts at the Battle tap
             tap(ARENA_BATTLE, 3.0)
             return 'PREP'
-        elif is_select(img):
-            tap(SWORD_LEFT, 2.5)            # T95: the sword button starts the challenge
-        elif is_detail(img):
-            tap(DETAIL_CHALLENGE, 3.0)      # T95: detail view (sword or card tap) -> its Challenge!
+        elif xy := sword(img):
+            tap(xy, 2.5)                    # T95: the sword button starts the challenge
         else:
             tap(OPPONENT_LEFT, 2.5)         # old layout; closes a T95 detail view (f1_step1 -> 2)
     return 'STUCK'

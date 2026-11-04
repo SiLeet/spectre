@@ -1055,6 +1055,12 @@ def tick_delta(tick: int, last: int) -> int:
     return (tick - last) & 0xFFFFFFFF
 
 
+def afk_battle_bar(img: Image.Image) -> bool:
+    """Green 'Battle' bar of the AFK Rewards panel, both palettes (T88 + T100)."""
+    gmax = lambda c: c[1] - max(c[0], c[2])
+    return all(gmax(c) > 35 and lum(c) > 110 for c in (avg(img, (800, 893)), avg(img, (1300, 893))))
+
+
 def is_afk_panel(img: Image.Image) -> bool:
     """Re-skinned AFK Rewards panel (no orange chip at (1390,704) any more).
 
@@ -1075,10 +1081,9 @@ def is_afk_panel(img: Image.Image) -> bool:
     hotspot 46 drops to 31 at +-4 px, so r=8), gated non-panel <=2 (hl_*);
     band lum 255/255, gated non-panel min-of-two <=193 (hl_daily_pre0_w3)."""
     gmax = lambda c: c[1] - max(c[0], c[2])
-    bar = lambda c: gmax(c) > 35 and lum(c) > 110
     if not (lum(avg(img, BACK)) > 190 and lum(avg(img, (BACK[0] + 90, BACK[1]))) > 230):
         return False
-    if bar(avg(img, (800, 893))) and bar(avg(img, (1300, 893))) and gmax(avg(img, (712, 207), r=4)) > 35:
+    if afk_battle_bar(img) and gmax(avg(img, (712, 207), r=4)) > 35:
         return True
     # LIVE: shots-58212/r1_1_panel only (emblem 39 vs 2, band 255 vs 193; docstring T90)
     return (gmax(avg(img, (513, 348), r=8)) > 20
@@ -1095,7 +1100,13 @@ def classify(img: Image.Image) -> str:
     bar = avg(img, CLAIM)                            # bright only in the chest popup
     lb, lg, lbar = lum(back), lum(bg), lum(bar)
 
-    if close_to(back, (184, 176, 174), 22) and lg > 190:
+    # T100: the old-palette back + cream also sit on the main menu (172,162,161),
+    # the wide arena lobby (180,170,169), mail, hero hall, stage/DR preps and the
+    # BATTLE ENDED card -> normalize took them for PANEL and claim_round would tap
+    # CHEST there. The panel's Battle bar tells them apart. LIVE (1377 frames incl.
+    # trash + hermes scratch): 23 real AFK panels (shots-2704/r1_1_panel family)
+    # G-max 50/50 L 135; the other 83 rule hits min-side G-max <= -4 (BATTLE ENDED).
+    if close_to(back, (184, 176, 174), 22) and lg > 190 and afk_battle_bar(img):
         return 'PANEL'
     if is_afk_panel(img):
         return 'PANEL'

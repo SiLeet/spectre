@@ -95,7 +95,7 @@ class Synthetic(DreamCase):
     def test_run_card_overlay_one_tap_boss(self):
         # dr_start, dr_pre1_0, chances, pre0 | after0_0, speed0, w0 | w1 card |
         # resolve_0 overlay | resolve_1 boss | dr_exit, dr_final
-        dev = FakeDevice(self, ['DR_BOSS'] * 4 + ['DR_FIGHT'] * 3
+        dev = FakeDevice(self, ['DR_BOSS_PAGE'] + ['DR_BOSS'] * 3 + ['DR_FIGHT'] * 3   # T100: start = DR_BOSS
                          + ['DR_ENDED', 'DR_VICTORY_REWARDS'] + ['DR_BOSS'] * 3)
         self.assertEqual(dr.run(argparse.Namespace(fights=1, wait_fight=150)), 0)
         self.assertEqual(dev.taps, [dr.BOSS_TAP, dr.SPEED_X2, dr.CARD_CLOSE,

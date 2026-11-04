@@ -14,7 +14,7 @@ afk_claim_vision docstring, 2026-10-31):
 
   state    base           back (474,1010)  right of back (564,1010)  extra
   WORLD    (62,70,50)     (62,70,50)       (62,70,50)                AFK chip (60,1036) (150,150,150)
-  PANEL    (40,40,40)     (184,176,174)    (230,230,230)             -
+  PANEL    (40,40,40)     (184,176,174)    (230,230,230)             Battle bar (800|1300,893) green
   POPUP    (40,40,40)     (62,58,57)       (100,100,100)             claim bar (960,602) (233,179,117)
   UNKNOWN  (128,128,128)  -                -                         -
 """
@@ -59,7 +59,10 @@ _SPEC = {
     # lb-lg -33 — below the old -8 POPUP cliff, only the teal HUD bar says WORLD
     'WORLD_DAY': ((62, 70, 50), {v.BACK: (21, 21, 21), (564, 1010): (54, 54, 54),
                                  v.AFK_PROGRESS: (172, 160, 146), v.AFK_BAR: (52, 168, 167)}),
-    'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230)}),
+    # T100: + the green 'Battle' bar (shots-2704/r1_1_panel (107,157,97)): back + cream
+    # alone also sit on the main menu / wide arena lobby
+    'PANEL': ((40, 40, 40), {v.BACK: (184, 176, 174), (564, 1010): (230, 230, 230),
+                             (800, 893): (107, 157, 97), (1300, 893): (107, 157, 97)}),
     'POPUP': ((40, 40, 40), {v.BACK: (62, 58, 57), (564, 1010): (100, 100, 100),
                              v.CLAIM: (233, 179, 117)}),
     # T88 new panel palette (shots-27712/r1_0_initial): light back on cream plus
@@ -153,7 +156,7 @@ _SPEC = {
     'DR_TRANSITION': ((5, 8, 20), {(200, 270): (25, 72, 156)}),
     'DR_DIM': ((8, 8, 10), {(200, 270): (60, 62, 70), (960, 540): (180, 170, 150)}),
     'DR_ENDED': ((30, 30, 30), {(960, 90): (230, 140, 60), (960, 1035): (235, 235, 235),
-                                (600, 60): (203, 121, 42), (1500, 60): (203, 121, 42)}),
+                                (600, 60): (203, 121, 42), (1400, 60): (203, 121, 42)}),
     # T93 Victory Rewards overlay (shots-72816/dr_post1_0): black letterbox,
     # warm dim centre, bright 'Victory Rewards' title letters
     'DR_VICTORY_REWARDS': ((5, 5, 5), {(960, 540): (113, 77, 41), **{

@@ -16,7 +16,7 @@ Stand 2026-11-03. Operationale Kurzfassung; Details in `docs/claude-wave-2-plan.
 ## Tap-Lock (Race-Fund-Fix, 2026-11-03)
 
 Direkt laufende Bot-Scripts (`afk_dream_realm`, `afk_arena`, `afk_stage_push`,
-`afk_dailies`) erwerben `.spectre/afk-bot.lock` selbst: Fresh-Lock (< 3600 s) →
+`afk_dailies`, `afk_hero_level`) erwerben `.spectre/afk-bot.lock` selbst: Fresh-Lock (< 3600 s) →
 Exit 7 (SKIP-Zeile mit Owner-PID + Age), Stale → Takeover. Die Wrapper
 (afk-bot-watch.sh / afk-night.sh) exportieren `AFK_BOT_LOCK_HELD=1`, ihre
 Kind-Scripts erben den Lock. Vor jedem direkten Lauf: Lock-Status prüfen

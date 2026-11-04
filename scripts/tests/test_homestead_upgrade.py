@@ -380,6 +380,33 @@ class Flow(unittest.TestCase):
         self.assertEqual(rc, 1, dev.out.getvalue())
         self.assertEqual(dev.taps, [v.GROUND, DRAGS[0]])
 
+    def test_live_selected_spire_start_taps_interact_directly(self):
+        # T103e live shots-25208: the start frame already had the Spire selected (Interact up);
+        # T103d tapped the tower instead, which deselected it -> 'no Interact' stop
+        start = SPECTRE / 'shots-25208' / 'hu_world.png'
+        dev, rc = self.run_hu([real(start), 'spire_sel2.png', 'spire_sel2.png', 'hm_confirmed2.png'],
+                              {'hu_world': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [INTERACT, hu.BACK_PLATE])           # no tower tap
+        self.assertIn('Spire already selected', dev.out.getvalue())
+
+    def test_tower_tap_that_deselects_uses_the_icon(self):
+        # T103e live shots-25208/hu_tower: after the tower tap no radial, the upgrade icon instead
+        after = SPECTRE / 'shots-25208' / 'hu_tower.png'
+        dev, rc = self.run_hu([real(KITCHEN), real(after), 'spire_sel2.png', 'spire_sel2.png',
+                               'hm_confirmed2.png'],
+                              {'hu_world': KITCHEN_BOXES, 'hu_tower': [], 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [TOWER_K, (915, 378), hu.BACK_PLATE])
+        self.assertIn('tower tap deselected the Spire', dev.out.getvalue())
+
+    def test_interact_far_from_the_tower_is_not_the_spires(self):
+        img = real(TOWER_TAP)
+        self.assertEqual(hu.spire_interact(img, TOWER_BOXES, (915, 500)), INTERACT)
+        self.assertIsNone(hu.spire_interact(img, TOWER_BOXES, None))      # no tower found
+        self.assertIsNone(hu.spire_interact(img, TOWER_BOXES, (507, 528)))  # tower elsewhere
+        self.assertIsNone(hu.spire_interact(img, TOWER_BOXES, (953, 900)))  # disc above the tower
+
     def test_selected_spire_without_level_up_skips_the_camera(self):
         dev, rc = self.run_hu(['hm_requests.png'], {'hu_world': WORLD_BOXES[:2]})
         self.assertEqual(rc, 4)

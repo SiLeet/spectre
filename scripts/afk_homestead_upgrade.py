@@ -139,6 +139,13 @@ INNER_DX = (80, 130)           # LIVE inner pair spacing 98..116
 OUTER_DX = (160, 260)          # LIVE outer pair spacing 200..229
 INNER_DROP = (20, 125)         # inner mid below outer mid, LIVE +40..+105
 BEAM_TOL = 12                  # x tolerance of the 3rd/4th beam at its expected place (LIVE axis spread <= 7)
+# T103e: live start frame shots-25208/hu_world - the Spire was ALREADY selected ('Interact' disc
+# (953,683), beam axis 916, tower tap point (916,508)); our tower tap deselected it and the next
+# frame (hu_tower) showed the floating upgrade icon at (915,378) instead of a radial. An 'Interact'
+# disc counts as the Spire's only right below the found tower axis (dx 37 / dy 175 measured;
+# another building's radial sits elsewhere - the dialog check stays the safety net).
+INTERACT_TOWER_DX = 100
+INTERACT_TOWER_DY = (60, 300)
 TOWER_WAIT = 2.0               # LIVE-unverified: the camera recentres on the selected tower (tower_tap)
 INTERACT_RING = ((-30, 0), (30, 0), (0, -30), (0, 30))  # cream (L > 215) around the 'Interact' disc centre.
                                # LIVE tower_tap: OCR box (927,731,66,15), 5024 cream px, median (953,683),
@@ -221,6 +228,15 @@ def find_interact(img, boxes):
     it = _line(boxes, 'interact', RADIAL_WIN)
     xy = it and _disc_above(img, it)
     return xy if xy and interact_at(img, xy) else None
+
+
+def spire_interact(img, boxes, tower):
+    """T103e: the selected Spire's 'Interact' disc on a frame where the tower was found, else None."""
+    xy = tower and find_interact(img, boxes)
+    if xy and abs(xy[0] - tower[0]) <= INTERACT_TOWER_DX and \
+            INTERACT_TOWER_DY[0] <= xy[1] - tower[1] <= INTERACT_TOWER_DY[1]:
+        return xy
+    return None
 
 
 def _beams(img):
@@ -457,7 +473,12 @@ def main(argv: list[str] | None = None) -> int:
         tower = None
         if disc is None and not selected:        # T103d: icon flaky live -> the tower itself
             tower = spire_tower(img)
-            if tower is None:                    # T103c: another building focused / camera moved
+            disc = spire_interact(img, boxes, tower)
+            if disc:                             # T103e: Spire already selected -> its Interact
+                print(f'    Spire already selected: Interact at {disc}', flush=True)
+                still = lambda im: v.classify(im) == 'WORLD' and interact_at(im, disc)  # noqa: E731
+                tower = None
+            elif tower is None:                  # T103c: another building focused / camera moved
                 disc, tower, img = camera_search()
                 if v.classify(img) != 'WORLD':
                     print('    ERROR: camera search left the world view - stopping without a tap', flush=True)
@@ -474,6 +495,12 @@ def main(argv: list[str] | None = None) -> int:
             if disc is None:
                 disc = find_interact(img, boxes)
                 still = lambda im: v.classify(im) == 'WORLD' and interact_at(im, disc)  # noqa: E731
+            if disc is None and v.classify(img) == 'WORLD':
+                # T103e: the tap toggled a selection OFF (shots-25208/hu_tower) -> the icon shows now
+                disc = spire_icon(img)
+                still = lambda im: v.classify(im) == 'WORLD' and spire_icon(im) is not None  # noqa: E731
+                if disc:
+                    print(f'    tower tap deselected the Spire: upgrade icon at {disc}', flush=True)
             if disc is None:
                 print(f'    ERROR: no Interact/Level Up radial after the tower tap '
                       f'(OCR {[b[4] for b in boxes][:6]}) - stopping without a tap', flush=True)

@@ -420,7 +420,9 @@ def tap(xy: tuple[int, int], wait: float = 1.0) -> None:
 def _run_seq(cmds: list[str], waits: list[float], tolerate: bool, dry: bool):
     """One `adb shell` for several input commands: 'cmd; sleep W; cmd; ...'.
     Steps are ';'-joined, so a failing middle step does not stop the rest and
-    only the last rc is seen (best effort, bounded by the waits + 15 s)."""
+    only the last command's rc is seen - a trailing `sleep` when its wait > 0, so
+    tolerate=False then only catches adb transport failures (bounded by the
+    waits + 15 s)."""
     parts = []
     for cmd, wait in zip(cmds, waits):
         parts.append(cmd)

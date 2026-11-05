@@ -2437,7 +2437,7 @@ structures:
         let go = parse_offsets_file(&repo_file("games/afk-journey/offsets.yaml"), "afk-journey").unwrap();
         assert_eq!(go.game, "afk-journey");
         let names: Vec<&str> = go.structures.iter().map(|s| s.name.as_str()).collect();
-        assert_eq!(names, vec!["PlayerState", "Resources", "TeamState", "HeroInfo"]);
+        assert_eq!(names, vec!["PlayerState", "Resources", "TeamState", "HeroInfo", "Homestead"]);
         let player = &go.structures[0];
         assert_eq!(player.base_offset, 0x1A2B3C00);
         let nickname = player.fields.iter().find(|f| f.name == "nickname").unwrap();

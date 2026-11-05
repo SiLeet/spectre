@@ -140,6 +140,80 @@ class TPower(Base):
         self.assertEqual(v.drift_window(1000), 2000)
 
 
+class TGold(Base):
+    """T116: homestead gold = u32 (+ identical u64) at gold-region base + 0x7518C8."""
+    GBASE = '0x7607b0000000'
+
+    def setUp(self):
+        super().setUp()
+        self.gstate = ART / 'gold-state-afk-memory.json'
+        self.gstate.unlink(missing_ok=True)
+        p = mock.patch.object(am, 'GOLD_STATE', self.gstate)
+        p.start()
+        self.addCleanup(p.stop)
+        am._gold_cache.clear()
+
+    def test_happy_path(self):
+        with self.fake_run(batch_rows(lo=654398, hi=0, ptr=0x0002_e6bd_4403)):
+            self.assertEqual(am.gold(PID, self.GBASE), ('ok', 654398))
+        self.assertEqual(len(self.calls), 1)          # u32 + u64 views from ONE read-batch
+        cmd = self.calls[0]
+        self.assertEqual(cmd[cmd.index('--base') + 1], self.GBASE)
+        self.assertTrue(cmd[cmd.index('--offsets') + 1].endswith('afk_memory_slot_7518c8.yaml'))
+
+    def test_out_of_range_or_broken_mirror_is_invalid(self):
+        for lo, hi in ((1_500_000_000, 0),        # > GOLD_MAX
+                       (0xFFFF_FFF0, 0),          # >= 2**31: signed u32 view != u64 view
+                       (654398, 1)):              # u64 != u32: not the verified slot shape
+            with self.subTest(lo=lo, hi=hi), self.fake_run(batch_rows(lo=lo, hi=hi)):
+                am._snap_cache.clear()
+                self.assertEqual(am.gold(PID, self.GBASE), ('invalid', None))
+        self.assertEqual(am._gold_cache, {})
+
+    def test_cache_within_ttl_then_expires(self):
+        with self.fake_run(batch_rows(lo=654398)):
+            with mock.patch.object(am.time, 'monotonic', return_value=200.0):
+                a = am.gold(PID, self.GBASE)
+                b = am.gold(PID, self.GBASE)
+            self.assertEqual(len(self.calls), 1)      # second call: cache hit
+            with mock.patch.object(am.time, 'monotonic', return_value=201.6):
+                am.gold(PID, self.GBASE)
+        self.assertEqual(a, b)
+        self.assertEqual(len(self.calls), 2)
+
+    def test_fail_not_cached_and_state_offset_used(self):
+        self.gstate.write_text(json.dumps({'offset': 0x100}))
+        with self.fake_run(rc=2):
+            self.assertEqual(am.gold(PID, self.GBASE), ('fail', None))
+        self.assertEqual(am._gold_cache, {})
+        self.assertTrue(self.calls[0][self.calls[0].index('--offsets') + 1]
+                        .endswith('afk_memory_slot_100.yaml'))
+
+    def test_show_prints_gold(self):
+        out = []
+        with self.fake_run(batch_rows(lo=654398)),              mock.patch.object(am, 'power', return_value=('ok', 259850)),              mock.patch('builtins.print', side_effect=lambda *a, **k: out.append(' '.join(map(str, a)))):
+            am.main(['--show', '--pid', PID, '--base', BASE, '--gold-base', self.GBASE])
+        self.assertIn('gold: ok 654398', out)
+        out.clear()
+        with self.fake_run(batch_rows(lo=654398)),              mock.patch.object(am, 'power', return_value=('ok', 259850)),              mock.patch('builtins.print', side_effect=lambda *a, **k: out.append(' '.join(map(str, a)))):
+            am.main(['--show', '--pid', PID, '--base', BASE])   # no state, no --gold-base
+        self.assertTrue(any(l.startswith('gold: n/a') for l in out), out)
+
+    def test_show_takes_base_from_state_only_for_same_pid(self):
+        for pid, want in ((PID, 'gold: ok 654398'), ('999', 'gold: n/a')):
+            self.gstate.write_text(json.dumps({'offset': '0x7518C8', 'base': self.GBASE, 'pid': pid}))
+            am._snap_cache.clear()
+            am._gold_cache.clear()
+            out = []
+            with self.subTest(pid=pid), self.fake_run(batch_rows(lo=654398)),                  mock.patch.object(am, 'power', return_value=('ok', 259850)),                  mock.patch('builtins.print', side_effect=lambda *a, **k: out.append(' '.join(map(str, a)))):
+                am.main(['--show', '--pid', PID, '--base', BASE])
+                self.assertTrue(any(l.startswith(want) for l in out), out)
+
+    def test_bundled_yaml_entry(self):
+        text = (Path(__file__).resolve().parents[2] / 'games' / 'afk-journey' / 'offsets.yaml').read_text(encoding='utf-8')
+        self.assertIn(f'offset: {am.DEFAULT_GOLD_OFFSET:#X}'.replace('0X', '0x'), text)
+
+
 class TConsumer(unittest.TestCase):
     def test_dailies_power_gate_uses_afk_memory(self):
         with mock.patch.object(dl.v, 'idle_seconds', return_value=None), \

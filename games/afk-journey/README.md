@@ -23,7 +23,7 @@ In-game currencies and materials.
 
 | Offset | Field        | Type     | Description             |
 |--------|--------------|----------|-------------------------|
-| 0x00   | gold         | I64      | Gold coins              |
+| 0x00   | gold         | I64      | superseded → `Homestead.gold` (T116) |
 | 0x08   | gems         | I64      | Premium gems            |
 | 0x10   | energy       | U32      | Stamina                 |
 | 0x14   | arena_tokens | U32      | Arena currency          |
@@ -58,8 +58,10 @@ Everything above is a **template**: PlayerState / TeamState / HeroInfo base
 offsets are fake, `gems`/`energy` are unverified, and no "gold-spend diff"
 ever produced these offsets. The only memory value the bot uses is
 `team_power`, and its slot moves per process (relocated at runtime by
-`scripts/afk_memory.py`). Gold: server-side per T23, re-test pending (audit
-H3). Per-value status and the
+`scripts/afk_memory.py`). Homestead gold (T116): `Homestead.gold`, readable via
+`afk_memory.gold()` / `--show` with a hand-set region base (`--gold-base` or
+`gold-state.json`); no bot consumer and no runtime relocation yet, restart check
+open. Per-value status and the
 live-hunt plan: `docs/reports/memory-first-audit.md`.
 
 > **team_power: always via `scripts/afk_memory.py` → `power()`** (relocation

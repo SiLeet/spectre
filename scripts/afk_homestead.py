@@ -211,6 +211,43 @@ def is_build_menu(img: Image.Image) -> bool:
             and v.lum(v.avg(img, LAYOUT_TAB)) > 200)
 
 
+# T105b (Hermes live, shots-79896/hs_0_menu = scratch/t105b_diag): 'Avalon Creator menu not recognised
+# after Build' - the menu had opened in LAYOUT mode (decoration grid, 'Multiselect'/'Foundation', Save):
+# it keeps its last mode. Layout mode = Build pill cream (G-max -7, L222) + Layout pill green (G-max 39,
+# L157); Build mode is the reverse (hm_build_menu, shots-47000/67544/68276). Sweep of 149 frames: layout
+# mode only on shots-79896, t105b_diag, final16, reset1. Its 'Build' pill sits at BUILD_TAB (~902,1022 on
+# shots-79896); 'Save' (~1466,1010) is never tapped.
+MODE_POLLS = 3                 # reads after the Build tap: fade-in, or the mode switch
+MODE_WAIT = 1.5
+MENU_WORDS = ('avalon creator', 'functions', 'production', 'multiselect', 'foundation')
+
+
+def layout_mode(img: Image.Image) -> bool:
+    b, lay = v.avg(img, BUILD_TAB), v.avg(img, LAYOUT_TAB)
+    return (v.lum(v.avg(img, EXIT_BTN)) > 170 and _gmax(lay) > 25 and v.lum(lay) > 130
+            and v.lum(b) > 200 and _gmax(b) < 10)
+
+
+def to_build_mode(img: Image.Image, tag: str):
+    """T105b: a frame right after opening the Avalon Creator -> the Build-mode menu frame, else None.
+    Layout mode -> its 'Build' pill (once per read, bounded); anything else (still fading in) -> read
+    again MODE_WAIT later. No tap unless the frame IS the layout-mode menu."""
+    for i in range(MODE_POLLS):
+        if is_build_menu(img):
+            return img
+        if layout_mode(img):
+            print('    Avalon Creator opened in Layout mode -> Build pill', flush=True)
+            v.tap(BUILD_TAB, 2.0)
+        else:
+            time.sleep(MODE_WAIT)
+        img = v.shot(f'{tag}_m{i}')
+    if is_build_menu(img):
+        return img
+    words = [w for w in MENU_WORDS if w in ' '.join(v.ocr_lines(f'{tag}_m{MODE_POLLS - 1}')).lower()]
+    print(f'    Avalon Creator not in Build mode after {MODE_POLLS} reads (menu words {words})', flush=True)
+    return None
+
+
 def production_active(img: Image.Image) -> bool:
     return _gmax(v.avg(img, PRODUCTION_TAB)) > 25
 
@@ -504,8 +541,11 @@ def open_menu(tag: str):
     if ring:
         v.tap(ring[1], 2.0)
         img = v.shot(f'{tag}_start_x')
-    if is_build_menu(img):
+    if is_build_menu(img) or layout_mode(img):
         print('    Build menu already open', flush=True)
+        img = to_build_mode(img, f'{tag}_start')
+        if img is None:
+            return 1
         return production_menu(img, tag)
     if v.classify(img) != 'WORLD' and not v.reach_world():
         print('    ERROR: world view not reached', flush=True)
@@ -521,8 +561,9 @@ def open_menu(tag: str):
     if not build_btn(img):
         print('    Build button not on the world HUD - nothing to do', flush=True)
         return 4
-    img = tap_until(BUILD_BTN, 2.5, f'{tag}_menu', is_build_menu,
+    img = tap_until(BUILD_BTN, 2.5, f'{tag}_menu', lambda im: v.classify(im) != 'WORLD',
                     lambda im: v.classify(im) == 'WORLD')
+    img = img and to_build_mode(img, f'{tag}_menu')   # T105b: Layout mode / fade-in
     if img is None:
         print('    ERROR: Avalon Creator menu not recognised after Build', flush=True)
         return 1

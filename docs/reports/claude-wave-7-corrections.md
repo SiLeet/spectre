@@ -199,3 +199,9 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 - **Kein Kauf-, Bestätigungs-, Artikel-, Challenge- oder Duel-Tap.** Ein Bestätigungsdialog wird nur abgebrochen; ein Tap auf den grünen Haken wirft. Käufe brauchen erst die Freigabe des Users (Standregel: nie Kaufdialoge bestätigen).
 - **Korrektur zu den Recon-Frames:** `gchal.png` und `gstore.png` zeigen noch das Chest-Panel — die Taps auf Challenge (1445,915) und Store landeten auf Listenzeilen des Panels. `gstore2` zeigt den Store mit **leerer** Artikelliste. Die Chest hat keinen Claim-Button; die Verteilung wirkt automatisch („Distributed 38+N").
 - **LIVE offen:** Store-Artikelliste (Layout, Preis, Währung, Kaufdialog), Ergebnis der Daily-Pille, Ziele der Zurück-Pfeile, Gilden-Icon im HUD-Layout B (167 von 394 Welt-Frames → dort rc 1 ohne Tap), Challenge- und Duel-Screen, Dream-Store-Tab, guild4 wird von `classify` als UNKNOWN gelesen. Wrapper-Test-Timeout 30 → 90 s (Flake unter Last).
+
+### T106 — Freigabe Gilden-Store-Käufe (User, 2026-11-05)
+
+`feature/T106-guild-daily` @ `c786c16` (Branch-Spitze, auf 864be02). Der User hat Käufe im Gilden-Store mit **Gilden-Token** freigegeben, **nie mit Diamanten** (`BUYS_APPROVED`). Einen Kauf-Tap gibt es trotzdem noch nicht: Kein Frame zeigt Artikelkarten, das Währungssymbol neben dem Preis (Token vs. Diamant; im Store liegt auch ein 210-Diamanten-Ticket) oder den Kaufdialog. Bis dahin bleibt die Währung „unknown", es wird nichts getippt, und das Log sagt es.
+
+**Bitte live aufnehmen (Hermes):** (1) Guild Store → Daily-Liste *mit* Artikeln, (2) eine Karte mit Diamantpreis im selben Bild oder separat, (3) den Kaufdialog eines billigen Token-Artikels (danach abbrechen, nicht kaufen). Damit kalibriere ich Karte, Währungs-Tell und Dialog; danach kommt der Kauf-Tap auf die „would buy"-Zeilen.

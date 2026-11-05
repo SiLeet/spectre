@@ -1,60 +1,68 @@
 #!/usr/bin/env python3
-"""Guild daily (T106): LOG-ONLY tour - hall state, Guild Chest countdown, Guild Store read.
+"""Guild daily (T106 + T106b): hall state, Guild Chest countdown, Guild Store read (LOG-ONLY),
+Guild Challenge claims (free Guild Medal rewards, soft + bounded).
 
-Frames (Hermes live 2026-11-05, %LOCALAPPDATA%/hermes/cache/scratch, mtime order): guild1/guild2/
-g3 homestead world (night; the Guild icon of the bottom bar, layout A) - guild4 is the same night
-world but classify() reads it UNKNOWN (BACK-probe lb-lg +27.7 > the shared WORLD bound +25), so a
-run starting there stops with rc 1 and no tap (known miss of the shared classify, LIVE-open);
-guild5 Guild hall; gchest Guild Chest panel; gchal + gstore STILL the chest panel (Hermes'
-Challenge (1445,915) and Store taps landed on chest list rows - neither frame shows Challenge or
-the store); gback the hall after the chest back arrow; gstore2 the Store hub (Guild Store tab
-selected, EMPTY item list - no item, price or currency visible); un1 (02:30:15) a second hall
-sample, un2 (02:30:20) the world 5 s later (weak evidence for hall back arrow -> world: the tap
-between them is not recorded).
+Frames. T106 (Hermes 2026-11-05 02:30, hermes/cache/scratch): guild1/guild2/g3 world (night, Guild
+icon of the bottom bar, layout A) - guild4 the same night world but classify() reads it UNKNOWN
+(BACK-probe lb-lg +27.7 > the shared WORLD bound +25: rc 1, no tap, LIVE-open); guild5/gback/un1
+hall; gchest/gchal/gstore the chest panel (Hermes' Challenge + Store taps there landed on chest
+rows); gstore2 the Store hub (EMPTY list); un2 the world after the hall back arrow (weak evidence).
+T106b: .spectre/shots-41892/gd_* = a live run of this tour (06:05-06:06): gd_world/gd_open world,
+gd_open_r/gd_hall/gd_hall2 hall, gd_chest panel, gd_store Store hub MID-FADE (hall bleeds through,
+no items), gd_items Guild Store with the Daily pill GREEN and 2 cards, gd_hall3 hall (full-frame
+OCR garbage - the back poll needs all OPEN_POLLS), gd_out loading, gd_out_p1 world. Hermes 06:07-
+06:13: gfr1/gf_now world; gfr2/gc1/gc2/gcA/gcB the 'Guild Challenge' board, 2 claimable cards
+(Arena 1400, AFK Stage 500 1500); gcC/gcD the board after the Arena claim (+1400 medals: 28704 ->
+30104, the tap itself not recorded); gcE the board + the 'Guild Medal' item tooltip ('Owned:
+30104', the AFK badge STILL lit under it, its 1500 not credited); gcF/gcG hall; gcH loading; gcI.
 
-Flow (bounded, every step verified on its frame, soft phase, NO buy / confirm / claim / battle tap):
+Flow (bounded, every tap gated on a verified frame):
   world (classify WORLD, Guild icon px at the layout-A spot) -> Guild icon -> hall (OCR hall words)
-  -> log: Challenge red badge, Guild Duel phase line ('Preparation'), Challenge/Duel LIVE-open
-  -> Guild Chest label (OCR at the measured spot) -> chest panel (OCR 'Distribution in') -> log the
-     countdown + 'Activeness Required' -> its back arrow -> hall
-  -> 'Store' label at the plate spot? -> Store plate -> Store hub (OCR Daily/Monthly + 'Store' x3)
-     -> log the guild token balance -> Guild tab selected? -> Daily pill -> still the store hub? ->
-     read the item area -> plan_buys(): log which items WOULD be bought (preferred Invite Letter /
-     DR Essence, guild/gold price <= BUY_BUDGET, never a diamond price) -> store back arrow ->
-     hall (or world) -> hall back arrow -> world. A failure on a verified hall leaves via the hall
-     back arrow before rc 1 (afk_normalize would send keyevent BACK there - unmeasured in the hall).
-Buys: the user APPROVED guild-store buys with guild tokens (2026-11-05, 'Allow token buys'; never
-diamonds - BUYS_APPROVED). No buy tap exists yet because nothing it needs is on a frame: the
-item cards (gstore2 is empty), the currency tell (guild token vs diamond icon next to a price;
-the store also sells a 210-diamond ticket) and the purchase dialog. Until those are calibrated
-store_items() reports currency None -> plan_buys() 'currency unknown' -> no tap; the log says
-so. Calibration frames needed (Hermes): the Daily list with items, one card priced in diamonds,
-the purchase dialog of a cheap token item (cancelled). Then the tap step goes on the 'would buy'
-rows (rc 4 reserved for 'nothing qualifies').
-Never tapped: the confirm dialog's green check (refused by _tap), Challenge, Guild Duel, any item.
-A confirm dialog is only ever cancelled (v.CONFIRM_CANCEL). No keyevent BACK (no v.back /
-reach_world / open_battle_modes): every screen is left via its own back arrow. An unrecognised
-screen stops the run (rc 1) without a tap. Tap points are constants: WinRT OCR returns SKEWED
-boxes on the chest panel (gchest: 'Distribution in' at (510,16), true ~(440,63) on gchal) - OCR
-is used for words only.
+  -> log the Challenge badge + Guild Duel phase line
+  -> Guild Chest label at the spot? -> chest panel (OCR 'Distribution in') -> log -> back -> hall
+  -> 'Store' label at the plate spot? -> Store hub (Daily/Monthly + 'Store' x3) -> log the Guild
+     Medal balance -> Guild tab selected? -> Daily pill -> store hub with price strips? -> per card
+     (slot, price by an x3 crop OCR, currency 'diamond' by the lavender icon tell) -> plan_buys()
+     verdicts + medal/diamond balances + refresh timer, LOG-ONLY -> store back -> hall (or world)
+  -> hall again (fresh read), Challenge badge lit + 'Challenge' label at the plate? -> Challenge
+     plate -> board (is_board) -> claim loop (MAX_CLAIMS): tap the first lit badge slot -> board or
+     the 'Guild Medal' tooltip (log 'Owned') -> CLOSE_TAP on the cream gutter (gated) -> board;
+     progress = fewer lit slots on a clean board (cream gutter at CLOSE_TAP, else rc 1 without a tap),
+     else 'did not clear' and stop -> board back -> hall (or world)
+  -> hall back arrow -> world.
+  A failure on a verified hall leaves via the hall back arrow before rc 1 (afk_normalize would send
+  keyevent BACK - unmeasured here). An unrecognised screen stops the run (rc 1) without a tap. No
+  keyevent BACK anywhere; every screen is left via its own back arrow. A confirm dialog is only
+  ever cancelled (v.CONFIRM_CANCEL); _tap refuses the confirm check. Tap points are constants:
+  WinRT OCR returns SKEWED boxes on the chest panel (gchest 'Distribution in' at (510,16), true
+  ~(440,63) on gchal) - OCR gates words and labels only.
+Claims: progress is judged ONLY by the board after the close (lit slot count dropped). 'Owned'
+  rising is logged, not trusted: on gcE it had risen from the earlier Arena claim while the tapped
+  badge stayed lit. Never tapped: Hermes' close point (960,850) = an achieved card once the tooltip
+  is gone; the tooltip's 'Guild >' Main Source row (navigates).
+Store / buys: user 2026-11-05 'Allow token buys' (guild medals) + diamonds ONLY for the multi-source
+  guide item (the daily 210-diamond Invite Letter; plan_buys / guide_diamond_item). Hermes' '210 ->
+  180' is an OCR merge of TWO card prices (card 0 envelope 210 diamonds, card 1 acorn x5 180
+  diamonds, both -30%), not a price change. The cards carry NO names, so no card can match
+  guide_diamond_item (name '?' -> 'not preferred'), and no purchase dialog is on any frame: NO buy
+  tap exists (buy_measurable false), the store stays LOG-ONLY.
 
-LIVE-open (no frame): the store item list (card layout, price position, currency icon, sold-out /
-limit state, purchase dialog; ITEM_DX/ITEM_DY are guesses, currency always None -> 'currency
-unknown'); the Daily pill's result and which pill is 'selected' (one frame: 'All' fill L243 vs
-Daily/Monthly L251 - an 8 L gap, semantics unproven, log only, nothing gates on it); store back
-arrow destination (hall assumed, world accepted); hall back arrow -> world (un1 -> un2 only);
-keyevent BACK in the guild hall; the hall with the Challenge badge OFF (every hall frame has it
-lit: 226 / 226 / 203 px); the Guild icon in HUD layout B (refused, rc 1 - NOT rare: 167 of 394
-WORLD frames, all on 11-04; T98: B hit boxes stayed at the A spots for Battle Modes, so one live
-check of GUILD_BTN in layout B may unblock it); hall entry time / popups; a due chest (countdown 0) and the
-'Rewards' gift (~1462,40) - the panel has NO claim button, distribution looks automatic
-('Distributed 38+N' per member); personal activeness (not shown; '2916' is the guild's chest
-count); the Challenge screen + attempts; the Guild Duel screen; Battle Drills / Clashfronts; the
-Dream Store tab (DR Essence); hall camera stability (chest label gated by CHEST_LABEL_WIN).
+LIVE-open: the purchase dialog (layout, confirm, cancel/X, currency/price line); store item names
+(the 210 card is the Invite Letter only by its envelope icon on one frame); a bought / sold-out
+card (unmeasured: if card 0 loses its price strip, has_items() reads 'store list empty'); a guild-medal-priced
+card and its price icon (Daily is all diamonds, All/Monthly unseen); whether a badge tap claims (one
+proven claim, one tap that only opened the tooltip) and whether a claim-result popup exists;
+CLOSE_TAP never tapped live; the board back destination (hall or world, both polled); the hall ->
+board transition as a frame pair; the hall with the Challenge badge OFF (every hall frame lit,
+also after a claim); board scrolling (a 4th row is cut at y~1040, no swipe: claimables below the
+fold are missed; claimables sorted first on 2 samples); the Guild icon in HUD layout B (rc 1, 167
+of 394 WORLD frames); a due chest (the panel has no claim button; 'Distributed 38+N' looks
+automatic) and the 'Rewards' gift (~1462,40); hall back -> world (un1 -> un2 only);
+keyevent BACK in guild screens; Guild Duel / Battle Drills.
 
 Usage: python scripts/afk_guild.py [--min-idle S]
-Exit codes: 0 tour done (log-only), 1 stuck / unknown screen / Guild icon not at the layout-A spot,
-5 skipped (PC in use), 7 tap lock held. (4 is not emitted in v1.)
+Exit codes: 0 tour done (store log-only, claims soft), 1 stuck / unknown screen / Guild icon not at
+the layout-A spot, 5 skipped (PC in use), 7 tap lock held. (4 is not emitted.)
 """
 from __future__ import annotations
 
@@ -93,6 +101,9 @@ STORE_LABEL_WIN = (1296, 925, 1382, 975)  # LIVE: OCR 'Store' centre (1339,952) 
 CHALLENGE_BADGE = (1455, 875, 1500, 920)  # LIVE: 226 red px (bbox x1467..1485 y887..907) on guild5/gback, 203 un1,
 BADGE_PX = 100                 # 0 on the other 8 guild frames; 131..317 on ~100 Battle Modes frames ->
 RED = lambda r, g, b: r > 200 and g < 150 and b < 90  # noqa: E731  only valid on a verified hall
+CHALLENGE_BTN = (1430, 930)    # LIVE: plate L>235 bbox x1391..1478 y~895..967, median (1433,929) on gd_hall,
+                               # gd_hall3, gcF, gcG; Hermes ~(1445,915) on the same plate (T106 taps hit the chest)
+CHALLENGE_LABEL_WIN = (1395, 935, 1480, 972)  # LIVE: OCR 'Challenge' (1404,946,61,15), centre (1434,953)
 DUEL_DY, DUEL_DX = 60, 80      # LIVE guild5: 'ZGuild Duel' centre (1801,363) -> 'Preparati on' (1812,390)
 # --- chest panel (gchest / gchal / gstore) ------------------------------------------------------
 CHEST_WORDS = ('distribution in', 'equal distribution', 'contribution ranking')  # LIVE OCR; 0 hits elsewhere
@@ -102,17 +113,43 @@ GUILD_TAB = (434, 270)         # LIVE gstore2: tab BACKGROUND left of the icon, 
 OTHER_TABS = ((434, 170), (434, 380), (434, 480), (434, 590))  # LIVE gstore2: Recruitment/Arena/Dream/Friendship
 TAB_ON, TAB_OFF = 200, 120     # bg flat L91 (r=4 min=max); guild probe hall 95, chest 65, world 87..104
 DAILY_PILL = (1010, 348)       # LIVE: OCR 'Daily' (985,341,50,21); pill px L>248 x939..~1080 y329..366
-PILL_PROBE = (960, 348)        # LIVE gstore2: 'All' fill L243 (presumed selected - unproven), Daily/Monthly
-PILL_SELECTED_LUM = 247        # fill L251; 8 L gap on ONE frame, re-measure after the Daily tap (log only)
-ITEM_AREA = (545, 380, 1495, 1075)  # LIVE: cream panel x538..1497 below the pills (y327..367); empty on gstore2
-TOKEN_X0, TOKEN_Y1 = 1300, 45  # LIVE: token OCR (1387,13,56,16,'28 704'); diamonds '44' (1227,13) truncated
+PILL_PROBE = (960, 348)        # LIVE: selected Daily = GREEN (98,159,89) on gd_items; unselected (237,230,224)
+                               # gd_store (mid-fade), (251,..) gstore2 - the old lum<247 rule said True on both
+ITEM_AREA = (545, 380, 1495, 1075)  # LIVE: cream panel x538..1497 below the pills (y327..367); no tap in here
+TOKEN_X0, TOKEN_Y1 = 1300, 45  # LIVE: Guild Medal OCR (1387,13,56,16,'28 704') on gstore2 + gd_items
+DIAMOND_BOX = (1170, 0, 1340, 48)  # LIVE gd_items: crop OCR '44 420'; the full frame truncates it to '44'
+CARD_X0, CARD_DX, CARD_W = 800, 89, 79  # LIVE gd_items: Daily row, card i = x0+89i..+79 ('-30%' tag y429..456)
+CARD_MAX = 8                   # one row x800..1495; row 2 / scrolling unseen (shortcut: first row only)
+STRIP_Y = (545, 574)           # LIVE: mauve price strip ~(114,99,105), 1507 / 1496 px on cards 0 / 1, 0 on
+STRIP_PX = 1000                # cards 2+ (cream) and on gstore2 / gd_store
+STRIP = lambda r, g, b: abs(r - 0x72) <= 12 and abs(g - 0x63) <= 12 and abs(b - 0x69) <= 12  # noqa: E731
+DIA_DX, DIA_Y = (21, 31), (560, 569)  # LIVE: lavender diamond icon px 39 / 41 (cards 0 / 1); the medal
+DIA_PX = 25                    # price icon is unmeasured -> currency None for anything not lavender
+LAVENDER = lambda r, g, b: b > g + 25 and r > g + 10 and v.lum((r, g, b)) > 140  # noqa: E731
+PRICE_DX, PRICE_Y = (33, 79), (548, 573)  # LIVE: x3 crop OCR '210' / '180' (icon inside -> '0180', x1 -> [])
 STORE_BACK = (472, 1021)       # LIVE: arrow px bbox x458..499 y1006..1037 (gstore2); destination LIVE-open
 CONFIRM_OK = (1100, 670, 1190, 770)  # green check of the cream confirm dialog (v.is_confirm_dialog (1142,710/729))
+# --- Guild Challenge board (gfr2 / gc1..gcE) ----------------------------------------------------
+BOARD_TITLE_Y = 70             # LIVE: OCR 'Gild Challenge@' (444,19,300,44) every board frame; hall label y946
+BOARD_MEMBERS = 2              # LIVE: 'Members Com...' boxes 6..9 per board frame, 0 on hall/store/chest/world
+SLOT0, SLOT_DX, SLOT_DY, SLOT_R = (620, 246), 281, 260, 14  # LIVE: orange '!' plate on the reward icon of card
+                               # (c, r) in a 3x3 grid; card text at (563+281c, 339+260r)
+ORANGE = lambda r, g, b: r >= 235 and 60 <= g <= 150 and b <= 80  # noqa: E731
+SLOT_PX = 100                  # LIVE: lit 225..263 px (pulses) on 8 board frames, unlit slots 0; all 0 on
+                               # gd_hall/gd_items/gd_world/gd_chest/gcF/gf_now. Brief rule r>200,g<90,b<90: lit
+                               # only 19..73 and hits avatars / banner / -30% tags -> slots + verified board only
+NAME_R = 40                    # slot name = the OCR box nearest its card text origin within 40 px
+BOARD_BACK = (478, 1008)       # LIVE: cream plate L>235 bbox x431..525 y969..1049 + arrow glyph (458..476,
+                               # 995..1014) on gfr2/gcC/gcE; destination hall or world (LIVE-open, both polled)
+CLOSE_TAP = (480, 650)         # LIVE: empty cream gutter left of the cards, avg (235,231,219) gfr2..gcE; outside
+CLOSE_LUM = 225                # the tooltip (x~690..1060 y~25..400). Never tapped live (LIVE-open)
+OWNED_RE = re.compile(r'owned\s*:?\s*(\d[\d ,.]*)', re.I)  # LIVE gcE: 'Owned: 30104' (709,90)
+MAX_CLAIMS = 5
 # --- buy policy (policy, not LIVE; buys disabled = log-only) ------------------------------------
 PREFERRED = ('invite letter', 'essence')
 ALLOWED_CURRENCY = ('guild', 'gold')
 BUY_BUDGET = 5000
-MAX_BUYS = 2
+MAX_BUYS = 1                   # hard rule: at most 1 buy per run
 BUYS_APPROVED = True           # user 2026-11-05: guild-token buys allowed, never diamonds (see docstring)
 # User rule 2026-11-05: diamonds only for a use several INDEPENDENT guides clearly recommend. Research
 # (2026-11-05, every source fetched, clones counted once): the ONLY such use is the discounted daily
@@ -123,15 +160,18 @@ BUYS_APPROVED = True           # user 2026-11-05: guild-token buys allowed, neve
 GUIDE_DIAMOND_ITEM = 'invite letter'
 GUIDE_DIAMOND_PRICE = 210
 GUIDE_DIAMOND_DAILY = 1
-ITEM_DX, ITEM_DY = 120, 200    # shortcut: guessed card geometry, recalibrate on the first store frame with items
 OUT_POLLS = 3
 OUT_WAIT = 2.5
 
 
+def _on_confirm(xy) -> bool:
+    l, t, r, b = CONFIRM_OK
+    return l <= xy[0] <= r and t <= xy[1] <= b
+
+
 def _tap(xy, wait: float) -> None:
     """Every tap of this module (besides tap_until on GUILD_BTN): never on a confirm check."""
-    l, t, r, b = CONFIRM_OK
-    if l <= xy[0] <= r and t <= xy[1] <= b:
+    if _on_confirm(xy):
         raise RuntimeError(f'refusing a tap on the confirm check: {xy}')
     v.tap(xy, wait)
 
@@ -153,13 +193,55 @@ def is_store(boxes) -> bool:
                 and sum('store' in b[4].lower() for b in boxes) >= 3)
 
 
-def _in_items(b) -> bool:
-    x, y = hu._centre(b)
-    return ITEM_AREA[0] <= x <= ITEM_AREA[2] and ITEM_AREA[1] <= y <= ITEM_AREA[3]
+def _card_px(img, i: int, dx, ys, pred) -> int:
+    x0 = CARD_X0 + CARD_DX * i
+    return len(hs._pixels(img, (x0 + dx[0], ys[0], x0 + dx[1], ys[1]), pred))
 
 
-def has_items(boxes) -> bool:
-    return any(_in_items(b) for b in boxes)
+def has_items(img) -> bool:
+    """Price strip of the first card (the 'Daily'/'Refreshes' header alone is not a card)."""
+    return _card_px(img, 0, (0, CARD_W + 1), STRIP_Y, STRIP) >= STRIP_PX
+
+
+def is_board(boxes) -> bool:
+    return (any('challen' in b[4].lower() and b[1] < BOARD_TITLE_Y for b in boxes)
+            and sum('members com' in b[4].lower() for b in boxes) >= BOARD_MEMBERS)
+
+
+def slot_xy(c: int, r: int):
+    return SLOT0[0] + SLOT_DX * c, SLOT0[1] + SLOT_DY * r
+
+
+def board_badges(img) -> list[tuple[int, int]]:
+    """(c, r) of every lit claim badge, row-major. Only valid on a frame where is_board() holds."""
+    out = []
+    for r in range(3):
+        for c in range(3):
+            x, y = slot_xy(c, r)
+            box = (x - SLOT_R, y - SLOT_R, x + SLOT_R + 1, y + SLOT_R + 1)
+            if len(hs._pixels(img, box, ORANGE)) >= SLOT_PX:
+                out.append((c, r))
+    return out
+
+
+def slot_name(boxes, c: int, r: int):
+    x, y = slot_xy(c, r)
+    x, y = x - 57, y + 93                    # card text origin (563+281c, 339+260r)
+    near = [(abs(b[0] - x) + abs(b[1] - y), b[4]) for b in boxes
+            if abs(b[0] - x) <= NAME_R and abs(b[1] - y) <= NAME_R]
+    return min(near)[1] if near else '?'
+
+
+def is_medal_popup(boxes) -> bool:
+    return bool(hu._line(boxes, 'guild medal') and hu._line(boxes, 'owned'))
+
+
+def medal_owned(boxes):
+    for b in boxes:
+        m = OWNED_RE.search(b[4])
+        if m:
+            return _amount(m.group(1))
+    return None
 
 
 def chest_hours(boxes):
@@ -192,8 +274,9 @@ def guild_tab_selected(img) -> bool:
 
 
 def pill_selected(img) -> bool:
-    """Daily pill darker than an unselected pill (log only)."""
-    return v.lum(v.avg(img, PILL_PROBE, r=3)) < PILL_SELECTED_LUM
+    """Daily pill filled green (selected)."""
+    r, g, b = v.avg(img, PILL_PROBE, r=3)
+    return g > r + 40 and g > b + 40
 
 
 def _amount(text: str):
@@ -214,22 +297,28 @@ def token_balance(boxes):
     return None
 
 
-def store_items(boxes):
-    """[(name, price, currency)] from the item area: a price = an amount box, its name the nearest
-    non-amount box above it. shortcut: currency is None (the price icon is unread), read the icon
-    once a live store frame with items exists."""
-    area = [b for b in boxes if _in_items(b)]
-    names = [b for b in area if _amount(b[4]) is None]
+def card_currency(img, i: int):
+    return 'diamond' if _card_px(img, i, DIA_DX, DIA_Y, LAVENDER) >= DIA_PX else None
+
+
+def store_items(img, name: str):
+    """[(name, price, currency)] per Daily card with a price strip, left to right. The cards carry
+    no item names (LIVE gd_items) -> name 'card i (?)', so plan_buys says 'not preferred'. The full-
+    frame OCR merges neighbouring prices ('210 ? 180'): each price is a x3 crop OCR of its strip."""
     items = []
-    for b in area:
-        price = _amount(b[4])
-        if price is None:
-            continue
-        px, py = hu._centre(b)
-        above = [(py - hu._centre(n)[1], n[4]) for n in names
-                 if 0 < py - hu._centre(n)[1] <= ITEM_DY and abs(hu._centre(n)[0] - px) <= ITEM_DX]
-        items.append((min(above)[1] if above else '?', price, None))
+    for i in range(CARD_MAX):
+        if _card_px(img, i, (0, CARD_W + 1), STRIP_Y, STRIP) < STRIP_PX:
+            continue                     # a bought / sold-out card (look unmeasured) must not hide later ones
+        x0 = CARD_X0 + CARD_DX * i
+        lines = hs.ocr_scaled(name, (x0 + PRICE_DX[0], PRICE_Y[0], x0 + PRICE_DX[1], PRICE_Y[1]), f'price{i}')
+        amounts = [_amount(t.strip(" '`.,:;")) for t in lines]      # LIVE: card 1 x3 crop reads "'180"
+        price = next((a for a in amounts if a is not None), None)
+        items.append((f'card {i} (?)', price, card_currency(img, i)))
     return items
+
+
+def diamond_balance(name: str):
+    return next((_amount(t) for t in v.ocr_region(name, DIAMOND_BOX) if _amount(t) is not None), None)
 
 
 def guide_diamond_item(name: str, price) -> bool:
@@ -240,11 +329,11 @@ def guide_diamond_item(name: str, price) -> bool:
 
 
 def plan_buys(items, token, budget=BUY_BUDGET, max_buys=MAX_BUYS, diamonds=None):
-    """[(name, price, verdict)], preferred items first. Only rows whose verdict starts with
-    'would buy' may ever be bought. Diamond prices: only guide_diamond_item(), once a day."""
+    """[(name, price, verdict)] in the order of `items` (row i = card i: callers zip the two). Only rows
+    whose verdict starts with 'would buy' may ever be bought. Diamond prices: only guide_diamond_item(), once a day."""
     pref = lambda name: any(p in name.lower() for p in PREFERRED)  # noqa: E731
     out, n, dia = [], 0, 0
-    for name, price, cur in sorted(items, key=lambda it: not pref(it[0])):
+    for name, price, cur in items:
         if not pref(name):
             verdict = 'not preferred'
         elif cur == 'diamond':
@@ -317,60 +406,172 @@ def chest():
     return hboxes
 
 
+def _poll_back(tag: str):
+    """After a back arrow: poll both destinations (transition frames). 'world' | 'hall' | None."""
+    for i in range(rq.OPEN_POLLS):
+        if i:
+            time.sleep(rq.POLL_WAIT)
+        name = tag if i == 0 else f'{tag}_p{i}'
+        if v.classify(v.shot(name)) == 'WORLD':
+            return 'world'
+        if is_hall(v.ocr_boxes(name)):
+            return 'hall'
+    return None
+
+
+def read_items():
+    """Up to OPEN_POLLS shots after the Daily pill until a store hub with price strips.
+    (img, boxes, shot name, ok?)."""
+    for i in range(rq.OPEN_POLLS):
+        if i:
+            time.sleep(rq.POLL_WAIT)
+        name = 'gd_items' if i == 0 else f'gd_items_p{i}'
+        img, boxes = v.shot(name), v.ocr_boxes(name)
+        if v.is_confirm_dialog(img):             # handled (cancelled) by the caller at once
+            return img, boxes, name, False
+        if is_store(boxes) and has_items(img):
+            return img, boxes, name, True
+    return img, boxes, name, False
+
+
 def store(hboxes):
-    """Verified hall (its OCR boxes) -> Store hub -> log the would-buys -> back.
-    'world' | 'hall' | None (stuck)."""
+    """Verified hall (its OCR boxes) -> Store hub -> log cards + would-buys -> back.
+    ('world' | 'hall' | None (stuck), the Guild Medal balance)."""
     if hu._line(hboxes, 'store', STORE_LABEL_WIN) is None:
         print('    Store label not at the measured spot - skipping the store', flush=True)
-        return 'hall'
+        return 'hall', None
     _tap(STORE_BTN, 3.0)
     simg, sboxes, ok = rq.read('gd_store', is_store)
     if not ok:
         print(f'    ERROR: Store hub did not open (OCR {_words(sboxes)})', flush=True)
         if is_hall(sboxes):
             leave_hall()
-        return None
+        return None, None
     token = token_balance(sboxes)
-    print(f'    guild tokens: {token}', flush=True)
+    print(f'    guild medals: {token}', flush=True)
     if not guild_tab_selected(simg):
         print('    Guild Store tab not selected - LIVE-open, store not read', flush=True)
     else:
         _tap(DAILY_PILL, 2.0)
-        iimg, iboxes, got = rq.read('gd_items', lambda b: is_store(b) and has_items(b))
+        iimg, iboxes, iname, got = read_items()
         if v.is_confirm_dialog(iimg):            # defensive: never confirm a purchase
             _tap(v.CONFIRM_CANCEL, 1.5)
             print('    ERROR: confirm dialog in the store - cancelled', flush=True)
-            return None
+            return None, token
         if not is_store(iboxes):                 # purchase popup / loading / anything else: no tap
             print(f'    ERROR: unknown screen after the Daily pill (OCR {_words(iboxes)})', flush=True)
-            return None
-        print(f'    Daily pill selected: {pill_selected(iimg)}', flush=True)
+            return None, token
+        token = token_balance(iboxes) or token
+        refresh = hu._line(iboxes, 'refreshes')
+        print(f'    Daily pill selected: {pill_selected(iimg)}'
+              + (f' ({refresh[4]})' if refresh else ''), flush=True)
         if not got:
             print('    store list empty (LIVE-open)', flush=True)
         else:
-            print(f'    store item OCR: {[b for b in iboxes if _in_items(b)]}', flush=True)
-            for name, price, verdict in plan_buys(store_items(iboxes), token_balance(iboxes) or token):
-                print(f'    would-buy: {name} {price} -> {verdict}', flush=True)
-        if BUYS_APPROVED:
-            print('    buys approved (guild tokens, never diamonds) but uncalibrated: no item card, '
-                  'currency tell or purchase dialog on any frame - no buy tap (LOG-ONLY, LIVE-open)', flush=True)
-        else:
-            print('    store is LOG-ONLY (no buy/confirm taps)', flush=True)
+            items, diamonds = store_items(iimg, iname), diamond_balance(iname)
+            print(f'    balances: guild medals {token}, diamonds {diamonds}', flush=True)
+            for (name, price, cur), (_, _, verdict) in zip(items, plan_buys(items, token, diamonds=diamonds)):
+                print(f'    would-buy: {name} {price} {cur} -> {verdict}', flush=True)
+        print('    buys approved (guild medals; diamonds only for the guide Invite Letter) but no item name '
+              'and no purchase dialog on any frame - no buy tap (LOG-ONLY, LIVE-open)', flush=True)
     _tap(STORE_BACK, 2.5)
-    for i in range(rq.OPEN_POLLS):               # transition frames: poll both destinations
-        if i:
-            time.sleep(rq.POLL_WAIT)
-        name = 'gd_hall3' if i == 0 else f'gd_hall3_p{i}'
-        if v.classify(v.shot(name)) == 'WORLD':
-            return 'world'
-        if is_hall(v.ocr_boxes(name)):
-            return 'hall'
-    print('    ERROR: neither hall nor world after the store back arrow', flush=True)
-    return None
+    where = _poll_back('gd_hall3')
+    if where is None:
+        print('    ERROR: neither hall nor world after the store back arrow', flush=True)
+    return where, token
+
+
+def _cream(img) -> bool:
+    return v.lum(v.avg(img, CLOSE_TAP, r=6)) > CLOSE_LUM
+
+
+def _clean_board(img) -> bool:
+    """Cream gutter = no scrim/popup over the board; a dimmed board would count 0 badges (r < 235)."""
+    if _cream(img):
+        return True
+    print('    ERROR: board gutter not cream (overlay or fade) - badges not counted, no tap', flush=True)
+    return False
+
+
+def claims(img, boxes, medals) -> bool:
+    """Verified board -> tap lit badges (MAX_CLAIMS) until none is left or one does not clear.
+    True = on a verified plain board again, False = stuck (no further tap)."""
+    if not _clean_board(img):
+        return False
+    lit = board_badges(img)
+    print(f'    Guild Challenge: {len(lit)} claimable', flush=True)
+    for n in range(1, MAX_CLAIMS + 1):
+        if not lit:
+            return True
+        c, r = lit[0]
+        print(f'    claim {n}: slot {c}{r} {slot_name(boxes, c, r)!r}', flush=True)
+        if _on_confirm(slot_xy(c, r)):           # slot 22 (1182,766) lies in the confirm-check guard box
+            print('    slot inside the confirm-check guard - not tapped, stopping the claims', flush=True)
+            return True
+        _tap(slot_xy(c, r), 2.0)
+        img, boxes, ok = rq.read(f'gd_claim{n}', lambda b: is_board(b) or is_medal_popup(b))
+        if v.is_confirm_dialog(img):
+            _tap(v.CONFIRM_CANCEL, 1.5)
+            print('    ERROR: confirm dialog after a claim tap - cancelled', flush=True)
+            return False
+        if not ok:
+            print(f'    ERROR: unknown screen after the claim tap (OCR {_words(boxes)})', flush=True)
+            return False
+        if is_medal_popup(boxes):
+            owned = medal_owned(boxes)
+            print(f'    Guild Medal owned: {owned}'
+                  + (f' (store read {medals}, {owned - medals:+d})' if owned and medals else ''), flush=True)
+            if not _cream(img):
+                print('    ERROR: close spot not cream under the medal popup - no tap', flush=True)
+                return False
+            _tap(CLOSE_TAP, 1.5)
+            img, boxes, ok = rq.read(f'gd_claim{n}_c', lambda b: is_board(b) and not is_medal_popup(b))
+            if not ok:
+                print(f'    ERROR: board not back after closing the medal popup (OCR {_words(boxes)})', flush=True)
+                return False
+        if not _clean_board(img):
+            return False
+        now = board_badges(img)
+        if len(now) >= len(lit):
+            print(f'    claim tap did not clear the badge ({len(now)} lit, LIVE-open) - stopping the claims',
+                  flush=True)
+            return True
+        lit = now
+    if lit:
+        print(f'    claim limit {MAX_CLAIMS} reached ({len(lit)} still lit)', flush=True)
+    return True
+
+
+def challenge(medals):
+    """Hall -> Guild Challenge board -> claims -> back. 'world' | 'hall' | None (stuck)."""
+    himg, hboxes, ok = rq.read('gd_hall4', is_hall)
+    if not ok:
+        print(f'    ERROR: hall not recognised before the Challenge (OCR {_words(hboxes)})', flush=True)
+        return None
+    if not challenge_badge(himg):
+        print('    Challenge badge off - nothing to claim', flush=True)
+        return 'hall'
+    if hu._line(hboxes, 'challenge', CHALLENGE_LABEL_WIN) is None:
+        print('    Challenge label not at the measured spot - skipping the claims', flush=True)
+        return 'hall'
+    _tap(CHALLENGE_BTN, 3.0)
+    img, boxes, ok = rq.read('gd_board', is_board)
+    if not ok:
+        print(f'    ERROR: Guild Challenge board did not open (OCR {_words(boxes)})', flush=True)
+        if is_hall(boxes):
+            leave_hall()
+        return None
+    if not claims(img, boxes, medals):
+        return None
+    _tap(BOARD_BACK, 2.5)
+    where = _poll_back('gd_hall5')
+    if where is None:
+        print('    ERROR: neither hall nor world after the board back arrow', flush=True)
+    return where
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description='Guild daily: chest countdown + store read (log-only)')
+    ap = argparse.ArgumentParser(description='Guild daily: chest countdown, store read (log-only), challenge claims')
     ap.add_argument('--min-idle', type=float, default=0)
     args = ap.parse_args(argv)
 
@@ -406,17 +607,20 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"    Challenge badge {'lit' if challenge_badge(img) else 'off'}", flush=True)
     print(f'    Guild Duel phase: {duel_phase(boxes)}', flush=True)
-    print('    LIVE-open: Challenge / Guild Duel flows not recorded - no tap', flush=True)
     if hu._line(boxes, 'guild ches', CHEST_LABEL_WIN) is None:
         print('    chest label not at the measured spot - skipping the chest', flush=True)
     else:
         boxes = chest()
         if boxes is None:
             return 1
-    where = store(boxes)
+    where, medals = store(boxes)
+    if where == 'hall':
+        where = challenge(medals)
+    elif where == 'world':
+        print('    store back arrow led to the world - Challenge skipped', flush=True)
     if where is None or (where == 'hall' and not leave_hall()):
         return 1
-    print('    guild tour done (log-only)', flush=True)
+    print('    guild tour done (store log-only)', flush=True)
     return 0
 
 

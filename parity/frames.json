@@ -1,0 +1,5953 @@
+{
+ "v": 1,
+ "frozen_at": "2026-11-05T17:32:09",
+ "source_repo": "C:/Users/Sigi/spectre",
+ "source_head": "222be8c986bf77a83d265e117b18c48b102f35a9",
+ "parity_dir": "C:/Users/Sigi/spectre-parity",
+ "key": "sha256(f\"{mode}|{w}x{h}|\" + RGB bytes)[:16]",
+ "count": 230,
+ "bytes_in_corpus": 664333571,
+ "suite": {
+  "tests_run": 1005,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 105
+ },
+ "frames_with_transparency": 0,
+ "frame_missing": [
+  ".spectre/after_claim.png",
+  ".spectre/ar4.png",
+  ".spectre/game_boot.png",
+  ".spectre/hall.png",
+  ".spectre/screens/arena_debug1.png",
+  ".spectre/shots-13228/hl_daily_pre0_w3.png",
+  ".spectre/shots-13228/hl_scan_850.png",
+  ".spectre/shots-14672/bm_0.png",
+  ".spectre/shots-15028/norm_0.png",
+  ".spectre/shots-17856/dl_final.png",
+  ".spectre/shots-17920/norm_0.png",
+  ".spectre/shots-20408/sp_0_initial.png",
+  ".spectre/shots-24812/dr_start.png",
+  ".spectre/shots-27712/r1_0_initial.png",
+  ".spectre/shots-30096/sp_auto_19.png",
+  ".spectre/shots-33404/dr_rec1_4.png",
+  ".spectre/shots-34228/t44_world.png",
+  ".spectre/shots-40256/sp_wait.png",
+  ".spectre/shots-47096/hl_entry.png",
+  ".spectre/shots-48392/dr_hub.png",
+  ".spectre/shots-4844/sp_0_initial.png",
+  ".spectre/shots-49936/sp_auto_244.png",
+  ".spectre/shots-49936/sp_auto_3.png",
+  ".spectre/shots-52268/arena_1_lobby.png",
+  ".spectre/shots-52268/arena_2_select.png",
+  ".spectre/shots-52268/arena_exit0.png",
+  ".spectre/shots-52268/arena_f1_step0.png",
+  ".spectre/shots-52268/arena_f1_step1.png",
+  ".spectre/shots-52268/arena_f1_step5.png",
+  ".spectre/shots-58212/r1_1_panel.png",
+  ".spectre/shots-58752/norm_1.png",
+  ".spectre/shots-59516/arena_1_lobby.png",
+  ".spectre/shots-60424/r1_1a_popup.png",
+  ".spectre/shots-63812/arena_1_lobby.png",
+  ".spectre/shots-65688/r1_1_panel.png",
+  ".spectre/shots-65688/r1_1a_popup.png",
+  ".spectre/shots-66808/dr_f1_chances.png",
+  ".spectre/shots-66808/dr_f1_prewait1.png",
+  ".spectre/shots-69252/hl_entry.png",
+  ".spectre/shots-69252/hl_scan_970.png",
+  ".spectre/shots-69252/hl_scan_hall_850.png",
+  ".spectre/shots-69680/norm_0.png",
+  ".spectre/shots-69680/norm_1.png",
+  ".spectre/shots-72816/dr_f1_chances.png",
+  ".spectre/shots-72816/dr_f1_w0.png",
+  ".spectre/shots-72816/dr_f1_w1.png",
+  ".spectre/shots-72816/dr_f1_w3.png",
+  ".spectre/shots-72816/dr_f1_w8.png",
+  ".spectre/shots-72816/dr_post1_0.png",
+  ".spectre/shots-77952/fix_intro_0.png",
+  ".spectre/shots-77952/fix_intro_1.png",
+  ".spectre/shots-77952/fix_intro_2.png",
+  ".spectre/shots-77952/fix_intro_3.png",
+  ".spectre/shots-79040/norm_0.png",
+  ".spectre/shots-79700/norm_0.png",
+  ".spectre/shots-80660/norm_0.png",
+  ".spectre/shots/arena_0_initial.png",
+  ".spectre/shots/arena_1_after.png",
+  ".spectre/shots/arena_p1_pre.png",
+  ".spectre/shots/t28_fight_end1.png",
+  ".spectre/world4.png",
+  "C:\\Users\\Sigi\\spectre\\.spectre\\shots-76112\\dg_cam_3.png",
+  "C:\\Users\\Sigi\\spectre\\.spectre\\shots-76112\\dg_cam_4.png",
+  "C:\\Users\\Sigi\\spectre\\.spectre\\shots-79852\\dg_cam_3.png"
+ ],
+ "static_unresolved": [
+  ".png",
+  "C:\\Users\\Sigi\\spectre\\.spectre\\shots-41820\\dr_f1_w6.png",
+  "a.png",
+  "afk_panel_frame.png",
+  "after_afk_panel_frame.png",
+  "after_claim.png",
+  "ar4.png",
+  "ar5.png",
+  "ar6.png",
+  "arena1.png",
+  "b.png",
+  "b16b.png",
+  "backzone.png",
+  "base2.png",
+  "bk2.png",
+  "bm_0.png",
+  "bm_hub_frame.png",
+  "ck2.png",
+  "claim1.png",
+  "claim2.png",
+  "claim3.png",
+  "close10.png",
+  "close9.png",
+  "complete1.png",
+  "cook1.png",
+  "cook4.png",
+  "del1.png",
+  "detail.png",
+  "detail_lv.png",
+  "detail_r.png",
+  "dg_cam_2.png",
+  "dg_cam_3.png",
+  "dg_cam_4.png",
+  "end1.png",
+  "ev0.png",
+  "fast.png",
+  "fin2.png",
+  "final16.png",
+  "game_boot.png",
+  "gback.png",
+  "gc1.png",
+  "gc2.png",
+  "gcA.png",
+  "gcB.png",
+  "gcC.png",
+  "gcD.png",
+  "gcE.png",
+  "gcF.png",
+  "gcG.png",
+  "gchal.png",
+  "gchest.png",
+  "gd_items.png",
+  "gf_now.png",
+  "gfr2.png",
+  "gstore2.png",
+  "guild1.png",
+  "guild2.png",
+  "guild4.png",
+  "guild5.png",
+  "hall.png",
+  "hl_daily_post0.png",
+  "hl_daily_post0_rr2.png",
+  "hm1.png",
+  "hm_build_menu.png",
+  "hm_confirmed2.png",
+  "hm_field_build.png",
+  "hm_field_confirmed.png",
+  "hm_field_tap.png",
+  "hm_menu_now.png",
+  "hm_req2.png",
+  "hm_requests.png",
+  "hm_spire_up.png",
+  "hm_up2.png",
+  "hm_up3.png",
+  "hs_0_menu.png",
+  "hs_0_read.png",
+  "hs_0_world.png",
+  "hs_1_menu.png",
+  "hs_1_read.png",
+  "hs_b0_place.png",
+  "hu_after.png",
+  "hu_bread.png",
+  "hu_cam1.png",
+  "hu_go.png",
+  "hu_read.png",
+  "hu_tower.png",
+  "hu_world.png",
+  "kn2.png",
+  "kz1.png",
+  "lt0.png",
+  "ltg0.png",
+  "ltg2.png",
+  "ltg3.png",
+  "ltg4.png",
+  "ltg5.png",
+  "ltg6.png",
+  "ltg8.png",
+  "made1.png",
+  "made2.png",
+  "menu16.png",
+  "menu17.png",
+  "norm_3.png",
+  "now3.png",
+  "now4.png",
+  "now5.png",
+  "now6.png",
+  "ocr_fixture.png",
+  "pl3.png",
+  "post3.png",
+  "px4.png",
+  "qs1.png",
+  "quest1.png",
+  "reset1.png",
+  "rq0.png",
+  "rq1.png",
+  "rq3.png",
+  "rq4.png",
+  "rq_ck_k.png",
+  "rq_ck_w.png",
+  "rq_world.png",
+  "rqp.png",
+  "rqp2.png",
+  "rqp4.png",
+  "rw_0.png",
+  "screens/arena_debug1.png",
+  "select_stuck.png",
+  "shots-14672/bm_0.png",
+  "shots-17856/dl_final.png",
+  "shots-20408/sp_0_initial.png",
+  "shots-24812/dr_start.png",
+  "shots-30096/sp_auto_19.png",
+  "shots-33404/dr_rec1_4.png",
+  "shots-34228/t44_world.png",
+  "shots-40256/sp_wait.png",
+  "shots-48392/dr_hub.png",
+  "shots-4844/sp_0_initial.png",
+  "shots-49936/sp_auto_244.png",
+  "shots-49936/sp_auto_3.png",
+  "shots/arena_0_initial.png",
+  "shots/arena_1_after.png",
+  "shots/arena_p1_pre.png",
+  "shots/t28_fight_end1.png",
+  "sp_after_close.png",
+  "spire_sel.png",
+  "spire_sel2.png",
+  "st0.png",
+  "st1.png",
+  "t105b_diag.png",
+  "t105exit.png",
+  "tower_tap.png",
+  "un1.png",
+  "un2.png",
+  "upn0.png",
+  "where1.png",
+  "world4.png",
+  "world_banner_frame.png",
+  "world_now.png",
+  "x.png",
+  "zone2.png"
+ ],
+ "not_on_disk": [
+  {
+   "path": ".spectre/shots-65504/f.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/gd_items.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_710_0.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_710_1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_710_check1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_710_check2.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_840_0.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_post0.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_post0_ok.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_post0_rr1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_post0_rr2.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_post1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_pre0.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_pre0_rr1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_pre0_w2.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_daily_pre1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_1090.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_1210.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_710.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_730.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_730_rr1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_730_w1.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_840.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_850.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hl_scan_970.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_0_fread.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_0_read.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_0_read2.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_0_world.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_1_fread.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_1_read.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_1_read2.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_2_read.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_3_read.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/hs_4_read.png",
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "path": ".spectre/shots-65504/x.png",
+   "how": [
+    "dynamic"
+   ]
+  }
+ ],
+ "unreadable": [],
+ "frames": [
+  {
+   "sha16": "001ff318242c544f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 114568081,
+   "alpha_min": 255,
+   "rgb_sha16": "88cc51386131be65",
+   "src": [
+    {
+     "path": ".spectre/livecheck/c0.png",
+     "found_at": ".spectre/livecheck/c0.png",
+     "bytes": 1639244,
+     "file_sha16": "31d2aaec22603f3d"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "00e28d8b991ea15a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 614599678,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-73788/bm_0.png",
+     "found_at": ".spectre/trash/shots-73788/bm_0.png",
+     "bytes": 3776467,
+     "file_sha16": "e896718721ed8506"
+    },
+    {
+     "path": ".spectre/trash/shots-73788/bm_0.png",
+     "found_at": ".spectre/trash/shots-73788/bm_0.png",
+     "bytes": 3776467,
+     "file_sha16": "e896718721ed8506"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "01d4f2d283e40f0a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3551853042,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-63328/hu_go.png",
+     "found_at": ".spectre/shots-63328/hu_go.png",
+     "bytes": 3686210,
+     "file_sha16": "71001c2a6f99025e"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "03b7c930628f84d7",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4092566294,
+   "alpha_min": 255,
+   "rgb_sha16": "b44d810b2e2044b8",
+   "src": [
+    {
+     "path": ".spectre/shots-75192/f1probe_s3.png",
+     "found_at": ".spectre/trash/shots-75192/f1probe_s3.png",
+     "bytes": 2966928,
+     "file_sha16": "13651b130db71b96"
+    },
+    {
+     "path": ".spectre/trash/shots-75192/f1probe_s3.png",
+     "found_at": ".spectre/trash/shots-75192/f1probe_s3.png",
+     "bytes": 2966928,
+     "file_sha16": "13651b130db71b96"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "04405ffb0085b282",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2749440134,
+   "alpha_min": 255,
+   "rgb_sha16": "45dc6a42ec4e1087",
+   "src": [
+    {
+     "path": ".spectre/shots-82560/dr_f3_resolve_0.png",
+     "found_at": ".spectre/trash/shots-82560/dr_f3_resolve_0.png",
+     "bytes": 1185779,
+     "file_sha16": "11c89891c1e5b9f8"
+    },
+    {
+     "path": ".spectre/trash/shots-82560/dr_f3_resolve_0.png",
+     "found_at": ".spectre/trash/shots-82560/dr_f3_resolve_0.png",
+     "bytes": 1185779,
+     "file_sha16": "11c89891c1e5b9f8"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "044264b7d151a763",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3069808133,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-57584/hu_bread.png",
+     "found_at": ".spectre/shots-57584/hu_bread.png",
+     "bytes": 1783624,
+     "file_sha16": "053da7848cecfd78"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "06651e1e67491f8c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 285729593,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75792/rw_0.png",
+     "found_at": ".spectre/trash/shots-75792/rw_0.png",
+     "bytes": 2025455,
+     "file_sha16": "1fd85f611766a7fd"
+    },
+    {
+     "path": ".spectre/trash/shots-75792/rw_0.png",
+     "found_at": ".spectre/trash/shots-75792/rw_0.png",
+     "bytes": 2025455,
+     "file_sha16": "1fd85f611766a7fd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "0a51099c143178b5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2756273005,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-65688/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-65688/r1_1_panel.png",
+     "bytes": 1797028,
+     "file_sha16": "648592a2c2b8b1a3"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "0b16f3a48f778181",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2377517708,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80660/norm_1.png",
+     "found_at": ".spectre/trash/shots-80660/norm_1.png",
+     "bytes": 3162057,
+     "file_sha16": "7585c7b058863022"
+    },
+    {
+     "path": ".spectre/trash/shots-80660/norm_1.png",
+     "found_at": ".spectre/trash/shots-80660/norm_1.png",
+     "bytes": 3162057,
+     "file_sha16": "7585c7b058863022"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "0b84e9505d49f320",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2900481304,
+   "alpha_min": 255,
+   "rgb_sha16": "0617fde44fc632e7",
+   "src": [
+    {
+     "path": ".spectre/shots-78504/rw_2.png",
+     "found_at": ".spectre/trash/shots-78504/rw_2.png",
+     "bytes": 2960901,
+     "file_sha16": "fbcf7dd0d2403979"
+    },
+    {
+     "path": ".spectre/trash/shots-78504/rw_2.png",
+     "found_at": ".spectre/trash/shots-78504/rw_2.png",
+     "bytes": 2960901,
+     "file_sha16": "fbcf7dd0d2403979"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest",
+    "static"
+   ]
+  },
+  {
+   "sha16": "0d07f30388b31ac5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 755275461,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_1_menu.png",
+     "found_at": ".spectre/trash/shots-67544/hs_1_menu.png",
+     "bytes": 3813165,
+     "file_sha16": "d00f61eca85534bf"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "0f462b16bae0865a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1822934391,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80660/norm_0.png",
+     "found_at": ".spectre/trash/shots-80660/norm_0.png",
+     "bytes": 3586711,
+     "file_sha16": "f2426fa13cced881"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "0fbe5fcd1c5de434",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3656796584,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-81308/norm_1.png",
+     "found_at": ".spectre/trash/shots-81308/norm_1.png",
+     "bytes": 2346426,
+     "file_sha16": "357e9977e928565f"
+    },
+    {
+     "path": ".spectre/trash/shots-81308/norm_1.png",
+     "found_at": ".spectre/trash/shots-81308/norm_1.png",
+     "bytes": 2346426,
+     "file_sha16": "357e9977e928565f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "1127e63ada5c0c9d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1890406305,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-17092/hl_daily_pre0_w2.png",
+     "found_at": ".spectre/trash/shots-17092/hl_daily_pre0_w2.png",
+     "bytes": 2235539,
+     "file_sha16": "c2e3f4683512a94c"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "12b4e0a1839b3759",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 598659871,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41892/gd_hall.png",
+     "found_at": ".spectre/shots-41892/gd_hall.png",
+     "bytes": 3939675,
+     "file_sha16": "b0cd1efe05e69dd1"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "14de39759e5d5fe1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3852907048,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82200/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-82200/arena_1_lobby.png",
+     "bytes": 2351471,
+     "file_sha16": "8a3504dc7fa413f2"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "186a5af490daa1ec",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3873232309,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-38632/bm_2.png",
+     "found_at": ".spectre/trash/shots-38632/bm_2.png",
+     "bytes": 3863244,
+     "file_sha16": "ccb70be7d59b1ade"
+    },
+    {
+     "path": ".spectre/trash/shots-38632/bm_2.png",
+     "found_at": ".spectre/trash/shots-38632/bm_2.png",
+     "bytes": 3863244,
+     "file_sha16": "ccb70be7d59b1ade"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "18e5621f7b539d07",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2747957983,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-17920/norm_1.png",
+     "found_at": ".spectre/trash/shots-17920/norm_1.png",
+     "bytes": 2299598,
+     "file_sha16": "caa0d20511ca14fe"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "1a6960125c843b27",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1345884675,
+   "alpha_min": 255,
+   "rgb_sha16": "6efe7ab21b854e19",
+   "src": [
+    {
+     "path": ".spectre/shots-65076/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-65076/hl_scan_hall_970.png",
+     "bytes": 3231815,
+     "file_sha16": "8b297923db247d3e"
+    },
+    {
+     "path": ".spectre/trash/shots-65076/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-65076/hl_scan_hall_970.png",
+     "bytes": 3231815,
+     "file_sha16": "8b297923db247d3e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "1b8799aecde68665",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 625473720,
+   "alpha_min": 255,
+   "rgb_sha16": "036d03b6b91fa9c7",
+   "src": [
+    {
+     "path": ".spectre/shots-42200/arena_f1_step1.png",
+     "found_at": ".spectre/trash/shots-42200/arena_f1_step1.png",
+     "bytes": 1804024,
+     "file_sha16": "c8831297a018448f"
+    },
+    {
+     "path": ".spectre/trash/shots-42200/arena_f1_step1.png",
+     "found_at": ".spectre/trash/shots-42200/arena_f1_step1.png",
+     "bytes": 1804024,
+     "file_sha16": "c8831297a018448f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "1ca3bb0fe68c5939",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2579414475,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_w0.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_w0.png",
+     "bytes": 3539431,
+     "file_sha16": "8ad7e98e76e5fc26"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "1da08493a2794489",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 366125456,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_2_select.png",
+     "found_at": ".spectre/trash/shots-52268/arena_2_select.png",
+     "bytes": 2817562,
+     "file_sha16": "350a955b988bac15"
+    },
+    {
+     "path": ".spectre/trash/shots-52268/arena_2_select.png",
+     "found_at": ".spectre/trash/shots-52268/arena_2_select.png",
+     "bytes": 2817562,
+     "file_sha16": "350a955b988bac15"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "21a18c370854368a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1562399835,
+   "alpha_min": 255,
+   "rgb_sha16": "1658b9ba8a51f26a",
+   "src": [
+    {
+     "path": ".spectre/shots-68368/rw_leave_start.png",
+     "found_at": ".spectre/trash/shots-68368/rw_leave_start.png",
+     "bytes": 2983060,
+     "file_sha16": "ef5e6a7a100562dd"
+    },
+    {
+     "path": ".spectre/trash/shots-68368/rw_leave_start.png",
+     "found_at": ".spectre/trash/shots-68368/rw_leave_start.png",
+     "bytes": 2983060,
+     "file_sha16": "ef5e6a7a100562dd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "21f342445d232b47",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4137890956,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42848/rq_ck_k.png",
+     "found_at": ".spectre/shots-42848/rq_ck_k.png",
+     "bytes": 3778740,
+     "file_sha16": "11801713c7b2c9c1"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "22226c28ad4fffa1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1177093470,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82200/rw_0.png",
+     "found_at": ".spectre/trash/shots-82200/rw_0.png",
+     "bytes": 3594596,
+     "file_sha16": "2930ad38625db4a3"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "238cdf11240810ac",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2858471033,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-69680/norm_1.png",
+     "found_at": ".spectre/trash/shots-69680/norm_1.png",
+     "bytes": 4105873,
+     "file_sha16": "75492dca16c6cb6c"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "2455e7805a709442",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2189661325,
+   "alpha_min": 255,
+   "rgb_sha16": "062947b06235d842",
+   "src": [
+    {
+     "path": ".spectre/shots-82560/dr_world_2.png",
+     "found_at": ".spectre/trash/shots-82560/dr_world_2.png",
+     "bytes": 2952033,
+     "file_sha16": "0fa3945fbc74dc28"
+    },
+    {
+     "path": ".spectre/trash/shots-82560/dr_world_2.png",
+     "found_at": ".spectre/trash/shots-82560/dr_world_2.png",
+     "bytes": 2952033,
+     "file_sha16": "0fa3945fbc74dc28"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "24c750062df03c78",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2598355525,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82200/arena_1_start.png",
+     "found_at": ".spectre/trash/shots-82200/arena_1_start.png",
+     "bytes": 3781298,
+     "file_sha16": "c15c3cd59adf3758"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "2570a53f3ca5bc53",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4078035886,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-47000/hs_0_read.png",
+     "found_at": ".spectre/shots-47000/hs_0_read.png",
+     "bytes": 3802742,
+     "file_sha16": "20836b1b13a0d3f3"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "2604a9e61f909fe4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2786853536,
+   "alpha_min": 255,
+   "rgb_sha16": "25f8e09e40a35871",
+   "src": [
+    {
+     "path": ".spectre/shots-73476/zz_probe.png",
+     "found_at": ".spectre/trash/shots-73476/zz_probe.png",
+     "bytes": 1654388,
+     "file_sha16": "db83f40852dd8bd8"
+    },
+    {
+     "path": ".spectre/trash/shots-73476/zz_probe.png",
+     "found_at": ".spectre/trash/shots-73476/zz_probe.png",
+     "bytes": 1654388,
+     "file_sha16": "db83f40852dd8bd8"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "27f40edfa944cb74",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2539644069,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-37116/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-37116/dl_menu_0.png",
+     "bytes": 3781731,
+     "file_sha16": "80b98392dee8f204"
+    },
+    {
+     "path": ".spectre/trash/shots-37116/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-37116/dl_menu_0.png",
+     "bytes": 3781731,
+     "file_sha16": "80b98392dee8f204"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "29a311a5b7c9cba0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3240991266,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_f1_step0.png",
+     "found_at": ".spectre/trash/shots-52268/arena_f1_step0.png",
+     "bytes": 2818860,
+     "file_sha16": "ae594ba202b5b8d7"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "2a762a54cdb2f246",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3933301631,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42848/rq_world.png",
+     "found_at": ".spectre/shots-42848/rq_world.png",
+     "bytes": 3786670,
+     "file_sha16": "a851a4a00dddc301"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "2c1dcf5e3febd765",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 88190562,
+   "alpha_min": 255,
+   "rgb_sha16": "a6f1a877168b49ad",
+   "src": [
+    {
+     "path": ".spectre/shots-73652/dl_tab_lucky.png",
+     "found_at": ".spectre/trash/shots-73652/dl_tab_lucky.png",
+     "bytes": 3170227,
+     "file_sha16": "38463822b63ed3f6"
+    },
+    {
+     "path": ".spectre/trash/shots-73652/dl_tab_lucky.png",
+     "found_at": ".spectre/trash/shots-73652/dl_tab_lucky.png",
+     "bytes": 3170227,
+     "file_sha16": "38463822b63ed3f6"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "2d1c818f858dbeaf",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1526853559,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41820/dr_f1_w6.png",
+     "found_at": ".spectre/trash/shots-41820/dr_f1_w6.png",
+     "bytes": 3615983,
+     "file_sha16": "f5da5ccd5a3adfcb"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "2e12242b37c69758",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2487031308,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-73788/bm_1.png",
+     "found_at": ".spectre/trash/shots-73788/bm_1.png",
+     "bytes": 4102867,
+     "file_sha16": "35a08751042693c3"
+    },
+    {
+     "path": ".spectre/trash/shots-73788/bm_1.png",
+     "found_at": ".spectre/trash/shots-73788/bm_1.png",
+     "bytes": 4102867,
+     "file_sha16": "35a08751042693c3"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "2e5e6f12e0243cff",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 765230356,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_resolve_0.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_resolve_0.png",
+     "bytes": 863906,
+     "file_sha16": "70263bc45fbf45fa"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "2f54752291fb4624",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3988259601,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-47000/hs_0_world.png",
+     "found_at": ".spectre/shots-47000/hs_0_world.png",
+     "bytes": 3646426,
+     "file_sha16": "326779aceaf970d2"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "30613418e219e12d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1513168426,
+   "alpha_min": 255,
+   "rgb_sha16": "c5c7e32af5f882ad",
+   "src": [
+    {
+     "path": ".spectre/shots-62888/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-62888/arena_1_after.png",
+     "bytes": 2880228,
+     "file_sha16": "1e9132f846b14c95"
+    },
+    {
+     "path": ".spectre/trash/shots-62888/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-62888/arena_1_after.png",
+     "bytes": 2880228,
+     "file_sha16": "1e9132f846b14c95"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "328bf43742491644",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 816550415,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-27712/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-27712/r1_0_initial.png",
+     "bytes": 2359723,
+     "file_sha16": "996126c0a30be711"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "32f014102b6e052f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 786717769,
+   "alpha_min": 255,
+   "rgb_sha16": "6b20ac9c579061e8",
+   "src": [
+    {
+     "path": ".spectre/shots-47096/hl_entry.png",
+     "found_at": ".spectre/trash/shots-47096/hl_entry.png",
+     "bytes": 2572164,
+     "file_sha16": "4b9f322172d6bc75"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "33e1de3752754e7b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2948099105,
+   "alpha_min": 255,
+   "rgb_sha16": "71db72c9283c557a",
+   "src": [
+    {
+     "path": ".spectre/shots-63856/dr_enter0_bm0.png",
+     "found_at": ".spectre/trash/shots-63856/dr_enter0_bm0.png",
+     "bytes": 3210342,
+     "file_sha16": "df4b042b0181c55f"
+    },
+    {
+     "path": ".spectre/trash/shots-63856/dr_enter0_bm0.png",
+     "found_at": ".spectre/trash/shots-63856/dr_enter0_bm0.png",
+     "bytes": 3210342,
+     "file_sha16": "df4b042b0181c55f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "35b87c874b971b1d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3129698505,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_post1_0.png",
+     "found_at": ".spectre/trash/shots-72816/dr_post1_0.png",
+     "bytes": 863368,
+     "file_sha16": "9575b86eb191ef41"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "37132ccbbcd125e8",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1329266793,
+   "alpha_min": 255,
+   "rgb_sha16": "6f44747aec4d1206",
+   "src": [
+    {
+     "path": ".spectre/shots-82560/dr_f1_w16.png",
+     "found_at": ".spectre/trash/shots-82560/dr_f1_w16.png",
+     "bytes": 3302494,
+     "file_sha16": "3edeba057f012474"
+    },
+    {
+     "path": ".spectre/trash/shots-82560/dr_f1_w16.png",
+     "found_at": ".spectre/trash/shots-82560/dr_f1_w16.png",
+     "bytes": 3302494,
+     "file_sha16": "3edeba057f012474"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "38b0afc668d86c30",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2361013330,
+   "alpha_min": 255,
+   "rgb_sha16": "91dbe1c15ca2c3c2",
+   "src": [
+    {
+     "path": ".spectre/shots-55124/sp_auto_start.png",
+     "found_at": ".spectre/trash/shots-55124/sp_auto_start.png",
+     "bytes": 2412288,
+     "file_sha16": "89adcb724aba8ad1"
+    },
+    {
+     "path": ".spectre/trash/shots-55124/sp_auto_start.png",
+     "found_at": ".spectre/trash/shots-55124/sp_auto_start.png",
+     "bytes": 2412288,
+     "file_sha16": "89adcb724aba8ad1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "3a2abb66a1c422e5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3890207564,
+   "alpha_min": 255,
+   "rgb_sha16": "49b15975b8e26b79",
+   "src": [
+    {
+     "path": ".spectre/shots-49136/rw_final.png",
+     "found_at": ".spectre/trash/shots-49136/rw_final.png",
+     "bytes": 2190712,
+     "file_sha16": "384ee9fea6e1df86"
+    },
+    {
+     "path": ".spectre/trash/shots-49136/rw_final.png",
+     "found_at": ".spectre/trash/shots-49136/rw_final.png",
+     "bytes": 2190712,
+     "file_sha16": "384ee9fea6e1df86"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "3b078591d3a93406",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3853801577,
+   "alpha_min": 255,
+   "rgb_sha16": "a8819f648d2c7855",
+   "src": [
+    {
+     "path": ".spectre/shots-adbtest/post-cancel.png",
+     "found_at": ".spectre/trash/shots-adbtest/post-cancel.png",
+     "bytes": 3115462,
+     "file_sha16": "527d5e61ef4c1eb1"
+    },
+    {
+     "path": ".spectre/trash/shots-adbtest/post-cancel.png",
+     "found_at": ".spectre/trash/shots-adbtest/post-cancel.png",
+     "bytes": 3115462,
+     "file_sha16": "527d5e61ef4c1eb1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "3cb48e402675b5e0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4042144493,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_exit0.png",
+     "found_at": ".spectre/trash/shots-52268/arena_exit0.png",
+     "bytes": 2820587,
+     "file_sha16": "5423a579b0de2b6f"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "3cf69e1d9151fabd",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 762389520,
+   "alpha_min": 255,
+   "rgb_sha16": "5be5a4f7ee3291d5",
+   "src": [
+    {
+     "path": ".spectre/shots-75192/f1probe_s1.png",
+     "found_at": ".spectre/trash/shots-75192/f1probe_s1.png",
+     "bytes": 1702037,
+     "file_sha16": "40aa61dcd012092a"
+    },
+    {
+     "path": ".spectre/trash/shots-75192/f1probe_s1.png",
+     "found_at": ".spectre/trash/shots-75192/f1probe_s1.png",
+     "bytes": 1702037,
+     "file_sha16": "40aa61dcd012092a"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "3ea32c9bb3750339",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 35965106,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-17920/norm_0.png",
+     "found_at": ".spectre/trash/shots-17920/norm_0.png",
+     "bytes": 2286329,
+     "file_sha16": "93aa45a9e34df5c9"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "3f1bbef19842c316",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3196201016,
+   "alpha_min": 255,
+   "rgb_sha16": "d1b0ae0a7c60c33c",
+   "src": [
+    {
+     "path": ".spectre/shots-78504/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-78504/arena_1_after.png",
+     "bytes": 2890834,
+     "file_sha16": "73a7d7adcbd2af59"
+    },
+    {
+     "path": ".spectre/trash/shots-78504/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-78504/arena_1_after.png",
+     "bytes": 2890834,
+     "file_sha16": "73a7d7adcbd2af59"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "43bbeca741e2b0ff",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1893502897,
+   "alpha_min": 255,
+   "rgb_sha16": "4dd0ae076dccab60",
+   "src": [
+    {
+     "path": ".spectre/shots-71964/rw_leave_start.png",
+     "found_at": ".spectre/trash/shots-71964/rw_leave_start.png",
+     "bytes": 2982025,
+     "file_sha16": "35caa15b44aae4b7"
+    },
+    {
+     "path": ".spectre/trash/shots-71964/rw_leave_start.png",
+     "found_at": ".spectre/trash/shots-71964/rw_leave_start.png",
+     "bytes": 2982025,
+     "file_sha16": "35caa15b44aae4b7"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "44abe08dcd0f91f8",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 656647078,
+   "alpha_min": 255,
+   "rgb_sha16": "155106ab136c4a8a",
+   "src": [
+    {
+     "path": ".spectre/livecheck/hall_now.png",
+     "found_at": ".spectre/livecheck/hall_now.png",
+     "bytes": 3213165,
+     "file_sha16": "2c3ffb1adf62f55d"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "44badbdb927a5e93",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3692656011,
+   "alpha_min": 255,
+   "rgb_sha16": "6aafa3d66a01e466",
+   "src": [
+    {
+     "path": ".spectre/shots-62888/rw_0.png",
+     "found_at": ".spectre/trash/shots-62888/rw_0.png",
+     "bytes": 2955355,
+     "file_sha16": "d9bbf270e8ad45e7"
+    },
+    {
+     "path": ".spectre/trash/shots-62888/rw_0.png",
+     "found_at": ".spectre/trash/shots-62888/rw_0.png",
+     "bytes": 2955355,
+     "file_sha16": "d9bbf270e8ad45e7"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "459c3d99ef4e0081",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3382627305,
+   "alpha_min": 255,
+   "rgb_sha16": "0e9936743f1f4f02",
+   "src": [
+    {
+     "path": ".spectre/shots-69252/hl_scan_970.png",
+     "found_at": ".spectre/trash/shots-69252/hl_scan_970.png",
+     "bytes": 1117943,
+     "file_sha16": "1a8f20c054326514"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "46c65ecd9509ec93",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2566809733,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_w8.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_w8.png",
+     "bytes": 4158261,
+     "file_sha16": "a1dc9e55e67b8ddc"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "48f6ec14aa1af403",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3023186200,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-69680/norm_0.png",
+     "found_at": ".spectre/trash/shots-69680/norm_0.png",
+     "bytes": 867422,
+     "file_sha16": "1ef38dc0124bd7b9"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "4e6fcae93aea74e5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2083140489,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75792/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-75792/arena_1_lobby.png",
+     "bytes": 2346583,
+     "file_sha16": "039359bb1f37b2a8"
+    },
+    {
+     "path": ".spectre/trash/shots-75792/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-75792/arena_1_lobby.png",
+     "bytes": 2346583,
+     "file_sha16": "039359bb1f37b2a8"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "505947923ca578ac",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2313405591,
+   "alpha_min": 255,
+   "rgb_sha16": "20e57f7cba191eb9",
+   "src": [
+    {
+     "path": ".spectre/shots-68548/hl_entry_retry.png",
+     "found_at": ".spectre/trash/shots-68548/hl_entry_retry.png",
+     "bytes": 2980619,
+     "file_sha16": "b2d4456a2a915aee"
+    },
+    {
+     "path": ".spectre/trash/shots-68548/hl_entry_retry.png",
+     "found_at": ".spectre/trash/shots-68548/hl_entry_retry.png",
+     "bytes": 2980619,
+     "file_sha16": "b2d4456a2a915aee"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "525b33be9fbd269d",
+   "w": 520,
+   "h": 400,
+   "mode": "RGBA",
+   "crc32": 3814928523,
+   "alpha_min": 255,
+   "rgb_sha16": "74a3cb3e2062be7e",
+   "src": [
+    {
+     "path": ".spectre/shots-1915/arena_card_crop.png",
+     "found_at": ".spectre/trash/shots-1915/arena_card_crop.png",
+     "bytes": 301791,
+     "file_sha16": "b64bdb853edca44e"
+    },
+    {
+     "path": ".spectre/trash/shots-1915/arena_card_crop.png",
+     "found_at": ".spectre/trash/shots-1915/arena_card_crop.png",
+     "bytes": 301791,
+     "file_sha16": "b64bdb853edca44e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "53369c386ba36741",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3214387062,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-53520/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-53520/dl_questpanel.png",
+     "bytes": 2814095,
+     "file_sha16": "e50b0e52a8e7b5e3"
+    },
+    {
+     "path": ".spectre/trash/shots-53520/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-53520/dl_questpanel.png",
+     "bytes": 2814095,
+     "file_sha16": "e50b0e52a8e7b5e3"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "556ca18e7eae7158",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3850868068,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-68132/hu_world.png",
+     "found_at": ".spectre/shots-68132/hu_world.png",
+     "bytes": 3791707,
+     "file_sha16": "718bc98b98749f95"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "5b7c1030ef6e5cd5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1518207269,
+   "alpha_min": 255,
+   "rgb_sha16": "349c86bcaad9efa6",
+   "src": [
+    {
+     "path": ".spectre/shots-62080/dr_start.png",
+     "found_at": ".spectre/trash/shots-62080/dr_start.png",
+     "bytes": 1120349,
+     "file_sha16": "d38f97bc828a5410"
+    },
+    {
+     "path": ".spectre/trash/shots-62080/dr_start.png",
+     "found_at": ".spectre/trash/shots-62080/dr_start.png",
+     "bytes": 1120349,
+     "file_sha16": "d38f97bc828a5410"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "5c3c3419316d548e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2274575011,
+   "alpha_min": 255,
+   "rgb_sha16": "bc197edf37c0c1bd",
+   "src": [
+    {
+     "path": ".spectre/shots-63856/dr_world_1.png",
+     "found_at": ".spectre/trash/shots-63856/dr_world_1.png",
+     "bytes": 2770530,
+     "file_sha16": "0b7fa73e5abbd42d"
+    },
+    {
+     "path": ".spectre/trash/shots-63856/dr_world_1.png",
+     "found_at": ".spectre/trash/shots-63856/dr_world_1.png",
+     "bytes": 2770530,
+     "file_sha16": "0b7fa73e5abbd42d"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "5c944c48d4f13feb",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 252754976,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-54808/arena_f1_step4.png",
+     "found_at": ".spectre/trash/shots-54808/arena_f1_step4.png",
+     "bytes": 3767804,
+     "file_sha16": "9227898976a50900"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "5cf879ad35df8121",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3552937919,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-47000/hs_0_menu.png",
+     "found_at": ".spectre/shots-47000/hs_0_menu.png",
+     "bytes": 3806460,
+     "file_sha16": "38fab50f75d6290d"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "5e36773ef382393b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2851294025,
+   "alpha_min": 255,
+   "rgb_sha16": "439d686d91c12c31",
+   "src": [
+    {
+     "path": ".spectre/shots-49764/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-49764/r1_1_panel.png",
+     "bytes": 1550464,
+     "file_sha16": "e6c17fb0562614f2"
+    },
+    {
+     "path": ".spectre/trash/shots-49764/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-49764/r1_1_panel.png",
+     "bytes": 1550464,
+     "file_sha16": "e6c17fb0562614f2"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "612cc33dd2252433",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4070399591,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41892/gd_items.png",
+     "found_at": ".spectre/shots-41892/gd_items.png",
+     "bytes": 4380756,
+     "file_sha16": "778846d56406cbee"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "61df496c2c2284a1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 880364991,
+   "alpha_min": 255,
+   "rgb_sha16": "367c7efad9e2555f",
+   "src": [
+    {
+     "path": ".spectre/trash/shots-48532/dg_cam_2.png",
+     "found_at": ".spectre/trash/shots-48532/dg_cam_2.png",
+     "bytes": 2636678,
+     "file_sha16": "51cdd379f3f7f23d"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "62189aa1ce1835b0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1906051644,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-25208/hu_tower.png",
+     "found_at": ".spectre/shots-25208/hu_tower.png",
+     "bytes": 3493085,
+     "file_sha16": "2439835146990563"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "62b394e97140d26a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2926741360,
+   "alpha_min": 255,
+   "rgb_sha16": "be81a06b8095d47b",
+   "src": [
+    {
+     "path": ".spectre/shots-57700/f1probe_world_final.png",
+     "found_at": ".spectre/trash/shots-57700/f1probe_world_final.png",
+     "bytes": 2963409,
+     "file_sha16": "f18259d276603d52"
+    },
+    {
+     "path": ".spectre/trash/shots-57700/f1probe_world_final.png",
+     "found_at": ".spectre/trash/shots-57700/f1probe_world_final.png",
+     "bytes": 2963409,
+     "file_sha16": "f18259d276603d52"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "62d8b69bef403ace",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1661422960,
+   "alpha_min": 255,
+   "rgb_sha16": "ed66056798e49de2",
+   "src": [
+    {
+     "path": ".spectre/shots-54624/rw_0.png",
+     "found_at": ".spectre/trash/shots-54624/rw_0.png",
+     "bytes": 2957239,
+     "file_sha16": "fdd67ca6060cd6f4"
+    },
+    {
+     "path": ".spectre/trash/shots-54624/rw_0.png",
+     "found_at": ".spectre/trash/shots-54624/rw_0.png",
+     "bytes": 2957239,
+     "file_sha16": "fdd67ca6060cd6f4"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "669737edbb4342aa",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 93566165,
+   "alpha_min": 255,
+   "rgb_sha16": "9a92d1f1a0985784",
+   "src": [
+    {
+     "path": ".spectre/shots-54120/norm_0.png",
+     "found_at": ".spectre/trash/shots-54120/norm_0.png",
+     "bytes": 2987501,
+     "file_sha16": "ac5925a4972f41e2"
+    },
+    {
+     "path": ".spectre/trash/shots-54120/norm_0.png",
+     "found_at": ".spectre/trash/shots-54120/norm_0.png",
+     "bytes": 2987501,
+     "file_sha16": "ac5925a4972f41e2"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "67549b480d436b9c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 862308277,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-15028/norm_0.png",
+     "found_at": ".spectre/trash/shots-15028/norm_0.png",
+     "bytes": 2278194,
+     "file_sha16": "a29e9e544c31b0a7"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "6933debf0a14152d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2591643644,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-65688/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-65688/r1_1a_popup.png",
+     "bytes": 1796255,
+     "file_sha16": "c59df0c1784f4ee0"
+    },
+    {
+     "path": ".spectre/trash/shots-65688/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-65688/r1_1a_popup.png",
+     "bytes": 1796255,
+     "file_sha16": "c59df0c1784f4ee0"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "698271702a98f3b7",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1369371910,
+   "alpha_min": 255,
+   "rgb_sha16": "ba76204defae0ac1",
+   "src": [
+    {
+     "path": ".spectre/shots-65076/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-65076/hl_daily_hall.png",
+     "bytes": 3231353,
+     "file_sha16": "16272c5b232d42b7"
+    },
+    {
+     "path": ".spectre/trash/shots-65076/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-65076/hl_daily_hall.png",
+     "bytes": 3231353,
+     "file_sha16": "16272c5b232d42b7"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "6b558de52d33cc00",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1865738059,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-58212/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-58212/r1_1_panel.png",
+     "bytes": 2267890,
+     "file_sha16": "61191fa47541dad2"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "6be5a1cddcf72ee3",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1830679142,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-58752/norm_1.png",
+     "found_at": ".spectre/trash/shots-58752/norm_1.png",
+     "bytes": 2021067,
+     "file_sha16": "b575bdf18d6c6192"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "6c63bdc1e0a9ce97",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 477193229,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-58780/sp_prep.png",
+     "found_at": ".spectre/trash/shots-58780/sp_prep.png",
+     "bytes": 3315014,
+     "file_sha16": "1d966e1e28023450"
+    },
+    {
+     "path": ".spectre/trash/shots-58780/sp_prep.png",
+     "found_at": ".spectre/trash/shots-58780/sp_prep.png",
+     "bytes": 3315014,
+     "file_sha16": "1d966e1e28023450"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "6d8b69699d4aeb8a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3517235432,
+   "alpha_min": 255,
+   "rgb_sha16": "ae459f802ec839d7",
+   "src": [
+    {
+     "path": ".spectre/shots-77760/sp_world.png",
+     "found_at": ".spectre/trash/shots-77760/sp_world.png",
+     "bytes": 1536145,
+     "file_sha16": "363a4c42277e2bb5"
+    },
+    {
+     "path": ".spectre/trash/shots-77760/sp_world.png",
+     "found_at": ".spectre/trash/shots-77760/sp_world.png",
+     "bytes": 1536145,
+     "file_sha16": "363a4c42277e2bb5"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "6e19cf7d4a914ecd",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2588473122,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75220/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-75220/r1_0_initial.png",
+     "bytes": 3524606,
+     "file_sha16": "06f410497578e94b"
+    },
+    {
+     "path": ".spectre/trash/shots-75220/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-75220/r1_0_initial.png",
+     "bytes": 3524606,
+     "file_sha16": "06f410497578e94b"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "6e3d603504387b6e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3583295219,
+   "alpha_min": 255,
+   "rgb_sha16": "94c309d554c6c35b",
+   "src": [
+    {
+     "path": ".spectre/shots-55368/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-55368/hl_daily_hall.png",
+     "bytes": 3229314,
+     "file_sha16": "ed596a44b6742636"
+    },
+    {
+     "path": ".spectre/trash/shots-55368/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-55368/hl_daily_hall.png",
+     "bytes": 3229314,
+     "file_sha16": "ed596a44b6742636"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "6ec87f2a555a4e14",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1620694167,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42848/rq_ck_w.png",
+     "found_at": ".spectre/shots-42848/rq_ck_w.png",
+     "bytes": 3780545,
+     "file_sha16": "e8a02cd2e10d655c"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "712449eee27e9c94",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2867098852,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-8632/hu_world.png",
+     "found_at": ".spectre/shots-8632/hu_world.png",
+     "bytes": 3624877,
+     "file_sha16": "4a0ac7425d59616b"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "71b5991fe96124db",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 746318696,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-68168/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-68168/r1_0_initial.png",
+     "bytes": 4130134,
+     "file_sha16": "847ea32a7d48d238"
+    },
+    {
+     "path": ".spectre/trash/shots-68168/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-68168/r1_0_initial.png",
+     "bytes": 4130134,
+     "file_sha16": "847ea32a7d48d238"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7223cad5824247e4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1015055176,
+   "alpha_min": 255,
+   "rgb_sha16": "4976b23a503f596e",
+   "src": [
+    {
+     "path": ".spectre/shots-70956/f1probe_after_sword.png",
+     "found_at": ".spectre/trash/shots-70956/f1probe_after_sword.png",
+     "bytes": 394471,
+     "file_sha16": "35d1c86589266ce3"
+    },
+    {
+     "path": ".spectre/trash/shots-70956/f1probe_after_sword.png",
+     "found_at": ".spectre/trash/shots-70956/f1probe_after_sword.png",
+     "bytes": 394471,
+     "file_sha16": "35d1c86589266ce3"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "727076ab20f1ad3c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 555307463,
+   "alpha_min": 255,
+   "rgb_sha16": "968eb0d0dd0f18ff",
+   "src": [
+    {
+     "path": ".spectre/livecheck/aftertap.png",
+     "found_at": ".spectre/livecheck/aftertap.png",
+     "bytes": 1113887,
+     "file_sha16": "d2eb6cae76b8f3f1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7384526574cec47d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3313713450,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-46412/tab_guild.png",
+     "found_at": ".spectre/trash/shots-46412/tab_guild.png",
+     "bytes": 3852648,
+     "file_sha16": "92435351c60f2637"
+    },
+    {
+     "path": ".spectre/trash/shots-46412/tab_guild.png",
+     "found_at": ".spectre/trash/shots-46412/tab_guild.png",
+     "bytes": 3852648,
+     "file_sha16": "92435351c60f2637"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "74f9a7aec60ecadb",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3001611501,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80480/hu_world.png",
+     "found_at": ".spectre/shots-80480/hu_world.png",
+     "bytes": 3840527,
+     "file_sha16": "0646718273a2a9f5"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "7503d330d906b2c1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1359059838,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75220/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-75220/r1_1a_popup.png",
+     "bytes": 3523688,
+     "file_sha16": "081de2044cb5f797"
+    },
+    {
+     "path": ".spectre/trash/shots-75220/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-75220/r1_1a_popup.png",
+     "bytes": 3523688,
+     "file_sha16": "081de2044cb5f797"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "77bfe1757ffc271b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 368307475,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80768/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-80768/dl_questpanel.png",
+     "bytes": 2876417,
+     "file_sha16": "9e9cfa9d69ac7a3a"
+    },
+    {
+     "path": ".spectre/trash/shots-80768/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-80768/dl_questpanel.png",
+     "bytes": 2876417,
+     "file_sha16": "9e9cfa9d69ac7a3a"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "784e89314f2278a4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3751186738,
+   "alpha_min": 255,
+   "rgb_sha16": "31f59f92d4da4de6",
+   "src": [
+    {
+     "path": ".spectre/shots-41060/f1probe_b1.png",
+     "found_at": ".spectre/trash/shots-41060/f1probe_b1.png",
+     "bytes": 1695233,
+     "file_sha16": "b764319cc3516fd9"
+    },
+    {
+     "path": ".spectre/trash/shots-41060/f1probe_b1.png",
+     "found_at": ".spectre/trash/shots-41060/f1probe_b1.png",
+     "bytes": 1695233,
+     "file_sha16": "b764319cc3516fd9"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "7949a7b9760dba55",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1092151753,
+   "alpha_min": 255,
+   "rgb_sha16": "5068b60e09897f4d",
+   "src": [
+    {
+     "path": ".spectre/shots-74688/hl_daily_hall0.png",
+     "found_at": ".spectre/trash/shots-74688/hl_daily_hall0.png",
+     "bytes": 3219376,
+     "file_sha16": "2b5e50b85c259b6b"
+    },
+    {
+     "path": ".spectre/trash/shots-74688/hl_daily_hall0.png",
+     "found_at": ".spectre/trash/shots-74688/hl_daily_hall0.png",
+     "bytes": 3219376,
+     "file_sha16": "2b5e50b85c259b6b"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "7a81fe551fd61c50",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1329319366,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82080/dl_menu_1.png",
+     "found_at": ".spectre/trash/shots-82080/dl_menu_1.png",
+     "bytes": 1942582,
+     "file_sha16": "92e5c6ebaba26f5c"
+    },
+    {
+     "path": ".spectre/trash/shots-82080/dl_menu_1.png",
+     "found_at": ".spectre/trash/shots-82080/dl_menu_1.png",
+     "bytes": 1942582,
+     "file_sha16": "92e5c6ebaba26f5c"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7b548fd6921db5f9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1697071259,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-73800/norm_0.png",
+     "found_at": ".spectre/trash/shots-73800/norm_0.png",
+     "bytes": 2568588,
+     "file_sha16": "4bf7ee554c957b47"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "7c187c2aac2615e9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2654625124,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-63812/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-63812/arena_1_lobby.png",
+     "bytes": 2282079,
+     "file_sha16": "a2333510f3ec3f72"
+    },
+    {
+     "path": ".spectre/trash/shots-63812/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-63812/arena_1_lobby.png",
+     "bytes": 2282079,
+     "file_sha16": "a2333510f3ec3f72"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7c1b01576d3f124d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 734159270,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-53520/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-53520/dl_menu_0.png",
+     "bytes": 3626952,
+     "file_sha16": "ea55f73c80ee8264"
+    },
+    {
+     "path": ".spectre/trash/shots-53520/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-53520/dl_menu_0.png",
+     "bytes": 3626952,
+     "file_sha16": "ea55f73c80ee8264"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7d88686a5f4f164c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1736721613,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-428/rw_0.png",
+     "found_at": ".spectre/trash/shots-428/rw_0.png",
+     "bytes": 3633736,
+     "file_sha16": "35a880772f9909be"
+    },
+    {
+     "path": ".spectre/trash/shots-428/rw_0.png",
+     "found_at": ".spectre/trash/shots-428/rw_0.png",
+     "bytes": 3633736,
+     "file_sha16": "35a880772f9909be"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7dc93e5bc464fa51",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 314880716,
+   "alpha_min": 255,
+   "rgb_sha16": "a6e77d7eac3d7442",
+   "src": [
+    {
+     "path": ".spectre/shots-51424/bm_1.png",
+     "found_at": ".spectre/trash/shots-51424/bm_1.png",
+     "bytes": 3208988,
+     "file_sha16": "aa4a39283a2d7fe9"
+    },
+    {
+     "path": ".spectre/trash/shots-51424/bm_1.png",
+     "found_at": ".spectre/trash/shots-51424/bm_1.png",
+     "bytes": 3208988,
+     "file_sha16": "aa4a39283a2d7fe9"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7eb279daf8034ef1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1891551550,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/trash/shots-38632/rw_0.png",
+     "found_at": ".spectre/trash/shots-38632/rw_0.png",
+     "bytes": 3462516,
+     "file_sha16": "6de43726b8a928a3"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "7eed5b5576ca6543",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 785270402,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-37116/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-37116/dl_questpanel.png",
+     "bytes": 3445405,
+     "file_sha16": "4de25612ac701561"
+    },
+    {
+     "path": ".spectre/trash/shots-37116/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-37116/dl_questpanel.png",
+     "bytes": 3445405,
+     "file_sha16": "4de25612ac701561"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7ef259e24f8acc69",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2165451106,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42960/norm_pop3.png",
+     "found_at": ".spectre/trash/shots-42960/norm_pop3.png",
+     "bytes": 3776107,
+     "file_sha16": "1a50a3075383439e"
+    },
+    {
+     "path": ".spectre/trash/shots-42960/norm_pop3.png",
+     "found_at": ".spectre/trash/shots-42960/norm_pop3.png",
+     "bytes": 3776107,
+     "file_sha16": "1a50a3075383439e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7f0a129235b00a83",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2904479473,
+   "alpha_min": 255,
+   "rgb_sha16": "4dfee8fe6120b3a4",
+   "src": [
+    {
+     "path": ".spectre/shots-62888/arena_f1_step1.png",
+     "found_at": ".spectre/trash/shots-62888/arena_f1_step1.png",
+     "bytes": 1802897,
+     "file_sha16": "6aa2e67e0ad318e6"
+    },
+    {
+     "path": ".spectre/trash/shots-62888/arena_f1_step1.png",
+     "found_at": ".spectre/trash/shots-62888/arena_f1_step1.png",
+     "bytes": 1802897,
+     "file_sha16": "6aa2e67e0ad318e6"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "7fa778a71c3c108d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 503427621,
+   "alpha_min": 255,
+   "rgb_sha16": "98424dee2d3d1201",
+   "src": [
+    {
+     "path": ".spectre/shots-49764/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-49764/r1_0_initial.png",
+     "bytes": 2795450,
+     "file_sha16": "bed3f32be1f1b2bf"
+    },
+    {
+     "path": ".spectre/trash/shots-49764/r1_0_initial.png",
+     "found_at": ".spectre/trash/shots-49764/r1_0_initial.png",
+     "bytes": 2795450,
+     "file_sha16": "bed3f32be1f1b2bf"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "80a43b6bd8c98470",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3545514398,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_0_world.png",
+     "found_at": ".spectre/trash/shots-67544/hs_0_world.png",
+     "bytes": 3587490,
+     "file_sha16": "80c2026224cd1a12"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "81940ab7caf8f583",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3257979911,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42388/bm_1.png",
+     "found_at": ".spectre/trash/shots-42388/bm_1.png",
+     "bytes": 3865952,
+     "file_sha16": "cae577154b18e171"
+    },
+    {
+     "path": ".spectre/trash/shots-42388/bm_1.png",
+     "found_at": ".spectre/trash/shots-42388/bm_1.png",
+     "bytes": 3865952,
+     "file_sha16": "cae577154b18e171"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "8214185e0f7babe6",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1338084578,
+   "alpha_min": 255,
+   "rgb_sha16": "c46a4379a7870457",
+   "src": [
+    {
+     "path": ".spectre/shots-77760/sp_0_initial.png",
+     "found_at": ".spectre/trash/shots-77760/sp_0_initial.png",
+     "bytes": 2821870,
+     "file_sha16": "6f818efe02dcd42c"
+    },
+    {
+     "path": ".spectre/trash/shots-77760/sp_0_initial.png",
+     "found_at": ".spectre/trash/shots-77760/sp_0_initial.png",
+     "bytes": 2821870,
+     "file_sha16": "6f818efe02dcd42c"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "8332ed33eaeac6e7",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2629427427,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-25208/hu_world.png",
+     "found_at": ".spectre/shots-25208/hu_world.png",
+     "bytes": 3664491,
+     "file_sha16": "e46dd9d1e17de591"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "8335cc741e2e9aab",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2151484607,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-57584/hu_after.png",
+     "found_at": ".spectre/shots-57584/hu_after.png",
+     "bytes": 3657488,
+     "file_sha16": "8556a6d38610eded"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "84a812170e93ded9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2734634817,
+   "alpha_min": 255,
+   "rgb_sha16": "3585f00c5557fdad",
+   "src": [
+    {
+     "path": ".spectre/shots-41060/f1probe_b3.png",
+     "found_at": ".spectre/trash/shots-41060/f1probe_b3.png",
+     "bytes": 2190555,
+     "file_sha16": "841540dad0752bf5"
+    },
+    {
+     "path": ".spectre/trash/shots-41060/f1probe_b3.png",
+     "found_at": ".spectre/trash/shots-41060/f1probe_b3.png",
+     "bytes": 2190555,
+     "file_sha16": "841540dad0752bf5"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "84d84e214c8d088e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3912837584,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-47000/hs_b0_place.png",
+     "found_at": ".spectre/shots-47000/hs_b0_place.png",
+     "bytes": 3814615,
+     "file_sha16": "3aa9b80a75146e0a"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "85a6aec6fcd26aed",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 228460604,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_0_read.png",
+     "found_at": ".spectre/trash/shots-67544/hs_0_read.png",
+     "bytes": 3713799,
+     "file_sha16": "eb2bf41aa1708bed"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "85b76b710215db98",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1230377445,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-10184/bm_0.png",
+     "found_at": ".spectre/trash/shots-10184/bm_0.png",
+     "bytes": 3524937,
+     "file_sha16": "a122b0e2804580dd"
+    },
+    {
+     "path": ".spectre/trash/shots-10184/bm_0.png",
+     "found_at": ".spectre/trash/shots-10184/bm_0.png",
+     "bytes": 3524937,
+     "file_sha16": "a122b0e2804580dd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "86726d66f9c10a8d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1341194760,
+   "alpha_min": 255,
+   "rgb_sha16": "b4d22e4ebfc90aaa",
+   "src": [
+    {
+     "path": ".spectre/livecheck/hall_test2.png",
+     "found_at": ".spectre/livecheck/hall_test2.png",
+     "bytes": 2695024,
+     "file_sha16": "e5b77cfe41886de6"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "878491dce96ec4c4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1089302851,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80396/norm_final.png",
+     "found_at": ".spectre/trash/shots-80396/norm_final.png",
+     "bytes": 3736306,
+     "file_sha16": "78dedf427d983ae6"
+    },
+    {
+     "path": ".spectre/trash/shots-80396/norm_final.png",
+     "found_at": ".spectre/trash/shots-80396/norm_final.png",
+     "bytes": 3736306,
+     "file_sha16": "78dedf427d983ae6"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "885d335247c11ae2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2058311197,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82080/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-82080/dl_questpanel.png",
+     "bytes": 2870555,
+     "file_sha16": "c76611188c536f29"
+    },
+    {
+     "path": ".spectre/trash/shots-82080/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-82080/dl_questpanel.png",
+     "bytes": 2870555,
+     "file_sha16": "c76611188c536f29"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "892898a0873d71bd",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 443651703,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_f1_step5.png",
+     "found_at": ".spectre/trash/shots-52268/arena_f1_step5.png",
+     "bytes": 2419675,
+     "file_sha16": "b84c720efb842d1e"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "8a5f0568c9681781",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2488693330,
+   "alpha_min": 255,
+   "rgb_sha16": "8af1473db76a7d9e",
+   "src": [
+    {
+     "path": ".spectre/shots-readonly-122730.png",
+     "found_at": ".spectre/shots-readonly-122730.png",
+     "bytes": 3170999,
+     "file_sha16": "b94ed5e1cd8fe966"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "8aeced815514a174",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2399454892,
+   "alpha_min": 255,
+   "rgb_sha16": "75b9365cd3de8033",
+   "src": [
+    {
+     "path": ".spectre/shots-57452/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-57452/hl_daily_hall.png",
+     "bytes": 3231224,
+     "file_sha16": "242b023f026ee407"
+    },
+    {
+     "path": ".spectre/trash/shots-57452/hl_daily_hall.png",
+     "found_at": ".spectre/trash/shots-57452/hl_daily_hall.png",
+     "bytes": 3231224,
+     "file_sha16": "242b023f026ee407"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "8bcdfa9407db80e5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 469157917,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41820/dr_f1_pre1.png",
+     "found_at": ".spectre/trash/shots-41820/dr_f1_pre1.png",
+     "bytes": 3652272,
+     "file_sha16": "7a0dfa63b0edaf4e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "8e8dcf8187f6b6f3",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 728684338,
+   "alpha_min": 255,
+   "rgb_sha16": "0b882c2d6c3a51ae",
+   "src": [
+    {
+     "path": ".spectre/shots-62080/dr_f1_after0_0.png",
+     "found_at": ".spectre/trash/shots-62080/dr_f1_after0_0.png",
+     "bytes": 1669829,
+     "file_sha16": "65946c3fe06a0ddb"
+    },
+    {
+     "path": ".spectre/trash/shots-62080/dr_f1_after0_0.png",
+     "found_at": ".spectre/trash/shots-62080/dr_f1_after0_0.png",
+     "bytes": 1669829,
+     "file_sha16": "65946c3fe06a0ddb"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "8f32594a0a8ab078",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2244345333,
+   "alpha_min": 255,
+   "rgb_sha16": "3ab590b25d54253f",
+   "src": [
+    {
+     "path": ".spectre/shots-23404/dr_start.png",
+     "found_at": ".spectre/trash/shots-23404/dr_start.png",
+     "bytes": 2981848,
+     "file_sha16": "daebd2b2cc8f71f3"
+    },
+    {
+     "path": ".spectre/trash/shots-23404/dr_start.png",
+     "found_at": ".spectre/trash/shots-23404/dr_start.png",
+     "bytes": 2981848,
+     "file_sha16": "daebd2b2cc8f71f3"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "8f336e1f11cd45d2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 675175923,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41556/hu_world.png",
+     "found_at": ".spectre/shots-41556/hu_world.png",
+     "bytes": 3646663,
+     "file_sha16": "19da89641602313c"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "9021e92b282a866b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 279614931,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41892/gd_chest.png",
+     "found_at": ".spectre/shots-41892/gd_chest.png",
+     "bytes": 3657595,
+     "file_sha16": "775cf6fb68ad055d"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "90ee59114a5505e9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2559796752,
+   "alpha_min": 255,
+   "rgb_sha16": "13c68de1f855f5f1",
+   "src": [
+    {
+     "path": ".spectre/shots-57884/dr_start.png",
+     "found_at": ".spectre/trash/shots-57884/dr_start.png",
+     "bytes": 3219529,
+     "file_sha16": "ec008b63828dc855"
+    },
+    {
+     "path": ".spectre/trash/shots-57884/dr_start.png",
+     "found_at": ".spectre/trash/shots-57884/dr_start.png",
+     "bytes": 3219529,
+     "file_sha16": "ec008b63828dc855"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "90f6426bde6e4cf2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 424993711,
+   "alpha_min": 255,
+   "rgb_sha16": "8574f972a46c2fb6",
+   "src": [
+    {
+     "path": ".spectre/shots-6048/rw_3.png",
+     "found_at": ".spectre/trash/shots-6048/rw_3.png",
+     "bytes": 2940190,
+     "file_sha16": "9d6f447e47ca5fcc"
+    },
+    {
+     "path": ".spectre/trash/shots-6048/rw_3.png",
+     "found_at": ".spectre/trash/shots-6048/rw_3.png",
+     "bytes": 2940190,
+     "file_sha16": "9d6f447e47ca5fcc"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "9197742d9e4255e4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4270580471,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80396/norm_2.png",
+     "found_at": ".spectre/trash/shots-80396/norm_2.png",
+     "bytes": 3696638,
+     "file_sha16": "6273f034bd7606f5"
+    },
+    {
+     "path": ".spectre/trash/shots-80396/norm_2.png",
+     "found_at": ".spectre/trash/shots-80396/norm_2.png",
+     "bytes": 3696638,
+     "file_sha16": "6273f034bd7606f5"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "92c7d247593c0dcf",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 545211259,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/trash/shots-38632/bm_0.png",
+     "found_at": ".spectre/trash/shots-38632/bm_0.png",
+     "bytes": 3457842,
+     "file_sha16": "8b03e43922d60516"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "94849c5d0258edc9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2519248373,
+   "alpha_min": 255,
+   "rgb_sha16": "e4427f8ca1d6effd",
+   "src": [
+    {
+     "path": ".spectre/shots-49136/rw_0.png",
+     "found_at": ".spectre/trash/shots-49136/rw_0.png",
+     "bytes": 2192741,
+     "file_sha16": "368823817345640e"
+    },
+    {
+     "path": ".spectre/trash/shots-49136/rw_0.png",
+     "found_at": ".spectre/trash/shots-49136/rw_0.png",
+     "bytes": 2192741,
+     "file_sha16": "368823817345640e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "967ed8c2c491836f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1660481587,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-66556/norm_3.png",
+     "found_at": ".spectre/trash/shots-66556/norm_3.png",
+     "bytes": 3768516,
+     "file_sha16": "2de769fed5f79ead"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "974639b386bd8b57",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1164760669,
+   "alpha_min": 255,
+   "rgb_sha16": "c11dbe3c8c47be6b",
+   "src": [
+    {
+     "path": ".spectre/shots-4392/readonly-season-20261103-043509.png",
+     "found_at": ".spectre/trash/shots-4392/readonly-season-20261103-043509.png",
+     "bytes": 3136728,
+     "file_sha16": "f82c399f61ce9283"
+    },
+    {
+     "path": ".spectre/trash/shots-4392/readonly-season-20261103-043509.png",
+     "found_at": ".spectre/trash/shots-4392/readonly-season-20261103-043509.png",
+     "bytes": 3136728,
+     "file_sha16": "f82c399f61ce9283"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "976d64758e1c33b9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2873023621,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-73788/bm_2.png",
+     "found_at": ".spectre/trash/shots-73788/bm_2.png",
+     "bytes": 4302071,
+     "file_sha16": "a249603b3afe4923"
+    },
+    {
+     "path": ".spectre/trash/shots-73788/bm_2.png",
+     "found_at": ".spectre/trash/shots-73788/bm_2.png",
+     "bytes": 4302071,
+     "file_sha16": "a249603b3afe4923"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "987ebebdd51a8d62",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1052888700,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-13228/hl_daily_pre0_w3.png",
+     "found_at": ".spectre/trash/shots-13228/hl_daily_pre0_w3.png",
+     "bytes": 2810732,
+     "file_sha16": "95c2ce3e998685ed"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "991b966e8e0a56e5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4192064000,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75220/r1_1b_recover.png",
+     "found_at": ".spectre/trash/shots-75220/r1_1b_recover.png",
+     "bytes": 59252,
+     "file_sha16": "1b4af8ba245f204d"
+    },
+    {
+     "path": ".spectre/trash/shots-75220/r1_1b_recover.png",
+     "found_at": ".spectre/trash/shots-75220/r1_1b_recover.png",
+     "bytes": 59252,
+     "file_sha16": "1b4af8ba245f204d"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "99a518d8fd2567b9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4259673050,
+   "alpha_min": 255,
+   "rgb_sha16": "da3d532dfad9fd7d",
+   "src": [
+    {
+     "path": ".spectre/shots-6048/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-6048/arena_1_lobby.png",
+     "bytes": 1698010,
+     "file_sha16": "3c5a965b4d594709"
+    },
+    {
+     "path": ".spectre/trash/shots-6048/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-6048/arena_1_lobby.png",
+     "bytes": 1698010,
+     "file_sha16": "3c5a965b4d594709"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest",
+    "static"
+   ]
+  },
+  {
+   "sha16": "99c419c311ab0f79",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 90120160,
+   "alpha_min": 255,
+   "rgb_sha16": "fa20e53603e97240",
+   "src": [
+    {
+     "path": ".spectre/livecheck/after_norm.png",
+     "found_at": ".spectre/livecheck/after_norm.png",
+     "bytes": 2794852,
+     "file_sha16": "e3fdf793b61fadad"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "9a3ad11d5d41057d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1296007202,
+   "alpha_min": 255,
+   "rgb_sha16": "7398f863b624c522",
+   "src": [
+    {
+     "path": ".spectre/shots-55368/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-55368/hl_scan_hall_970.png",
+     "bytes": 3229454,
+     "file_sha16": "4937de530a026166"
+    },
+    {
+     "path": ".spectre/trash/shots-55368/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-55368/hl_scan_hall_970.png",
+     "bytes": 3229454,
+     "file_sha16": "4937de530a026166"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "9ae53a8ce4a208a0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2255320042,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41556/hu_tower.png",
+     "found_at": ".spectre/shots-41556/hu_tower.png",
+     "bytes": 3636627,
+     "file_sha16": "812d77e9cef47507"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "9b9ab1af717d7e9b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1034346333,
+   "alpha_min": 255,
+   "rgb_sha16": "3d1e22388f4eeaf8",
+   "src": [
+    {
+     "path": ".spectre/shots-61548/f1probe_select.png",
+     "found_at": ".spectre/trash/shots-61548/f1probe_select.png",
+     "bytes": 2191020,
+     "file_sha16": "e19191a782bdf334"
+    },
+    {
+     "path": ".spectre/trash/shots-61548/f1probe_select.png",
+     "found_at": ".spectre/trash/shots-61548/f1probe_select.png",
+     "bytes": 2191020,
+     "file_sha16": "e19191a782bdf334"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "9d1b9e67c798c453",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3284863854,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-2704/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-2704/r1_1_panel.png",
+     "bytes": 2276353,
+     "file_sha16": "e794902777de75bd"
+    },
+    {
+     "path": ".spectre/trash/shots-2704/r1_1_panel.png",
+     "found_at": ".spectre/trash/shots-2704/r1_1_panel.png",
+     "bytes": 2276353,
+     "file_sha16": "e794902777de75bd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "9dfabba83bf43ab7",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1473651307,
+   "alpha_min": 255,
+   "rgb_sha16": "3f8ccaee00873462",
+   "src": [
+    {
+     "path": ".spectre/shots-54624/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-54624/arena_1_after.png",
+     "bytes": 2897543,
+     "file_sha16": "7850893bc83debbb"
+    },
+    {
+     "path": ".spectre/trash/shots-54624/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-54624/arena_1_after.png",
+     "bytes": 2897543,
+     "file_sha16": "7850893bc83debbb"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "9e873b2ce1b97659",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4069214435,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-14680/hu_go.png",
+     "found_at": ".spectre/shots-14680/hu_go.png",
+     "bytes": 3603151,
+     "file_sha16": "91047cb13aa2a6cd"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "9e96f10fa68c8b7b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 61018082,
+   "alpha_min": 255,
+   "rgb_sha16": "bb18dd38940425a9",
+   "src": [
+    {
+     "path": ".spectre/livecheck/c1.png",
+     "found_at": ".spectre/livecheck/c1.png",
+     "bytes": 1073180,
+     "file_sha16": "7da4dae889a8e463"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "a409240f5c6276c4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2307587451,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-68132/hu_read.png",
+     "found_at": ".spectre/shots-68132/hu_read.png",
+     "bytes": 1516193,
+     "file_sha16": "4cf8f49744f8feb1"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "a412d9603c4c8efe",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4263456798,
+   "alpha_min": 255,
+   "rgb_sha16": "e96a0daa0ae4deff",
+   "src": [
+    {
+     "path": ".spectre/livecheck/now.png",
+     "found_at": ".spectre/livecheck/now.png",
+     "bytes": 2979225,
+     "file_sha16": "a69e48899c0c4520"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "a680baafb88d394e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1093615734,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-65688/r1_1b_recover.png",
+     "found_at": ".spectre/trash/shots-65688/r1_1b_recover.png",
+     "bytes": 2352768,
+     "file_sha16": "d989458a17f510a4"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "a907c6dd530ab513",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2753845739,
+   "alpha_min": 255,
+   "rgb_sha16": "7c71e45c1b5d180e",
+   "src": [
+    {
+     "path": ".spectre/shots-50780/rw_2.png",
+     "found_at": ".spectre/trash/shots-50780/rw_2.png",
+     "bytes": 2969338,
+     "file_sha16": "030f006338c061f8"
+    },
+    {
+     "path": ".spectre/trash/shots-50780/rw_2.png",
+     "found_at": ".spectre/trash/shots-50780/rw_2.png",
+     "bytes": 2969338,
+     "file_sha16": "030f006338c061f8"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "a9c461153c95eab8",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1073381299,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-75792/rw_1.png",
+     "found_at": ".spectre/trash/shots-75792/rw_1.png",
+     "bytes": 3595193,
+     "file_sha16": "3ff2546cad8001f5"
+    },
+    {
+     "path": ".spectre/trash/shots-75792/rw_1.png",
+     "found_at": ".spectre/trash/shots-75792/rw_1.png",
+     "bytes": 3595193,
+     "file_sha16": "3ff2546cad8001f5"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ab5af383f93cc7f4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2471847626,
+   "alpha_min": 255,
+   "rgb_sha16": "84fd7937744219a1",
+   "src": [
+    {
+     "path": ".spectre/livecheck/hub1.png",
+     "found_at": ".spectre/livecheck/hub1.png",
+     "bytes": 1077997,
+     "file_sha16": "4595580c57c15311"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ac6a5d1e7105fa7c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3343601530,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-62772/hl_entry.png",
+     "found_at": ".spectre/trash/shots-62772/hl_entry.png",
+     "bytes": 1958654,
+     "file_sha16": "56bf3423adc1d5a9"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ac7b7e305e0f8b54",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 448152042,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-9308/hu_world.png",
+     "found_at": ".spectre/shots-9308/hu_world.png",
+     "bytes": 2060022,
+     "file_sha16": "7283a3651bca7ed0"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "ad9810244fe37018",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2169092762,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-46412/tab_events.png",
+     "found_at": ".spectre/trash/shots-46412/tab_events.png",
+     "bytes": 3716440,
+     "file_sha16": "e0e644331d22511f"
+    },
+    {
+     "path": ".spectre/trash/shots-46412/tab_events.png",
+     "found_at": ".spectre/trash/shots-46412/tab_events.png",
+     "bytes": 3716440,
+     "file_sha16": "e0e644331d22511f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "adbe36a1fb988b45",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2350093337,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-54808/arena_1_start.png",
+     "found_at": ".spectre/trash/shots-54808/arena_1_start.png",
+     "bytes": 3749170,
+     "file_sha16": "2bebf168c3618302"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "add8c714095474e3",
+   "w": 560,
+   "h": 140,
+   "mode": "RGBA",
+   "crc32": 706355382,
+   "alpha_min": 255,
+   "rgb_sha16": "de38430dc3d80426",
+   "src": [
+    {
+     "path": ".spectre/shots-1915/tr_badges_2x.png",
+     "found_at": ".spectre/trash/shots-1915/tr_badges_2x.png",
+     "bytes": 40461,
+     "file_sha16": "397ebf1b96ad256a"
+    },
+    {
+     "path": ".spectre/trash/shots-1915/tr_badges_2x.png",
+     "found_at": ".spectre/trash/shots-1915/tr_badges_2x.png",
+     "bytes": 40461,
+     "file_sha16": "397ebf1b96ad256a"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "ae636c64b72ccaea",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4130199255,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-77496/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-77496/dl_menu_0.png",
+     "bytes": 3540979,
+     "file_sha16": "b7a6c2fa6418d852"
+    },
+    {
+     "path": ".spectre/trash/shots-77496/dl_menu_0.png",
+     "found_at": ".spectre/trash/shots-77496/dl_menu_0.png",
+     "bytes": 3540979,
+     "file_sha16": "b7a6c2fa6418d852"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "b007a96b946fce0f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2064410063,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-48104/hl_scan_970.png",
+     "found_at": ".spectre/trash/shots-48104/hl_scan_970.png",
+     "bytes": 2236431,
+     "file_sha16": "e4505a64414aff6f"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "b250a90ce83b024d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2949066403,
+   "alpha_min": 255,
+   "rgb_sha16": "5e042f0a5f109688",
+   "src": [
+    {
+     "path": ".spectre/shots-74688/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-74688/hl_scan_hall_970.png",
+     "bytes": 3219661,
+     "file_sha16": "4ddf7285c97c1e86"
+    },
+    {
+     "path": ".spectre/trash/shots-74688/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-74688/hl_scan_hall_970.png",
+     "bytes": 3219661,
+     "file_sha16": "4ddf7285c97c1e86"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "b399dff73669a3a8",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 4272130513,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-59732/hu_cam1.png",
+     "found_at": ".spectre/shots-59732/hu_cam1.png",
+     "bytes": 3735951,
+     "file_sha16": "9ed8e7bef9d1d7f5"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "b4696b053c3da3e0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3754249774,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-59516/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-59516/arena_1_lobby.png",
+     "bytes": 2282320,
+     "file_sha16": "9d23ce1e1abbb191"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "b4adab7354464ccc",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2699756261,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67620/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-67620/dl_questpanel.png",
+     "bytes": 2872424,
+     "file_sha16": "feaaf5cbc7dd041e"
+    },
+    {
+     "path": ".spectre/trash/shots-67620/dl_questpanel.png",
+     "found_at": ".spectre/trash/shots-67620/dl_questpanel.png",
+     "bytes": 2872424,
+     "file_sha16": "feaaf5cbc7dd041e"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "bbf0812bb51c6f93",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 566548470,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-81892/hl_entry.png",
+     "found_at": ".spectre/trash/shots-81892/hl_entry.png",
+     "bytes": 2989600,
+     "file_sha16": "50a62a5aaf73b536"
+    },
+    {
+     "path": ".spectre/trash/shots-81892/hl_entry.png",
+     "found_at": ".spectre/trash/shots-81892/hl_entry.png",
+     "bytes": 2989600,
+     "file_sha16": "50a62a5aaf73b536"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "bc572fed7bb9f1dd",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 39975792,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-79896/hs_0_menu.png",
+     "found_at": ".spectre/shots-79896/hs_0_menu.png",
+     "bytes": 3679518,
+     "file_sha16": "a17bc854a59846a5"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "bd55bfa4a2c9a787",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 551179950,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_0_menu.png",
+     "found_at": ".spectre/trash/shots-67544/hs_0_menu.png",
+     "bytes": 3714919,
+     "file_sha16": "d25fda36ec126298"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "be7e7b932bc6d872",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4251995503,
+   "alpha_min": 255,
+   "rgb_sha16": "4bf97ea58c2f7007",
+   "src": [
+    {
+     "path": ".spectre/shots-51224/zz_probe2.png",
+     "found_at": ".spectre/trash/shots-51224/zz_probe2.png",
+     "bytes": 1649416,
+     "file_sha16": "0000be7f633c4235"
+    },
+    {
+     "path": ".spectre/trash/shots-51224/zz_probe2.png",
+     "found_at": ".spectre/trash/shots-51224/zz_probe2.png",
+     "bytes": 1649416,
+     "file_sha16": "0000be7f633c4235"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c1e6390fc4f8d44e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 912544514,
+   "alpha_min": 255,
+   "rgb_sha16": "bcfd62c054eac50b",
+   "src": [
+    {
+     "path": ".spectre/shots-dreamrecheck/dr_after_2.png",
+     "found_at": ".spectre/trash/shots-dreamrecheck/dr_after_2.png",
+     "bytes": 3208010,
+     "file_sha16": "7bf13bf913ad90e8"
+    },
+    {
+     "path": ".spectre/trash/shots-dreamrecheck/dr_after_2.png",
+     "found_at": ".spectre/trash/shots-dreamrecheck/dr_after_2.png",
+     "bytes": 3208010,
+     "file_sha16": "7bf13bf913ad90e8"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c29142d6982333c5",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2277173020,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_w1.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_w1.png",
+     "bytes": 1234508,
+     "file_sha16": "15b5837758ca76e5"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "c3728e59027df530",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 935258047,
+   "alpha_min": 255,
+   "rgb_sha16": "d7d7213a9a267ef1",
+   "src": [
+    {
+     "path": ".spectre/shots-dreamrecheck/dr_after_4fights.png",
+     "found_at": ".spectre/trash/shots-dreamrecheck/dr_after_4fights.png",
+     "bytes": 3209503,
+     "file_sha16": "054949dfa14526d2"
+    },
+    {
+     "path": ".spectre/trash/shots-dreamrecheck/dr_after_4fights.png",
+     "found_at": ".spectre/trash/shots-dreamrecheck/dr_after_4fights.png",
+     "bytes": 3209503,
+     "file_sha16": "054949dfa14526d2"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c37d3ce2dbf17a5d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2079098909,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-49372/hu_read.png",
+     "found_at": ".spectre/shots-49372/hu_read.png",
+     "bytes": 1932676,
+     "file_sha16": "5488ae2d618aa1c3"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "c3cadaee1867259a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2744415255,
+   "alpha_min": 255,
+   "rgb_sha16": "11fda5bc9bcbbeac",
+   "src": [
+    {
+     "path": ".spectre/shots-67176/f1probe_final.png",
+     "found_at": ".spectre/trash/shots-67176/f1probe_final.png",
+     "bytes": 2192088,
+     "file_sha16": "741233924f4cefb1"
+    },
+    {
+     "path": ".spectre/trash/shots-67176/f1probe_final.png",
+     "found_at": ".spectre/trash/shots-67176/f1probe_final.png",
+     "bytes": 2192088,
+     "file_sha16": "741233924f4cefb1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c4fa1db6ce2be88d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1994573984,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-79040/norm_0.png",
+     "found_at": ".spectre/trash/shots-79040/norm_0.png",
+     "bytes": 3637992,
+     "file_sha16": "99ef3c45259b3cae"
+    },
+    {
+     "path": ".spectre/trash/shots-79040/norm_0.png",
+     "found_at": ".spectre/trash/shots-79040/norm_0.png",
+     "bytes": 3637992,
+     "file_sha16": "99ef3c45259b3cae"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "c5a539cd2a8bbb2b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1426091678,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-17092/hl_daily_post0.png",
+     "found_at": ".spectre/trash/shots-17092/hl_daily_post0.png",
+     "bytes": 2222620,
+     "file_sha16": "ee5949328385c23d"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "c66d716c96706a26",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1360273145,
+   "alpha_min": 255,
+   "rgb_sha16": "f42862ead60069bd",
+   "src": [
+    {
+     "path": ".spectre/shots-55124/sp_0_initial.png",
+     "found_at": ".spectre/trash/shots-55124/sp_0_initial.png",
+     "bytes": 2487580,
+     "file_sha16": "4206cfcd2a25d441"
+    },
+    {
+     "path": ".spectre/trash/shots-55124/sp_0_initial.png",
+     "found_at": ".spectre/trash/shots-55124/sp_0_initial.png",
+     "bytes": 2487580,
+     "file_sha16": "4206cfcd2a25d441"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c86d62bee3c05d0e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1659387752,
+   "alpha_min": 255,
+   "rgb_sha16": "57c8e71688a5a942",
+   "src": [
+    {
+     "path": ".spectre/shots-82560/dr_enter0_bm0.png",
+     "found_at": ".spectre/trash/shots-82560/dr_enter0_bm0.png",
+     "bytes": 3207762,
+     "file_sha16": "302aa96bf12ce116"
+    },
+    {
+     "path": ".spectre/trash/shots-82560/dr_enter0_bm0.png",
+     "found_at": ".spectre/trash/shots-82560/dr_enter0_bm0.png",
+     "bytes": 3207762,
+     "file_sha16": "302aa96bf12ce116"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "c93d818d51082c89",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1761277776,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_f1_step1.png",
+     "found_at": ".spectre/trash/shots-52268/arena_f1_step1.png",
+     "bytes": 2418972,
+     "file_sha16": "e4c7dab5d5e3fcec"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "c9e82ae303651e79",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3691805611,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-69680/norm_2.png",
+     "found_at": ".spectre/trash/shots-69680/norm_2.png",
+     "bytes": 3267092,
+     "file_sha16": "31d0f57c90381743"
+    },
+    {
+     "path": ".spectre/trash/shots-69680/norm_2.png",
+     "found_at": ".spectre/trash/shots-69680/norm_2.png",
+     "bytes": 3267092,
+     "file_sha16": "31d0f57c90381743"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "caa251fcc3962405",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 610326427,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-66808/dr_f1_chances.png",
+     "found_at": ".spectre/trash/shots-66808/dr_f1_chances.png",
+     "bytes": 3538488,
+     "file_sha16": "51056725ae7cef88"
+    },
+    {
+     "path": ".spectre/trash/shots-66808/dr_f1_chances.png",
+     "found_at": ".spectre/trash/shots-66808/dr_f1_chances.png",
+     "bytes": 3538488,
+     "file_sha16": "51056725ae7cef88"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "cab3551a00e3f162",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1763314088,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-59732/hu_world.png",
+     "found_at": ".spectre/shots-59732/hu_world.png",
+     "bytes": 3496337,
+     "file_sha16": "bf2b76865080ebc4"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "cae621b8a8aa458f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2189657356,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41820/dr_f2_w16.png",
+     "found_at": ".spectre/trash/shots-41820/dr_f2_w16.png",
+     "bytes": 4145108,
+     "file_sha16": "4b57c51db4990322"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ccc2f7a1118bb38b",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2676824793,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41632/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-41632/arena_1_lobby.png",
+     "bytes": 2337799,
+     "file_sha16": "8e5738a7ea6538ea"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "cd3e2cd363fac9c3",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3869862346,
+   "alpha_min": 255,
+   "rgb_sha16": "45c98d58ea0660fc",
+   "src": [
+    {
+     "path": ".spectre/shots-67176/f1probe_back0.png",
+     "found_at": ".spectre/trash/shots-67176/f1probe_back0.png",
+     "bytes": 2370090,
+     "file_sha16": "acddd21d3bcc3c20"
+    },
+    {
+     "path": ".spectre/trash/shots-67176/f1probe_back0.png",
+     "found_at": ".spectre/trash/shots-67176/f1probe_back0.png",
+     "bytes": 2370090,
+     "file_sha16": "acddd21d3bcc3c20"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "ce9b22ccd00fc195",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3743976966,
+   "alpha_min": 255,
+   "rgb_sha16": "66040eb846e01817",
+   "src": [
+    {
+     "path": ".spectre/shots-68548/hl_entry.png",
+     "found_at": ".spectre/trash/shots-68548/hl_entry.png",
+     "bytes": 3205204,
+     "file_sha16": "7c2738c145cf5cb1"
+    },
+    {
+     "path": ".spectre/trash/shots-68548/hl_entry.png",
+     "found_at": ".spectre/trash/shots-68548/hl_entry.png",
+     "bytes": 3205204,
+     "file_sha16": "7c2738c145cf5cb1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "d44983c0ed701c7d",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 285971190,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_chances.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_chances.png",
+     "bytes": 3546283,
+     "file_sha16": "1eed67b2af9f5d76"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "d5a692520d714ec0",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1917136881,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-54424/norm_0.png",
+     "found_at": ".spectre/trash/shots-54424/norm_0.png",
+     "bytes": 2340510,
+     "file_sha16": "5aeb7f9fcd4b1e54"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "d5bc3a31fa33ea09",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 253851311,
+   "alpha_min": 255,
+   "rgb_sha16": "8fc1e1fc72bd2970",
+   "src": [
+    {
+     "path": ".spectre/shots-50780/bm_0.png",
+     "found_at": ".spectre/trash/shots-50780/bm_0.png",
+     "bytes": 2953403,
+     "file_sha16": "ca07684b126fcd66"
+    },
+    {
+     "path": ".spectre/trash/shots-50780/bm_0.png",
+     "found_at": ".spectre/trash/shots-50780/bm_0.png",
+     "bytes": 2953403,
+     "file_sha16": "ca07684b126fcd66"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "d5fb7ee80de2b91c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2481401704,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_b0_place.png",
+     "found_at": ".spectre/trash/shots-67544/hs_b0_place.png",
+     "bytes": 3711465,
+     "file_sha16": "a5be74c8348be48b"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "d7f1a0ce9bcd267c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3369334661,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42960/norm_0.png",
+     "found_at": ".spectre/trash/shots-42960/norm_0.png",
+     "bytes": 4301933,
+     "file_sha16": "5a123b541bb571ab"
+    },
+    {
+     "path": ".spectre/trash/shots-42960/norm_0.png",
+     "found_at": ".spectre/trash/shots-42960/norm_0.png",
+     "bytes": 4301933,
+     "file_sha16": "5a123b541bb571ab"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "d83513ef66653f57",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3324986903,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41228/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-41228/r1_1a_popup.png",
+     "bytes": 1938052,
+     "file_sha16": "459e85c562b20fcd"
+    },
+    {
+     "path": ".spectre/trash/shots-41228/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-41228/r1_1a_popup.png",
+     "bytes": 1938052,
+     "file_sha16": "459e85c562b20fcd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "db0ed46e82e3d44a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4279853610,
+   "alpha_min": 255,
+   "rgb_sha16": "eb0fbd9bceeaa441",
+   "src": [
+    {
+     "path": ".spectre/shots-57452/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-57452/hl_scan_hall_970.png",
+     "bytes": 3231575,
+     "file_sha16": "9f3de799cb4dce74"
+    },
+    {
+     "path": ".spectre/trash/shots-57452/hl_scan_hall_970.png",
+     "found_at": ".spectre/trash/shots-57452/hl_scan_hall_970.png",
+     "bytes": 3231575,
+     "file_sha16": "9f3de799cb4dce74"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "db3ec38c8069ee79",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1829759808,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42960/norm_2.png",
+     "found_at": ".spectre/trash/shots-42960/norm_2.png",
+     "bytes": 2081640,
+     "file_sha16": "83b115417d011cca"
+    },
+    {
+     "path": ".spectre/trash/shots-42960/norm_2.png",
+     "found_at": ".spectre/trash/shots-42960/norm_2.png",
+     "bytes": 2081640,
+     "file_sha16": "83b115417d011cca"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "dc921c4b290a2167",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1050332867,
+   "alpha_min": 255,
+   "rgb_sha16": "82daf29aa3f3688b",
+   "src": [
+    {
+     "path": ".spectre/shots-adbtest/pre-state.png",
+     "found_at": ".spectre/trash/shots-adbtest/pre-state.png",
+     "bytes": 2485836,
+     "file_sha16": "d43440729b38b391"
+    },
+    {
+     "path": ".spectre/trash/shots-adbtest/pre-state.png",
+     "found_at": ".spectre/trash/shots-adbtest/pre-state.png",
+     "bytes": 2485836,
+     "file_sha16": "d43440729b38b391"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "dd7ea89ffa4346b9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 240541463,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-13228/hl_scan_850.png",
+     "found_at": ".spectre/trash/shots-13228/hl_scan_850.png",
+     "bytes": 2811248,
+     "file_sha16": "0cbdabd08f17e3bf"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "dda5102e3b8f7771",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 88861622,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-81308/norm_0.png",
+     "found_at": ".spectre/trash/shots-81308/norm_0.png",
+     "bytes": 2988183,
+     "file_sha16": "9911d7fe07490cb2"
+    },
+    {
+     "path": ".spectre/trash/shots-81308/norm_0.png",
+     "found_at": ".spectre/trash/shots-81308/norm_0.png",
+     "bytes": 2988183,
+     "file_sha16": "9911d7fe07490cb2"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ddb5ec0c21507bcc",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 1592264625,
+   "alpha_min": 255,
+   "rgb_sha16": "ec933dc10887bb30",
+   "src": [
+    {
+     "path": ".spectre/shots-42200/rw_0.png",
+     "found_at": ".spectre/trash/shots-42200/rw_0.png",
+     "bytes": 2967233,
+     "file_sha16": "215e6856ff9fedaa"
+    },
+    {
+     "path": ".spectre/trash/shots-42200/rw_0.png",
+     "found_at": ".spectre/trash/shots-42200/rw_0.png",
+     "bytes": 2967233,
+     "file_sha16": "215e6856ff9fedaa"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "ddcb11131fea7960",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2332596192,
+   "alpha_min": 255,
+   "rgb_sha16": "25538944ceadc8d4",
+   "src": [
+    {
+     "path": ".spectre/shots-54120/norm_final.png",
+     "found_at": ".spectre/trash/shots-54120/norm_final.png",
+     "bytes": 279786,
+     "file_sha16": "6b012de39f2495bd"
+    },
+    {
+     "path": ".spectre/trash/shots-54120/norm_final.png",
+     "found_at": ".spectre/trash/shots-54120/norm_final.png",
+     "bytes": 279786,
+     "file_sha16": "6b012de39f2495bd"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "de2fa8ae679e9298",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2801629015,
+   "alpha_min": 255,
+   "rgb_sha16": "494822f48cafa527",
+   "src": [
+    {
+     "path": ".spectre/livecheck/world1.png",
+     "found_at": ".spectre/livecheck/world1.png",
+     "bytes": 3152151,
+     "file_sha16": "c80f538bce8aa400"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "dfc26be5c27438a2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 502155899,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-42388/rw_0.png",
+     "found_at": ".spectre/trash/shots-42388/rw_0.png",
+     "bytes": 3480351,
+     "file_sha16": "76dc122622675795"
+    },
+    {
+     "path": ".spectre/trash/shots-42388/rw_0.png",
+     "found_at": ".spectre/trash/shots-42388/rw_0.png",
+     "bytes": 3480351,
+     "file_sha16": "76dc122622675795"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "dff3092be976d90a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2382044726,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-67544/hs_1_read.png",
+     "found_at": ".spectre/trash/shots-67544/hs_1_read.png",
+     "bytes": 3824234,
+     "file_sha16": "57baccef9afb645b"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "e1a550707b63ea57",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 341637705,
+   "alpha_min": 255,
+   "rgb_sha16": "7b6e7d79c37a62f0",
+   "src": [
+    {
+     "path": ".spectre/shots-69252/hl_entry.png",
+     "found_at": ".spectre/trash/shots-69252/hl_entry.png",
+     "bytes": 3215074,
+     "file_sha16": "bebb110dbc87e13b"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "e1fe1c5eb4f0ada2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1019497432,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-66808/dr_f1_prewait1.png",
+     "found_at": ".spectre/trash/shots-66808/dr_f1_prewait1.png",
+     "bytes": 3585178,
+     "file_sha16": "ae3c63bd5e1d99a7"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "e2c3f75b69d8c597",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 46908296,
+   "alpha_min": 255,
+   "rgb_sha16": "c0a23734718361fb",
+   "src": [
+    {
+     "path": ".spectre/shots-68368/rw_0.png",
+     "found_at": ".spectre/trash/shots-68368/rw_0.png",
+     "bytes": 2989566,
+     "file_sha16": "d680416cccf1dc5c"
+    },
+    {
+     "path": ".spectre/trash/shots-68368/rw_0.png",
+     "found_at": ".spectre/trash/shots-68368/rw_0.png",
+     "bytes": 2989566,
+     "file_sha16": "d680416cccf1dc5c"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "e2e6b6e0e5fe6fe4",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1245250643,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41820/dr_f1_w0.png",
+     "found_at": ".spectre/trash/shots-41820/dr_f1_w0.png",
+     "bytes": 3589260,
+     "file_sha16": "b3da474a7f81c247"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "e468d82ee26d023f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3531347383,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41892/gd_store.png",
+     "found_at": ".spectre/shots-41892/gd_store.png",
+     "bytes": 4458538,
+     "file_sha16": "1ade6fb9704f977e"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "e6362f0abdf51c1f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 62434550,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-41892/gd_hall3.png",
+     "found_at": ".spectre/shots-41892/gd_hall3.png",
+     "bytes": 3940808,
+     "file_sha16": "784dbc9cda717018"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "e6b85070e85f6c8c",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 975688518,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-57584/hu_go.png",
+     "found_at": ".spectre/shots-57584/hu_go.png",
+     "bytes": 3644642,
+     "file_sha16": "363eb153949e0a2b"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "e6c47bfdfca0c588",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3392628080,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-10184/rw_0.png",
+     "found_at": ".spectre/trash/shots-10184/rw_0.png",
+     "bytes": 3524379,
+     "file_sha16": "3477760fb08fa911"
+    },
+    {
+     "path": ".spectre/trash/shots-10184/rw_0.png",
+     "found_at": ".spectre/trash/shots-10184/rw_0.png",
+     "bytes": 3524379,
+     "file_sha16": "3477760fb08fa911"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "e6f4dfa4e782d60a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 308499310,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-66656/arena_1_start.png",
+     "found_at": ".spectre/trash/shots-66656/arena_1_start.png",
+     "bytes": 3756819,
+     "file_sha16": "99938216626fe11f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "e70cce3f6ca2c707",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 545745129,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-54808/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-54808/arena_1_lobby.png",
+     "bytes": 2352567,
+     "file_sha16": "439d0963bc79a738"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "e7af434d41e012be",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 543015661,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-80660/norm_3.png",
+     "found_at": ".spectre/trash/shots-80660/norm_3.png",
+     "bytes": 3866849,
+     "file_sha16": "1e9e105f11e04135"
+    },
+    {
+     "path": ".spectre/trash/shots-80660/norm_3.png",
+     "found_at": ".spectre/trash/shots-80660/norm_3.png",
+     "bytes": 3866849,
+     "file_sha16": "1e9e105f11e04135"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "e8fc54dff7509fc9",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 2893373178,
+   "alpha_min": 255,
+   "rgb_sha16": "b57d4c485bc8a997",
+   "src": [
+    {
+     "path": ".spectre/shots-80832/dr_start.png",
+     "found_at": ".spectre/trash/shots-80832/dr_start.png",
+     "bytes": 3219597,
+     "file_sha16": "8801f6bac219c846"
+    },
+    {
+     "path": ".spectre/trash/shots-80832/dr_start.png",
+     "found_at": ".spectre/trash/shots-80832/dr_start.png",
+     "bytes": 3219597,
+     "file_sha16": "8801f6bac219c846"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "e947485a9e9a4d43",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1380375886,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-52268/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-52268/arena_1_lobby.png",
+     "bytes": 2287672,
+     "file_sha16": "149d67e8ab825373"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "ea12d06f6ec8f2b2",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1778274729,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-66656/arena_1_lobby.png",
+     "found_at": ".spectre/trash/shots-66656/arena_1_lobby.png",
+     "bytes": 2345312,
+     "file_sha16": "376357cdde610fef"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "eaac6a23e2471f00",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3171929559,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-57584/hu_world.png",
+     "found_at": ".spectre/shots-57584/hu_world.png",
+     "bytes": 3636836,
+     "file_sha16": "23aa5aa6f3de02c2"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "ebfca406f38d1139",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2825963933,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-60424/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-60424/r1_1a_popup.png",
+     "bytes": 3748406,
+     "file_sha16": "2fc55bfce6f7e29c"
+    },
+    {
+     "path": ".spectre/trash/shots-60424/r1_1a_popup.png",
+     "found_at": ".spectre/trash/shots-60424/r1_1a_popup.png",
+     "bytes": 3748406,
+     "file_sha16": "2fc55bfce6f7e29c"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ec82ab70325d1e60",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3071256643,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82892/hu_world.png",
+     "found_at": ".spectre/shots-82892/hu_world.png",
+     "bytes": 1892335,
+     "file_sha16": "e54fd0a6204c8a8c"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "ee647977e9099190",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1938038875,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-44432/dg_panel.png",
+     "found_at": ".spectre/trash/shots-44432/dg_panel.png",
+     "bytes": 3334499,
+     "file_sha16": "9d47bf52144b2b50"
+    },
+    {
+     "path": ".spectre/trash/shots-44432/dg_panel.png",
+     "found_at": ".spectre/trash/shots-44432/dg_panel.png",
+     "bytes": 3334499,
+     "file_sha16": "9d47bf52144b2b50"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "eecba83985ca17b3",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2027814958,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-82200/arena_exit2.png",
+     "found_at": ".spectre/trash/shots-82200/arena_exit2.png",
+     "bytes": 2348515,
+     "file_sha16": "408847e4988ab5a5"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "ef6f014ccc85bce1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3977769071,
+   "alpha_min": 255,
+   "rgb_sha16": "c91c49aa79d3261a",
+   "src": [
+    {
+     "path": ".spectre/shots-49764/r1_4_after.png",
+     "found_at": ".spectre/trash/shots-49764/r1_4_after.png",
+     "bytes": 1535942,
+     "file_sha16": "21dd7cad11d4015c"
+    },
+    {
+     "path": ".spectre/trash/shots-49764/r1_4_after.png",
+     "found_at": ".spectre/trash/shots-49764/r1_4_after.png",
+     "bytes": 1535942,
+     "file_sha16": "21dd7cad11d4015c"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "f023dd6379c66601",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 970783551,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-17092/hl_scan_1090.png",
+     "found_at": ".spectre/trash/shots-17092/hl_scan_1090.png",
+     "bytes": 2264597,
+     "file_sha16": "a11aed095f57537b"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "f3df762703e4ad82",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3205171106,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-79700/norm_0.png",
+     "found_at": ".spectre/trash/shots-79700/norm_0.png",
+     "bytes": 2823156,
+     "file_sha16": "f5ce628b29be3e58"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "f5ba172a7e635e9a",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 719173536,
+   "alpha_min": 255,
+   "rgb_sha16": "ba2eea24db413020",
+   "src": [
+    {
+     "path": ".spectre/shots-6048/rw_0.png",
+     "found_at": ".spectre/trash/shots-6048/rw_0.png",
+     "bytes": 3107619,
+     "file_sha16": "155b693255b5230f"
+    },
+    {
+     "path": ".spectre/trash/shots-6048/rw_0.png",
+     "found_at": ".spectre/trash/shots-6048/rw_0.png",
+     "bytes": 3107619,
+     "file_sha16": "155b693255b5230f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "f7f57a0be2d15a23",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 674280378,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-13684/dr_start.png",
+     "found_at": ".spectre/trash/shots-13684/dr_start.png",
+     "bytes": 2343905,
+     "file_sha16": "e521d615cc48f20f"
+    },
+    {
+     "path": ".spectre/trash/shots-13684/dr_start.png",
+     "found_at": ".spectre/trash/shots-13684/dr_start.png",
+     "bytes": 2343905,
+     "file_sha16": "e521d615cc48f20f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "f9d39568508bb3f1",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 3822054312,
+   "alpha_min": 255,
+   "rgb_sha16": "077fb6cbcbdac5a2",
+   "src": [
+    {
+     "path": ".spectre/shots-42200/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-42200/arena_1_after.png",
+     "bytes": 2888150,
+     "file_sha16": "c0aca30c982ba098"
+    },
+    {
+     "path": ".spectre/trash/shots-42200/arena_1_after.png",
+     "found_at": ".spectre/trash/shots-42200/arena_1_after.png",
+     "bytes": 2888150,
+     "file_sha16": "c0aca30c982ba098"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "fd275b4c1d58070e",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 4282113820,
+   "alpha_min": 255,
+   "rgb_sha16": "f27b184529a803da",
+   "src": [
+    {
+     "path": ".spectre/shots-51664/f1probe_0.png",
+     "found_at": ".spectre/trash/shots-51664/f1probe_0.png",
+     "bytes": 2954166,
+     "file_sha16": "ce573d71712cd12b"
+    },
+    {
+     "path": ".spectre/trash/shots-51664/f1probe_0.png",
+     "found_at": ".spectre/trash/shots-51664/f1probe_0.png",
+     "bytes": 2954166,
+     "file_sha16": "ce573d71712cd12b"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "manifest"
+   ]
+  },
+  {
+   "sha16": "fdfdd8ec476fcc12",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 2062043564,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-68276/hs_0_read.png",
+     "found_at": ".spectre/trash/shots-68276/hs_0_read.png",
+     "bytes": 3861319,
+     "file_sha16": "02ca2a73758fea17"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "fe0e18c78ea20faa",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1490266479,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-10184/bm_1.png",
+     "found_at": ".spectre/trash/shots-10184/bm_1.png",
+     "bytes": 4318116,
+     "file_sha16": "978adf6bd6faca49"
+    },
+    {
+     "path": ".spectre/trash/shots-10184/bm_1.png",
+     "found_at": ".spectre/trash/shots-10184/bm_1.png",
+     "bytes": 4318116,
+     "file_sha16": "978adf6bd6faca49"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "fe2bb1cc7f20161f",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 561839674,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-46412/tab_back.png",
+     "found_at": ".spectre/trash/shots-46412/tab_back.png",
+     "bytes": 3865127,
+     "file_sha16": "43d46d879fe708a1"
+    },
+    {
+     "path": ".spectre/trash/shots-46412/tab_back.png",
+     "found_at": ".spectre/trash/shots-46412/tab_back.png",
+     "bytes": 3865127,
+     "file_sha16": "43d46d879fe708a1"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "fe80cac1478ac1ce",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGBA",
+   "crc32": 599237638,
+   "alpha_min": 255,
+   "rgb_sha16": "bf33a0823b35076d",
+   "src": [
+    {
+     "path": ".spectre/shots-69252/hl_scan_hall_850.png",
+     "found_at": ".spectre/trash/shots-69252/hl_scan_hall_850.png",
+     "bytes": 3214483,
+     "file_sha16": "1451cb35a1ee2abe"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  },
+  {
+   "sha16": "fe9d2d9f22a7e9ec",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 3910414418,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-70368/norm_0.png",
+     "found_at": ".spectre/trash/shots-70368/norm_0.png",
+     "bytes": 2024960,
+     "file_sha16": "23d717c6844fee1f"
+    },
+    {
+     "path": ".spectre/trash/shots-70368/norm_0.png",
+     "found_at": ".spectre/trash/shots-70368/norm_0.png",
+     "bytes": 2024960,
+     "file_sha16": "23d717c6844fee1f"
+    }
+   ],
+   "how": [
+    "dynamic",
+    "static"
+   ]
+  },
+  {
+   "sha16": "feca38a68d4be264",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1336323393,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-68276/hs_0_menu.png",
+     "found_at": ".spectre/trash/shots-68276/hs_0_menu.png",
+     "bytes": 3859615,
+     "file_sha16": "3a0313239ab54493"
+    }
+   ],
+   "how": [
+    "dynamic"
+   ]
+  },
+  {
+   "sha16": "ff4b254fd3e12ffa",
+   "w": 1920,
+   "h": 1080,
+   "mode": "RGB",
+   "crc32": 1525481336,
+   "alpha_min": null,
+   "rgb_sha16": null,
+   "src": [
+    {
+     "path": ".spectre/shots-72816/dr_f1_w3.png",
+     "found_at": ".spectre/trash/shots-72816/dr_f1_w3.png",
+     "bytes": 2217052,
+     "file_sha16": "d58b49fcbb7f2421"
+    }
+   ],
+   "how": [
+    "static"
+   ]
+  }
+ ]
+}

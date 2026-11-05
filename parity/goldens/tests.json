@@ -1,0 +1,4470 @@
+{
+ "conflicts": [],
+ "counts": {
+  "calls_impure": 111,
+  "calls_mutating": 0,
+  "calls_opaque": 0,
+  "calls_recorded": 1362,
+  "events_opaque": 14,
+  "patches_wrapped": 2626
+ },
+ "flow_events": 10802,
+ "flow_records": 655,
+ "flow_records_taps_mismatch": 5,
+ "flow_records_without_device": 128,
+ "header": {
+  "git_head": "222be8c986bf77a83d265e117b18c48b102f35a9",
+  "ocr_ps1_sha": "3c592d504cec2781",
+  "pillow": "12.2.0",
+  "py_tree": "03cc13204eef9bbf",
+  "python": "3.14.3",
+  "v": 1,
+  "windows_build": "10.0.26300"
+ },
+ "installed": {
+  "bot_modules": 25,
+  "calls": 88,
+  "devices": 14,
+  "entries": 22
+ },
+ "overlay": {
+  "hidden": [
+   "after_claim.png",
+   "ar4.png",
+   "bm_hub_frame.png",
+   "game_boot.png",
+   "hall.png",
+   "screens/arena_debug1.png",
+   "shots-14672/bm_0.png",
+   "shots-17856/dl_final.png",
+   "shots-20408/sp_0_initial.png",
+   "shots-24812/dr_start.png",
+   "shots-30096/sp_auto_19.png",
+   "shots-33404/dr_rec1_4.png",
+   "shots-34228/t44_world.png",
+   "shots-40256/sp_wait.png",
+   "shots-43184/hl_daily_post0.png",
+   "shots-48392/dr_hub.png",
+   "shots-4844/sp_0_initial.png",
+   "shots-49936/sp_auto_244.png",
+   "shots-49936/sp_auto_3.png",
+   "shots-76112/dg_cam_3.png",
+   "shots-76112/dg_cam_4.png",
+   "shots-77952/fix_intro_0.png",
+   "shots-77952/fix_intro_1.png",
+   "shots-77952/fix_intro_2.png",
+   "shots-77952/fix_intro_3.png",
+   "shots-79852/dg_cam_3.png",
+   "shots/arena_0_initial.png",
+   "shots/arena_1_after.png",
+   "shots/arena_p1_pre.png",
+   "shots/t28_fight_end1.png",
+   "trash/bm_hub_frame.png",
+   "trash/world_banner_frame.png",
+   "trash/world_now.png",
+   "world4.png",
+   "world_banner_frame.png",
+   "world_now.png"
+  ],
+  "live_other": [
+   "shots-43184"
+  ],
+  "mapped": 353,
+  "served": 233
+ },
+ "spectre_writes_blocked": [],
+ "suite": {
+  "errors": 0,
+  "failures": 2,
+  "skipped": 31,
+  "tests_run": 1005
+ },
+ "tests": {
+  "test_adb_bench.Bench.test_adb_failure": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_adb_bench.Bench.test_percentile": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_adb_bench.Bench.test_screencap_only_needs_no_gate": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_adb_bench.Bench.test_table": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_adb_bench.Bench.test_tap_refused_off_world": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_duras_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_duras_not_cleared_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_duras_once_per_day_over_two_runs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_duras_runs_once_after_claims_before_stage_push": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_duras_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_guild_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_guild_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_guild_runs_once_after_homestead_requests": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_guild_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_homestead_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_homestead_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_homestead_runs_once_after_duras_before_stage_push": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_homestead_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_later_gameplay_failure_is_reported_while_remaining_phases_run": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_leveling_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_leveling_once_per_day_over_two_runs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_leveling_runs_once_with_level_flag_before_stage_push": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_leveling_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_normalizer_failure_aborts_gameplay_and_reaches_task_scheduler": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_requests_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_requests_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_requests_run_once_after_homestead_upgrade": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_requests_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_resources_out_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_upgrade_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_upgrade_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_upgrade_runs_once_after_homestead_build": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.DailyWrapperExitCode.test_upgrade_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_events_lock_held_retries": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_events_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_events_runs_once_after_guild": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_events_stuck_is_soft_and_not_retried_today": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_events_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_invalid_poll_falls_back_to_60": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_leading_zero_poll_is_decimal": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_legend_trial_failure_is_soft": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_legend_trial_nothing_to_do_marks_the_day": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_legend_trial_runs_once_after_guild": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_legend_trial_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_manual_run_never_waits": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_misplaced_wait_timeout_is_rejected_not_manual": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_no_idle_window_exits_5_without_any_phase": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_non_numeric_wait_timeout_is_rejected": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_progress_mode_waits_too": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_scheduled_waits_for_idle_then_runs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_unknown_argument_is_rejected": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_unknown_idle_does_not_wait": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_user_back_after_claims_stops_daily_gameplay": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_daily_exit_code.ScheduledIdleWait.test_wait_timeout_flag_zero_skips_immediately": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TConsumer.test_dailies_power_gate_uses_afk_memory": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_bundled_yaml_entry": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_cache_within_ttl_then_expires": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_fail_not_cached_and_state_offset_used": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_happy_path": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_out_of_range_or_broken_mirror_is_invalid": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_show_prints_gold": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TGold.test_show_takes_base_from_state_only_for_same_pid": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TPower.test_drift_window_single_rule": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TPower.test_fail_not_cached": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TPower.test_no_read_batch_falls_back_to_classic_dumps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TPower.test_same_verdict_as_classic_reads": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TPower.test_u32_entry_ok_in_one_process_run": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TRollout.test_consumers_call_afk_memory_power": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TRollout.test_no_script_reads_power_offsets_directly": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TSnapshot.test_failures_return_empty_and_are_not_cached": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TSnapshot.test_one_call_cached_then_expires": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_afk_memory.TSnapshot.test_slot_yaml_offsets": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_afk_night_exit_code.NightWrapperExitCode.test_stage_push_failure_is_returned_to_task_launcher": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.RealFrames.test_challenge_tap_lies_on_the_bar": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.RealFrames.test_lobby": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.RealFrames.test_lookalikes": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.RealFrames.test_main_passes_the_live_lobby": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.Synthetic.test_each_gate_is_needed": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.Synthetic.test_fake_lobby": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_lobby.Synthetic.test_fake_lookalikes": {
+   "calls": 8,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_advance_presses_challenge_on_the_detail_view": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_advance_taps_the_sword": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_detail": {
+   "calls": 9,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_exit_from_detail": {
+   "calls": 13,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_exit_from_select": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_normalize_from_detail": {
+   "calls": 22,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_normalize_from_select": {
+   "calls": 7,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_normalize_pressed_lobby_skips_the_resolver": {
+   "calls": 14,
+   "flows": 1,
+   "outcome": "fail"
+  },
+  "test_arena_select.RealFrames.test_not_select": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_select": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_select.RealFrames.test_tap_spots": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_real_detail_select_lobby_uses_the_whole_budget": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_real_normalize_does_not_retap_after_the_recovery": {
+   "calls": 11,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_real_normalize_on_select_stuck": {
+   "calls": 7,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_real_pressed_lobby_is_waited_not_retapped": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "fail"
+  },
+  "test_arena_select.RoundStart.test_real_select_lobby_modes_world_claim": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_real_stuck_select_ends_within_the_budget": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_synthetic_arena_taps_share_the_budget": {
+   "calls": 20,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_synthetic_select_lobby_modes_world_claim": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.RoundStart.test_synthetic_stuck_select": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_advance_select_sword_prep": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_arena_taps_count_toward_the_recover_budget": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_exit_select_lobby_modes_world": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_normalize_arena_is_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_normalize_lobby": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_normalize_select_and_lobby": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_normalize_stale_select_still_backs_the_lobby": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_old_layout_keeps_the_card_tap": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_select.Synthetic.test_states": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_continue_has_no_pill": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_main_challenges_with_tickets_left": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_main_stops_at_zero_without_challenge": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_tickets_left": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_tickets_left_hermes_wide_lobby": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.RealFrames.test_zero_tickets": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_arena_supreme.Synthetic.test_fake_lobby_has_no_pill": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_backup_keeps_the_original_and_restore": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_bad_input": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_conf_not_found": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_crlf_kept": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_find_conf_env_and_programdata": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_high_fps_warning": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_running_player_warns": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_set_touches_only_the_instance_key": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.FpsTool.test_show": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.SetFpsDupKeys.test_all_occurrences_replaced": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bluestacks_fps.SetFpsDupKeys.test_missing_key_raises": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_acquire_free_lock_writes_own_pid": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_acquire_fresh_foreign_lock_refuses": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_acquire_respects_custom_stale_threshold": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_acquire_stale_lock_takes_over": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_describe_reports_owner_and_age": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_release_removes_only_own_lock": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockSemantics.test_wrapper_env_bypasses_lock": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockWiring.test_direct_scripts_wired": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockWiring.test_hero_level_gate_precedes_navigation": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.BotLockWiring.test_wrappers_export_held_env": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_bot_lock.HeroLevelLockBehaviour.test_fresh_foreign_lock_exits_7_without_any_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bot_lock.HeroLevelLockBehaviour.test_stale_lock_is_taken_over": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_bot_lock.HeroLevelLockBehaviour.test_wrapper_held_env_proceeds_and_keeps_the_foreign_lock": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_big_box_is_the_hand_level": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_blocked_hand_is_skipped_for_the_next": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_charge_adb_failure_raises_like_tap": {
+   "flows": 1,
+   "outcome": "ok",
+   "taps_mismatch_flows": 1
+  },
+  "test_daily_leveling.DailyCharge.test_charge_is_one_single_tap": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_exactly_one_charge_on_the_lowest_hand": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_gate_resources_short_no_charge": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_live_8138k_gold_is_covered_not_short": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_no_effect_is_soft_skip": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_purchase_dialog_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_scan_fails_uses_last_known_hand": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.DailyCharge.test_unreadable_detail_soft_skips_without_charge": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.ResourceGate.test_real_detail_ocr": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_daily_leveling.ResourceGate.test_short_and_unknown": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceEnsureSh.test_ensure_exit_codes_pass_through": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceEnsureSh.test_game_not_installed": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceEnsureSh.test_unknown_argument": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceReady.test_loading_then_title_then_world": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceReady.test_login_popup_claimed": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceReady.test_other_popup_gets_back": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_device_ensure.DeviceReady.test_timeout_falls_back_to_normalize": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_ensure_fail_is_a_warning_and_the_normal_check_decides": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_ensure_ok_then_normal_run": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_ensure_skipped_by_idle_gate": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_ensure_timeout_env_override": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_ensure_timeout_value_is_pinned": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_game_reachable_no_ensure": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_manual_watch_run_forces": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_device_ensure_wiring.EnsureWiring.test_switch_off": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.NormalizePrep.test_claim_round_backs_out_of_the_prep": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.NormalizePrep.test_prep_back_is_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.NormalizePrep.test_prep_back_then_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_back_arrow_is_on_the_button": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_boss_page_is_boss": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_live_sequence_taps_boss_then_prep_bar": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_lookalikes_are_neither": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_normalize_backs_out_of_the_real_prep": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_prep_is_its_own_state": {
+   "calls": 7,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.RealFrames.test_prep_tap_lies_on_the_battle_bar": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.SyntheticPrep.test_dream_reach_world_backs_out_of_prep": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.SyntheticPrep.test_fake_boss_is_not_dr_prep": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.SyntheticPrep.test_fake_prep_classifies": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_dream_prep.SyntheticPrep.test_run_from_prep_is_inside_dream_realm": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_dream_prep.SyntheticPrep.test_start_fight_on_prep_taps_the_bar": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_battle_modes_not_open_stays_1": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_card_found_after_swipes_is_not_tapped_blind": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_coming_soon_is_soft_4": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_dry_run_reads_only": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep": {
+   "calls": 16,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_first_clear_fails_bounded_tokens_stay": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_menu_ocr_empty_is_stuck_not_done": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_no_prep_screen_after_challenge_never_taps_fight": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_no_result_card_is_stuck_not_done": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_not_in_menu_after_max_swipes_is_soft_4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_sweep_count_mismatch_stops": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_sweep_dialog_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_sweep_until_zero": {
+   "calls": 8,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_tap_lock_held_skips_without_taps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_unknown_screen_aborts_without_taps": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Duras.test_unknown_screen_after_fight_is_stuck_not_done": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_duras.Parsers.test_floor_and_cleared": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_duras.Parsers.test_result_cards_classify": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_duras.Parsers.test_tokens": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_badge_strip": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_card_badges_real_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_events_list_real_frames": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_events_list_synthetic": {
+   "calls": 7,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_not_events_list_real_frames": {
+   "calls": 7,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_read_cards_real_ocr": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_row_assignment_tolerance": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_stage2_guard": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_tab_badge_and_layout": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Detectors.test_titles_and_timers": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_badge_off_world_not_reached": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_badge_on_a_paid_title_is_logged_never_opened": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_events_tap_dead_leaves_the_menu": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_full_read_only_tour": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_layout_b_list_through_main": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_layout_b_menu_proceeds": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_leave_world_not_reached": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_list_never_verified_stops": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_lock_held": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_menu_never_opens": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_menu_reopened_on_events_reads_directly": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_no_card_badge_is_nothing_to_do": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_pc_in_use": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_routines_tab_dead_stops_on_the_list": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_tab_badge_off_skips_the_events_tab": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.Flow.test_world_not_reached_is_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_events.StageTwoNotes.test_hermes_event_facts": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_fast_shots.OcrRegion.test_crop_is_the_box": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_fast_shots.OcrRegion.test_missing_shot_is_empty": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_fast_shots.OcrRegion.test_slot_level_reads_the_upscaled_box": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_fast_shots.RawParse.test_both_header_sizes": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_fast_shots.RawParse.test_rejects_wrong_size_or_format": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_fast_shots.Shot.test_png_fallback_failure_still_raises": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_fast_shots.Shot.test_png_fallback_when_raw_is_not_raw": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_fast_shots.Shot.test_raw_fast_path_saves_png_for_ocr": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.ClaimFlow.test_dry_run_world_taps_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.ClaimFlow.test_happy_path": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.ClaimFlow.test_login_popup_claimed_then_chest": {
+   "calls": 8,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.ClaimFlow.test_nothing_claimable": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.ClaimFlow.test_unknown_screen_refuses_to_tap": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.HeroLevelEntry.test_dry_run_reads_hall_only": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.HeroLevelEntry.test_hall_not_open_aborts_after_bounded_tries": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.HeroLevelEntry.test_slow_hall_open_recovered": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.HeroLevelEntry.test_unknown_screen_after_entry_tap_no_blind_retry": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.LoginPopup.test_daily_rewards_ocr_claims": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.LoginPopup.test_rewards_card_after_claim_is_dismissed": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.LoginPopup.test_unrecognised_popup_gets_back_not_claim": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.Normalize.test_panel_counts_as_normal": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.Normalize.test_two_unknowns_then_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.Normalize.test_unknown_after_cap_fails": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.Normalize.test_world_first_no_taps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_flows.SyntheticFrames.test_blank_matrix_classifies": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_flows.SyntheticFrames.test_new_panel_palette": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frame_regression.FrameRegression.test_manifest_verdicts": {
+   "calls": 124,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.AttachPy.test_attach_dry_run_command": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.AttachPy.test_missing_frida_is_explained": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.AttachPy.test_not_running_and_bad_params": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.AttachPy.test_pick_target": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.AttachPy.test_spawn_uses_identifier_and_warns": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.Scripts.test_js_syntax": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.Scripts.test_probe_is_log_only": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_frida_kit.Scripts.test_setter_needs_an_explicit_scale": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_board_badges": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_board_words": {
+   "calls": 13,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_brief_red_rule_counter_example": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_challenge_badge": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_challenge_plate_and_close_spot": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_chest_countdown": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_confirm_check_is_never_tapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_duel_phase": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_guild_icon_layout_a": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_guild_icon_off_spot": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_plan_buys": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_price_crop_ocr": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_screen_words": {
+   "calls": 23,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_store_cards": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Detectors.test_store_tab_and_pill": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_at_most_five_claims": {
+   "calls": 10,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_badge_that_does_not_clear_stops_the_claims": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_board_back_to_nowhere": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_board_back_to_the_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_board_does_not_open_leaves_the_hall": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_board_opens_onto_an_unknown_screen": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_board_without_badges_goes_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_challenge_badge_off_no_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_challenge_label_off_spot_no_tap": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_chest_label_missing_skips_the_chest": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_chest_tap_leaves_the_hall_unchanged": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_chest_tap_to_an_unknown_screen": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_close_spot_not_cream_stops_without_a_tap": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_confirm_dialog_after_the_badge_tap_is_cancelled": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_confirm_dialog_at_start_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_confirm_dialog_in_the_store_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_dimmed_board_after_a_claim_stops_without_a_tap": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_dimmed_board_on_open_stops_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_full_tour_with_claims": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_guild_icon_off_spot_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_guild_tab_not_selected_skips_the_daily_pill": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_hall_never_appears": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_hall_not_recognised_before_the_challenge": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_items_are_logged_not_bought": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_night_world_guild4_stops_without_a_tap": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_off_the_world_stops_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_slot_on_the_confirm_guard_is_not_tapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_store_back_to_the_world_skips_the_challenge": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_store_hub_not_open_leaves_the_hall": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_store_label_off_spot_skips_the_store": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_tooltip_close_without_progress_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_tooltip_does_not_close": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_unknown_screen_after_daily_stops_without_a_tap": {
+   "calls": 2,
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_unknown_screen_after_the_badge_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_guild.Flow.test_world_not_reached_at_the_end": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_lagging_post_frame_is_not_a_missed_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_lower_read_back_is_never_retried": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_no_effect_identical_covered_costs_is_a_missed_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_no_effect_short_after": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_no_effect_undetermined": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_one_tap_read_back_plus_one": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_pre_cost_read_from_the_settled_reread": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_short_before_no_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.Charge.test_verdict_table": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hall_direct.CostParsing.test_ghost_pair_agreed_twice_is_kept": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.CostParsing.test_own_suffix_pairs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hall_direct.CostParsing.test_vote_needs_two_lines": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_confirm_dialog_after_the_tap_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_dead_hall_tap_goes_through_the_tap_chain_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_hall_already_open_zero_taps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_hall_btn_is_the_helmet_centre": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_real_spire_frame": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_retry_opening_a_dialog_counts_as_landed": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_retry_that_opens_the_hall_sticks": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_spire_panel_backs_to_world_before_the_hall_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.EnterHall.test_world_never_reached_no_hall_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.LowestHand.test_big_level_not_the_badge_picks_the_lowest": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hall_direct.RealFrameOcr.test_cost_pairs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hall_direct.RealFrameOcr.test_slot_levels": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_blocked_hand_is_reported_blocked_not_unreadable": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_detail_not_up_yet_is_polled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_detail_without_level_yet_gets_settled_rereads": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_measured_card_centres": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_permanently_none_is_skipped_cleanly": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hand_scan.HandScanRetry.test_readable_first_time_no_retry": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_detail_at_once_costs_no_extra_shot": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_first_unknown_then_detail": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_poll_bound_is_about_eight_seconds": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_rereads_are_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_stale_previous_level_is_reread": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_timing.DetailWait.test_unreadable_post_gets_two_rereads": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Ground.test_buildings_trees_water_are_not_ground": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Ground.test_ground_needs_a_measured_night_palette": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Ground.test_hud_points_are_never_ground": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Ground.test_requests_arch_is_not_ground": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Ground.test_safe_ground_on_the_41556_line": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Hero.test_hero_on_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Hero.test_hero_other_camera_family_near_last_position": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Hero.test_hero_search_is_bounded": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Hero.test_no_hero": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_arrival_beats_selected": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_arrives": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_arrives_when_the_hero_walks_to_each_tap_point": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_max_taps": {
+   "calls": 13,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_no_ground_no_tap": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_not_world_after_a_tap_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_not_world_start_no_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_selection_after_a_tap_stops": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_hero_walk.Walk.test_stuck_after_two_taps_without_gain": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_build_menu": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_dream_realm_red_green_is_not_a_ring": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_finished_build_outside_the_build_window": {
+   "calls": 12,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_marker_and_world": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_negatives": {
+   "calls": 15,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_ring_follows_the_ghost": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_ring_found_on_the_frame": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Detectors.test_synthetic_frames_match_the_detectors": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_at_limit_is_nothing_to_do": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_collect_is_bounded": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_counter_mismatch_after_build_stops": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_counter_reread_after_build_accepts_the_settled_value": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_counter_unreadable_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_diamond_dialog_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_dry_run_reads_only": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_exit_game_dialog_on_the_start_frame_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_exit_that_does_not_close_never_backs": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_finished_build_collected_before_the_menu": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_menu_left_open_is_used_without_back": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_no_build_button_is_nothing_to_do": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_one_field_built_and_verified": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_placement_left_open_is_cancelled_first": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_real_frames_collect": {
+   "calls": 9,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_real_frames_one_field": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_refused_build_cancels_and_exits": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_resources_short_stops_cleanly": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_reward_info_card_is_closed_too": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_tap_lock_held": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_tile_tap_without_placement_never_retries_on_a_changed_screen": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_toast_left_up_gets_one_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_toast_that_never_closes_is_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_unknown_screen_after_a_collect_tap_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Flow.test_unknown_screen_while_building_stops_without_taps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead.Parsers.test_counter_vote": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.Parsers.test_resources": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead.RealCounter.test_live_counters": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame": {
+   "calls": 10,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Detectors.test_synthetic_frames": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Detectors.test_tile_geometry": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_cap_across_two_tiles": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_confirm_dialog_right_after_the_tile_tap_is_cancelled": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_diamond_dialog_during_a_mine_build_stops_the_run": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_dry_run_reads_both_tabs": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_functions_build_left_unverified_when_production_has_work": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_functions_quest_then_production_tab_for_the_field": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_functions_tab_scanned_when_production_is_full": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_functions_tab_that_does_not_switch": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_functions_tile_built_and_verified": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_greyed_but_below_the_limit_is_an_error": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_insufficient_popup_after_the_check_parks": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_insufficient_popup_is_closed_and_parks": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_insufficient_popup_without_the_rq3_x_is_not_tapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_long_build_is_counted_and_verified": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_menu_after_the_check_parks": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_mine_built_when_the_field_is_full": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_production_tab_that_does_not_switch_back_is_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_quest_tile_goes_first": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_queue_full_stops_without_a_tile_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_queue_with_a_free_slot_builds": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_refused_tile_is_parked_and_the_next_one_built": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_sixteenth_field_greys_the_tile": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_stuck_build_leaves_an_open_menu_by_exit": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_tile_tap_without_radial_parks_and_leaves_by_exit": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_unknown_screen_after_the_functions_tap_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_unknown_screen_after_the_insufficient_x_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_unreadable_field_and_nothing_built_is_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_unreadable_other_tile_does_not_block_the_field": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Flow.test_unreadable_other_tile_is_skipped_not_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Parsers.test_quest_first": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.Parsers.test_tile_name": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealQuest.test_menu_frame_has_no_quest": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealQuest.test_missing_file_is_empty": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealQuest.test_quest_pill": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealQueue.test_queue_reads_0_of_2": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealQueue.test_short_greyed_counters_read_none_so_the_white_gate_decides": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_build_all.RealTileName.test_white_functions_tile_name_reads": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.Detector.test_build_mode_and_world_are_not_layout": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.Detector.test_layout_mode_on_the_live_frames": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.Detector.test_synthetic_layout_frame": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.Flow.test_menu_opened_in_layout_mode": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.Flow.test_start_frame_in_layout_mode": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.ToBuildMode.test_fade_in_is_read_again_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.ToBuildMode.test_layout_mode_taps_the_build_pill": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.ToBuildMode.test_layout_mode_that_stays_is_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_layout_mode.ToBuildMode.test_never_recognised_is_none_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_cook_radial": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_deck_make_and_counts": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_give_up_is_never_tapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_hud_icon": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_kitchen_banner_and_screens": {
+   "calls": 5,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_panel_buttons": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_panel_vs_completed_toast": {
+   "calls": 8,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Detectors.test_selected_slot_ring": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_dead_close_tap_is_retried_once": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_full_request_is_delivered": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_low_stamina_does_not_cook": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_no_requests_icon_is_nothing_to_do": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_off_the_world_stops_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_short_request_cooks_then_delivers": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Flow.test_unknown_screen_after_deliver_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Gazette.test_claim_plate_on_the_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Gazette.test_daily_gift_entry_opens_the_gazette": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Gazette.test_no_plate_elsewhere": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Gazette.test_ocr_tell": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.Gazette.test_startup_popup_taps_the_plate": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_banner_card_first": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_cards_anchor_on_select": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_cook_disc_with_the_label_far_right": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_floating_cook_disc_opens_the_kitchen": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_floating_tap_that_only_selects_takes_the_radial": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_foreign_dialog_after_the_floating_tap_is_closed": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_kitchen_not_found_after_the_polls": {
+   "calls": 8,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_live_kitchen_tap_only_focused_it": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_probe_deck_without_request_is_left_and_the_next_probe_cooked": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104b.test_probes_only_without_a_banner_and_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_anchor_on_the_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_cook_disc_rescue_after_the_drag": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_drag_end_clipped_off_the_right_hud": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_drag_off_the_world_stops_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_drag_starts_clear_of_the_fountain": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_floating_window_follows_the_tap": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_go_to_an_unknown_screen_is_stuck": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_go_without_a_cook_disc_is_soft": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_kitchen_tap_off_the_world_is_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_kitchen_tap_opening_a_dialog_closes_it_then_spire_stage": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_no_clear_drag_start_goes_to_the_spire_stage": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_no_tower_after_the_drag_goes_to_the_spire_stage": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_spire_go_never_taps_the_npc_interact": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_spire_go_reaches_the_kitchen": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_spire_stage_nothing_to_do_is_soft": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_spire_stage_stuck_off_the_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_st0_drag_then_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_st1_npc_radial_is_no_kitchen": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_requests.KitchenT104c.test_two_drags_at_most": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_complete_now_is_never_tapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_dialog": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_dialog_already_open_start_frame": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_exit_game_dialog_start_frame": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_interact_disc_after_the_tower_tap": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_kitchen_radial_is_not_the_spire": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_label_pairing_keeps_the_spire_radial": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_radial_needs_label_text_and_disc": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_radial_on_the_selected_spire": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_radial_where_the_ocr_box_is_off": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_real_ocr_boxes": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_icon_is_searched_not_fixed": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_icon_not_on_other_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_icon_on_the_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_icon_shape_tells": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_tower_is_searched_between_the_beams": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_tower_not_on_other_frames": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_homestead_upgrade.Detectors.test_spire_tower_on_the_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_all_met_starts_the_upgrade": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_camera_search_finds_the_icon": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_camera_search_finds_the_tower": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_camera_search_off_the_world_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_cloud_reshot_with_interact_takes_it": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dialog_already_open": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dialog_already_open_all_met": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dialog_never_settles_stops_without_a_tap": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dialog_still_fading_in_is_polled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_diamond_dialog_after_level_up_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_drags_stay_off_the_hud": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dry_run_reads_and_closes": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_dry_run_with_missing_cards_never_goes": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_exit_game_dialog_cancelled_once_only": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_exit_game_dialog_on_the_start_frame_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_kitchen_all_met_starts_the_kitchen_upgrade": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_kitchen_missing_too_closes_without_a_second_go": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_off_the_world_stops_without_a_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_pill_and_kitchen_disc_on_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_radial_appearing_late_is_polled": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_go_without_radial_after_all_polls_is_nothing_to_do": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_icon_all_met_starts_the_upgrade": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_icon_tap_retried_once_then_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_interact_far_from_the_tower_is_not_the_spires": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_interact_tap_retried_once_then_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_kitchen_level_up_without_its_text": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_kitchen_selected_live_frame": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_level_up_refused": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_live_41556_cloud_frame_reshot_finds_the_icon": {
+   "calls": 10,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_live_dialog_without_title_is_accepted": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_live_go_kitchen_chain": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_live_selected_spire_start_taps_interact_directly": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_not_on_the_world_stops_without_back_key": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_queue_full_is_nothing_to_do": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_requirements_missing_goes_to_the_kitchen": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_selected_spire_without_level_up_skips_the_camera": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_spire_not_selected_is_nothing_to_do": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_tap_lock_held": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_tower_tap_all_met_starts_the_upgrade": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_tower_tap_that_deselects_uses_the_icon": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_tower_tap_without_interact_stops": {
+   "calls": 1,
+   "flows": 3,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_unknown_screen_after_level_up_stops_without_taps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_unrecognised_dialog_closes_and_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_unselected_spire_via_the_upgrade_icon": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_walk_arrived_then_no_world_stops": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_walk_dialog_is_closed_by_its_back_plate": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_walk_fallback_retaps_the_tower_then_interact": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_walk_soft_stop_is_rc1_without_more_taps": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.Flow.test_walk_stuck_is_rc1": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.OcrBoxes.test_parse": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade.OcrBoxes.test_switch_only_with_boxes": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_arrow_up_is_not_the_hourglass": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_building_level_up_any_building": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_full_badge_is_no_pin": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_icon_beside_an_edge_pin": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_kitchen_dialog_live": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_level_icons": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_no_pins_off_the_world": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_overlay_live": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_pins_are_searched_not_fixed": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_pins_on_live_frames": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_quest_tracker": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_refinery_radial_live": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_speed_up_is_never_level_up": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_speed_up_text_unread": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Detectors.test_title_name": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_body_tap_opens_the_radial": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_budget_exhausted": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_diamond_confirm_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_dry_run_never_levels_up": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_edge_pin_finds_its_icon": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_no_body_tap_when_the_pin_moved": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_not_on_the_world_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_parked_quest_building_is_not_reopened": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_pin_and_body_open_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_pin_compact_level_up": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_pin_opens_the_dialog": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_pin_tap_to_unknown_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_pin_unread_dialog_is_closed": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_quest_building_via_the_tracker": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_quest_selected_refinery_first": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_quest_tap_opens_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_quest_tap_to_unknown_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_quest_tap_unread_dialog_is_closed": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_queue_full_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_queue_full_via_the_quest_building": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_resource_short_is_parked_next_pin": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_selected_radial_before_the_pin_is_ignored": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_stuck_after_a_start_is_rc0": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Flow.test_upgrade_running_never_taps_speed_up": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Main.test_spire_started_leaves_one": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Main.test_spire_stuck_skips_upgrade_all": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Main.test_spire_then_pins": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_homestead_upgrade_all.Main.test_upgraded_overlay_is_closed_first": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_arena_detail_stall_hold_then_back": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_arena_select_stall_retry_then_back_then_stuck": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_dailies_quest_icon_hold_only_while_menu_is_open": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_dream_card_keeps_card_close": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_normalize_on_select": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_purchase_dialog_keeps_confirm_cancel": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_reach_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.DeadTaps.test_recover_leftover_within_budget": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.Guards.test_back_and_hold_commands": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_input_robustness.Guards.test_world_never_gets_keyevent_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_battle_button_enabled_colour": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_challenge_ribbon": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_end_card_needs_title_and_text_to_agree": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_fight_tell": {
+   "calls": 11,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_floor_view": {
+   "calls": 8,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_prep_pixels": {
+   "calls": 15,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_team_state": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers": {
+   "calls": 9,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Detectors.test_why_lt_has_own_gates": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded": {
+   "calls": 12,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_calendar_mismatch_logged_in_utc": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_card_tap_needs_second_try_then_still_lobby": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_confirm_dialog_after_battle_only_cancelled": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close": {
+   "calls": 9,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_deploy_taps_dead_never_taps_battle": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_dry_run_reads_only": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_happy_path_deploys_then_battles_then_wins": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_lock_and_idle": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_max_floors_bound": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_no_go_tab_no_tower_tap": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_prep_lost_after_tap_retry": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_prep_lost_during_deploy_never_taps_battle": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_tickets_zero_skips_tower": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_two_floors_via_floor_view": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_two_open_towers": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Flows.test_unknown_frame_after_challenge_no_further_tap": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_legend_trial.Parsers.test_tickets_and_floor": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_level_preview.PreviewCharge.test_direct_level_needs_no_confirm": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_level_preview.PreviewCharge.test_preview_closed_after_confirm_reads_the_detail": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_level_preview.PreviewCharge.test_preview_is_confirmed_once_and_read_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_level_preview.PreviewCharge.test_preview_of_another_level_is_never_confirmed": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_level_preview.RealPreviewFrames.test_cost_line_keeps_the_gold_pair_in_the_preview": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_level_preview.RealPreviewFrames.test_preview_detected_only_on_the_preview": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_mem_probe.TProbe.test_cli_no_prompt_sleeps_between": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_cli_rejects_unchanged_values": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_encode_matches_docs": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_intersection_single_candidate_high": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_many_candidates_low_with_alts": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_no_candidate_rc3": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_spectre_failure_rc2_and_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_three_values_narrow_further": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.TProbe.test_truncated_scan_caps_confidence": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_mem_probe.WarnPrefix.test_ansi_warn_lines_before_json_are_tolerated": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_metrics.ArenaWall.test_fight_wall": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_metrics.DreamWall.test_fight_wall": {
+   "calls": 9,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_metrics.Helper.test_append_metric_lines": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_metrics.Helper.test_append_metric_never_raises": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_metrics.Helper.test_battle_metric_and_summary": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_metrics.StagePushWall.test_retap_restarts_the_clock": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_metrics.StagePushWall.test_single_battle_wall": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_parsers.HeroScreens.test_detail": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.HeroScreens.test_detail_without_badge_is_unreadable": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.HeroScreens.test_hall_is_not_a_detail": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.OcrLines.test_missing_png_skips_ocr": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.OcrLines.test_ocr_failure_is_empty": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_parsers.OcrLines.test_parsers_on_ocr_lines_output": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_parsers.OcrLines.test_stage_push_ocr_text_rc_nonzero_is_empty": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_parsers.OcrLines.test_strips_and_drops_blank_lines": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_afk_panel_number_next_to_battle": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_auto_battle_is_not_an_anchor": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_nearest_number_wins_over_team_power": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_none_without_anchor": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_out_of_range_and_level_numbers_ignored": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParsePower.test_real_prep_comma_number": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParseStage.test_none_without_text": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParseStage.test_quest_counter_is_not_a_stage": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParseStage.test_real_prep": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParseStage.test_short_form_at_line_end": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ParseStage.test_stage_line_beats_earlier_loose_match": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_badge_forms": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_first_badge_wins": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_glued_number_never_yields_a_wrong_level": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_no_word_boundary_no_level": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_ocr_case_variants": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_parsers.ReadLevel.test_power_line_alone_is_not_a_level": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallBox.test_box_is_the_measured_one": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallBox.test_region_hit_skips_full_ocr": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallBox.test_region_miss_falls_back_to_full_ocr": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallFlows.test_entry_region_hit_no_full_ocr": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallFlows.test_in_hall_detail_then_region_hit_after_back": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallFlows.test_in_hall_region_hit": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.HallFlows.test_in_hall_world_reenter_region_hit": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_region_ocr.RealFrames.test_hall_frames_hit": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_region_ocr.RealFrames.test_non_hall_frames_miss": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F10GiftEntry.test_entry_not_found_is_warn_not_done": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F10GiftEntry.test_entry_tap_retried_once": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F11GiftClaimSignal.test_late_popup_caught_by_reshot": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F11GiftClaimSignal.test_signals": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F12HeroExhaustion.test_missed_tap_is_not_exhaustion": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F12HeroExhaustion.test_two_unchanged_taps_stop_the_run": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F15SharedChestClaim.test_dailies_uses_claim_round": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F15SharedChestClaim.test_nothing_claimable_is_ok": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F15SharedChestClaim.test_unconfirmed_claim_is_failure": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F16IdleSeconds.test_idle_seconds_non_negative": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F16IdleSeconds.test_tick_delta_wraps": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F16PruneToTrash.test_aged_trash_is_deleted_fresh_trash_kept": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F16PruneToTrash.test_moves_old_keeps_newest_and_current": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F16PruneToTrash.test_nothing_to_move": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F19ArenaTapRc.test_failed_tap_retried_once": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F19ArenaTapRc.test_second_failure_raises": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F1ConfirmDialog.test_arena_cancels_purchase_dialog": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F1ConfirmDialog.test_lookalikes_rejected": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F1ConfirmDialog.test_real_dialogs_detected": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F1ConfirmDialog.test_synthetic": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F20HeroPurchaseDialog.test_dialog_after_x10_is_cancelled_and_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F26ClaimVisionPlumbing.test_dump_timeout_is_none": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F26ClaimVisionPlumbing.test_save_power_state_atomic": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F26ClaimVisionPlumbing.test_swipe_rc_raises": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F27NoBlindBackAfterPopup.test_popup_closed_onto_world_goes_straight_to_afk": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F27NoBlindBackAfterPopup.test_stuck_popup_refuses_after_reach_world_fails": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F28DailiesDismiss.test_dismiss_retried_once_then_warns": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F28DailiesDismiss.test_dismiss_verified": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F29GiftSwipesOnScreen.test_pan_endpoints_clamped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F2HeroLevel.test_hall_lost_is_reentered_from_town": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F2HeroLevel.test_unknown_screen_between_hands_stops_without_blind_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F2HeroLevel.test_unreadable_hand_exits_1": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F30GiftNoBlindDismiss.test_panel_unchanged_no_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F30GiftNoBlindDismiss.test_unknown_overlay_gets_back_not_blind_tap": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F5ArenaExitCodes.test_fought_exits_0": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F5ArenaExitCodes.test_stuck_chain_exits_1": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F5ArenaExitCodes.test_unchanged_screen_exits_1": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F6BattleModes.test_lookalikes": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F6BattleModes.test_menu": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F6BattleModes.test_synthetic": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F7WorldNeedsChip.test_dim_popup_inside_the_old_cliff": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F7WorldNeedsChip.test_real_non_world_frames": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F7WorldNeedsChip.test_real_world_day_and_night": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.F7WorldNeedsChip.test_synthetic_world_without_chip": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F8DailiesImportable.test_run_dailies_without_main_globals": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F9QuestTabs.test_failed_tab_reopens_panel_before_next_tab": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F9QuestTabs.test_open_menu_closes_popup_with_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.F9QuestTabs.test_panel_lost_stops": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.PruneWiring.test_prune_called_on_real_run": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.PruneWiring.test_prune_skipped_on_dry_run": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T86IntroScreen.test_initial_intro_back_then_normal_chain": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T86IntroScreen.test_intro_after_popup_close": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T86IntroScreen.test_intro_still_up_after_one_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T86IntroScreen.test_real_intro_frames": {
+   "flows": 0,
+   "outcome": "skip"
+  },
+  "test_review_fixes.T86IntroScreen.test_unknown_without_intro_words_still_refuses": {
+   "flows": 3,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T88NewPanelPalette.test_real_cream_lookalikes": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T88NewPanelPalette.test_real_panel": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T88NewPanelPalette.test_real_popup_over_new_panel": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T88NewPanelPalette.test_synthetic": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T89DayWorld.test_real_day_world": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T89DayWorld.test_real_guild_hall_not_world": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T89DayWorld.test_real_popups": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T89DayWorld.test_real_world_avatar_state": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T89DayWorld.test_synthetic": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T90PanelAnimatingIn.test_real_full_panel": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T90PanelAnimatingIn.test_real_panel_without_badge": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T90PanelAnimatingIn.test_real_panel_without_badge_spectre": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.T90PanelAnimatingIn.test_synthetic": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_garbage_in_range_is_not_accepted": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_in_tolerance_read_after_heap_base_change_relocates": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_in_tolerance_read_after_pid_change_relocates": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_in_tolerance_read_updates_anchor": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_relocation_result_is_stored": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_u32_direct_read_without_map_entry_shape_relocates": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_u64_read_of_nonzero_hash_map_entry_without_anchor_is_rejected": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_u64_read_that_aliases_a_zero_hash_map_entry_relocates": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardDriftGate.test_u64_read_with_high_bit_map_value_is_rejected_without_anchor": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_direct_u32_entry_check_requires_matching_value_and_heap_pointer": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_drifted_u32_is_not_accepted_without_u64": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_duplicate_exact_u32_slots_are_ambiguous": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_equally_ranked_u64_candidates_fail_closed": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_exact_anchor_u32_beats_nearby_u64_candidate": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_highbit_zero_hash_map_entries_cannot_impersonate_u64_copies": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_nonzero_hash_map_entries_cannot_impersonate_u64_copies": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_same_u32_value_at_different_offsets_is_not_stable": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_two_zero_hash_u32_entries_cannot_impersonate_u64_copies": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_u32_pointer_must_be_at_measured_offset_plus_8": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_u32_pointer_shape_must_persist_in_both_dumps": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_u64_candidate_without_full_map_lookahead_is_discarded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_u64_fallback_without_u32_candidate": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_fixes.TGuardStableSlotPref.test_unique_exact_anchor_u32_is_fallback_without_u64": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.ArenaChainDialog.test_advance_returns_dialog_and_cancels": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.ArenaChainDialog.test_main_logs_one_stop_line": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.DreamTwoCycleBound.test_exactly_two_cycles_then_gave_up": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.DurasPaths.test_challenge_dialog_returns_without_fight": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.DurasPaths.test_no_tokens_uncleared_ends_cleanly": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_review_gaps.DurasPaths.test_sweep_stops_when_sweep_is_gone": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_a_card_transition_boss_modes_world_claim": {
+   "calls": 12,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_a_operator_chain_with_info_card": {
+   "calls": 7,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_a_transition_persists_one_neutral_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_b_info_card_boss_world_claim": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_battle_modes_back_only_once": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_black_waited_out_then_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_c_budget_exhausted_no_fourth_tap": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_d_truly_unknown_refused_without_tap_or_wait": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_transition_with_text_gets_no_tap": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.ClaimRound.test_unknown_after_own_tap_is_waited_then_refused": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_black_then_login_popup_is_resolved": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_black_then_unknown_is_waited_out": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_boss_page_shared_recovery": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_budget_exhausted_fails": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_card_info_page_shares_one_budget": {
+   "flows": 3,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.Normalize.test_card_then_transition_then_boss": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_after_boss_back_is_black_not_boss": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_boss_page_is_dr_boss": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_info_card_stays_popup": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_live_sequence_card_transition_boss_world": {
+   "calls": 36,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_lookalikes": {
+   "calls": 6,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_result_card": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_stage_push_keeps_boss_page_popup": {
+   "calls": 4,
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_round_start_recovery.RealFrames.test_ui_less_transition": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R10PrepDebounce.test_ambiguous_second_frame_gets_a_third_look": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R10PrepDebounce.test_rearmed_chain_is_not_the_wall": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R11TryShot.test_adb_down_exits_2_not_fatal": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R11TryShot.test_hiccups_are_retried_with_backoff": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R12PopupFallback.test_is_closable_popup": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R12PopupFallback.test_level_popup_closed_via_centre": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R12PopupFallback.test_one_recovery_before_abort": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R12PopupFallback.test_ten_stuck_closes_get_a_warn_and_recovery": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R13DreamReachWorld.test_persistent_unknown_still_refuses": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R13DreamReachWorld.test_running_fight_waited_out": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R13DreamReachWorld.test_unknown_is_polled_not_fatal": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R14HeroMarginAndLastRound.test_boss_page_at_171_is_no_hero_card": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R14HeroMarginAndLastRound.test_card_closed_by_the_eighth_action_counts": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R16SummaryClose.test_failed_centre_close_gets_one_ocr_gated_fallback": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R16SummaryClose.test_summary_card_closed_at_the_centre": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R17ParsePower.test_ocr_punctuation_anchor": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R17ParsePower.test_upward_before_below": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R17ParsePower.test_words_after_battle_are_no_anchor": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R18WallReportErrors.test_both_errors_kept": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R18WallReportErrors.test_first_ocr_call_gets_the_cold_start_timeout": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R19BattleModesEscape.test_battle_modes_is_not_a_fight": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R19BattleModesEscape.test_reach_world_backs_out_of_battle_modes": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R1FightMarker.test_black_transition_then_prep_gets_the_prep_tap": {
+   "calls": 8,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R1FightMarker.test_endless_black_is_not_a_fight": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R1FightMarker.test_is_fight_profile": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R20HeroDetailGate.test_hero_detail_is_not_boss_page": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R20HeroDetailGate.test_real_boss_page_survives_the_gate": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R20HeroDetailGate.test_run_entry_refuses_the_hero_detail": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R2ReadyRearm.test_only_one_rearm": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R2ReadyRearm.test_prep_standing_is_retapped_once": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R2ReadyRearm.test_ready_after_a_seen_fight_is_not_retapped": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R3LauncherLoading.test_classifier": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R3LauncherLoading.test_single_battle_through_a_loading_frame": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R4DimVsTransition.test_dim_end_needs_the_debounce_shot": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R4DimVsTransition.test_probes": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R4DimVsTransition.test_transition_is_not_a_fight_end": {
+   "calls": 5,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R5BackToReadyMidFight.test_more_than_four_unknowns_tolerated": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R5BackToReadyMidFight.test_running_fight_is_waited_out": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R6SpeedTapGated.test_no_marker_no_tap": {
+   "flows": 2,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R6SpeedTapGated.test_tap_waits_for_the_fight_marker": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R7Chances.test_dim_dialog_after_tap_is_not_a_fight": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R7Chances.test_empty_pool_stops_cleanly": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R7Chances.test_parse": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R8PruneCalled.test_dream_main_prunes_except_dry_run": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R8PruneCalled.test_stage_push_main_prunes": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R9StaleResult.test_retap_then_real_fight_counts": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.R9StaleResult.test_stale_card_is_no_win": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.T86StagePushIntro.test_intro_back_then_world_flow": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.T86StagePushIntro.test_intro_read_from_the_frame_after_the_summary_close": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.T86StagePushIntro.test_intro_still_up_after_one_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_runtime_fixes.T86StagePushIntro.test_unknown_without_intro_words_refuses": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_adb_hang_status_json_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_constants_carry_live_markers": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_daily_wrappers_never_call_speed_profile": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_dry_run_status_json": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_forward_failure_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_frida_nonzero_exit_sets_error": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_json_only_for_status": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_mismatch_checked_before_start": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_non_listen_socket_on_port_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_not_listening_on_port_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_pc_frida_without_version_rc3": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_running_server_without_version_output_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_status_is_read_only_dead_server_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_status_json_failures": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_status_json_ok": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TOpsT85.test_version_mismatch_rc4_prints_both": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_bad_scale_rejected": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_dry_run_prints_everything_runs_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_frida_missing_rc3_touches_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_frida_timeout_rc5": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_no_root_and_missing_server_rc4": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_off_is_scale_one_and_reuses_running_server": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_on_starts_server_on_own_port_and_sets_scale": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_repeat_eternalizes": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_speed_profile.TSpeedProfile.test_status_runs_the_log_only_probe": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Chain.test_arena_retry_landing_elsewhere_does_not_stick": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Chain.test_dead_taps_touchscreen_retry_sticks": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Chain.test_failing_retry_mode_is_dead_and_falls_back_to_hold": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Chain.test_retry_order_and_result": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Commands.test_env_override": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Commands.test_sendevent_mode": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Commands.test_tap_mode_default_keeps_pre_t97b_argv": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Commands.test_tap_mode_failure_still_raises": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Commands.test_touchscreen_mode": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_cmds_with_tracking_id": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_cmds_without_tracking_id_and_hold": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_discovery_failure_stops_the_chain": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_discovery_with_root": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_parse_protocol_a_skips_non_touch": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_parse_protocol_b": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_mode.Sendevent.test_scaling": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_seq.DailiesLeftoverPopup.test_adb_failure_raises_before_menu_read": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok",
+   "taps_mismatch_flows": 1
+  },
+  "test_tap_seq.DailiesLeftoverPopup.test_not_dimmed_single_back": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_seq.DailiesLeftoverPopup.test_one_adb_shell": {
+   "flows": 1,
+   "outcome": "ok",
+   "taps_mismatch_flows": 1
+  },
+  "test_tap_seq.DailiesLeftoverPopup.test_tap_order_unchanged": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_seq.GiftSecondDimLayer.test_adb_failure_raises_before_close_read": {
+   "flows": 1,
+   "outcome": "ok",
+   "taps_mismatch_flows": 1
+  },
+  "test_tap_seq.GiftSecondDimLayer.test_one_adb_shell": {
+   "flows": 1,
+   "outcome": "ok",
+   "taps_mismatch_flows": 1
+  },
+  "test_tap_seq.GiftSecondDimLayer.test_tap_order_unchanged": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_seq.TapSeq.test_converted_call_site_uses_one_batch": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_seq.TapSeq.test_dry_command_string": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tap_seq.TapSeq.test_failure_tolerated_or_raised": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tap_seq.TapSeq.test_one_adb_round_trip_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_tray.TrayState.test_bom_for_windows_powershell": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tray.TrayState.test_idle_without_lock": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tray.TrayState.test_running_with_fresh_lock": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tray.TrayState.test_script_parses": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_tray.TrayState.test_stale_lock": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.RealFrames.test_lookalikes_are_not_overlay": {
+   "calls": 13,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.RealFrames.test_normalize_closes_overlay_then_card": {
+   "calls": 9,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.RealFrames.test_overlay_is_no_fight": {
+   "calls": 10,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.RealFrames.test_post_fight_overlay_tapped_once": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_card_overlay_cycle_gives_up": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_fake_overlay": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_live_sequence_card_overlay_card_boss": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_normalize_end_taps_bounded_never_back": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_normalize_overlay_card_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_normalize_prep_after_result_tap_keeps_prep_back": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_overlay_dismiss_is_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_victory_overlay.Synthetic.test_run_card_overlay_one_tap_boss": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.F17ReasonFamilies.test_counters_rendered": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.F17ReasonFamilies.test_families": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.F18Display.test_iso_ts_rendered_local": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.F18Display.test_tiles_from_events": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_blank_lines_are_not_bad": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_broken_json_collected": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_current_from_newest_non_null": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_empty_file": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_missing_file": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.LoadEvents.test_non_object_json_is_bad": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.Render.test_fmt_int": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wall_dash.Render.test_mixed_valid_and_broken": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.Render.test_null_fields": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.Render.test_only_bad_lines_writes_nothing": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wall_dash.Render.test_string_power": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_advance_wide_select_detail_prep": {
+   "calls": 4,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_claim_round_refuses_the_main_menu": {
+   "calls": 10,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_normalize_main_menu": {
+   "calls": 10,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_normalize_old_battle_ended_card_closes_never_back": {
+   "calls": 6,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_normalize_wide_lobby": {
+   "calls": 9,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_normalize_wide_select": {
+   "calls": 3,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.Flows.test_wide_detail_dead_retry_does_not_stick": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_dr_start_lobby_is_not_inside_dream_realm": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_main_menu_is_not_panel": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_old_palette_panel_stays_panel": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_wide_detail": {
+   "calls": 7,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_wide_lobby": {
+   "calls": 5,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_wide_arena_screens.RealFrames.test_wide_select": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_cloud.Flows.test_normalize_cloud_world_no_taps": {
+   "calls": 1,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_world_cloud.Flows.test_normalize_hub_back_to_world": {
+   "calls": 10,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_world_cloud.Flows.test_open_menu_cloud_world_taps_menu": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_world_cloud.Flows.test_open_menu_hub_backs_out": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_world_cloud.RealFrames.test_cloud_world_is_world": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_cloud.RealFrames.test_hub_is_battle_modes_not_world": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_cloud.RealFrames.test_menu_fade_in_not_world": {
+   "calls": 1,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_cloud.RealFrames.test_quest_panel": {
+   "calls": 11,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_cloud.RealFrames.test_real_popups_stay_popup": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_hud.RealFrames.test_battle_modes_both_layouts": {
+   "calls": 3,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_hud.RealFrames.test_menu_on_hamburger": {
+   "calls": 4,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_hud.RealFrames.test_not_battle_modes": {
+   "calls": 10,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_world_hud.RealFrames.test_open_battle_modes_layout_a": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.ArenaZombie.test_exit_from_select_uses_its_own_back_arrow": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.ArenaZombie.test_exit_gives_up_bounded_on_unknown": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.ArenaZombie.test_season_select_screen_reads_select_not_result": {
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.ArenaZombie.test_select_result_zombie_then_challenge": {
+   "calls": 2,
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.DreamWorldFail.test_world_fail_ladder_gives_up": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.DreamWorldFail.test_world_fail_recovered_by_ladder": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.NormalizeLadder.test_confirm_dialog_is_cancelled": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.NormalizeLadder.test_gives_up_bounded": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.NormalizeLadder.test_ground_tap_skipped_on_purchase_text": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.NormalizeLadder.test_popup_streak_escapes_to_world": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.NormalizeLadder.test_unknown_streak_does_not_trigger_the_ladder": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.StageStillBattle.test_is_static": {
+   "calls": 2,
+   "flows": 0,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.StageStillBattle.test_still_battle_dismiss_retry_then_normal": {
+   "flows": 1,
+   "outcome": "ok"
+  },
+  "test_zombie_recovery.StageStillBattle.test_still_battle_twice_aborts": {
+   "flows": 1,
+   "outcome": "ok"
+  }
+ }
+}

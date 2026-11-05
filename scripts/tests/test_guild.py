@@ -123,6 +123,15 @@ class Detectors(unittest.TestCase):
         P = gd.plan_buys
         self.assertEqual(P([('Invite Letter', 500, 'guild')], 28704), [('Invite Letter', 500, 'would buy')])
         self.assertEqual(P([('DR Essence', 210, 'diamond')], 28704)[0][2], 'diamond price')
+        # user rule 2026-11-05 + guide consensus: only the daily 210-diamond Invite Letter
+        self.assertEqual(P([('Invite Letter', 210, 'diamond')], 28704, diamonds=5000)[0][2],
+                         'would buy (guide consensus, diamonds)')
+        self.assertEqual(P([('Invite Letter', 300, 'diamond')], 28704, diamonds=5000)[0][2], 'diamond price')
+        self.assertEqual(P([('Epic Invite Letter', 210, 'diamond')], 28704, diamonds=5000)[0][2], 'diamond price')
+        self.assertEqual(P([('Invite Letter', 210, 'diamond')], 28704)[0][2], 'diamond balance unread')
+        self.assertEqual(P([('Invite Letter', 210, 'diamond')], 28704, diamonds=100)[0][2], 'short of diamonds')
+        two = P([('Invite Letter', 210, 'diamond'), ('Invite Letter', 210, 'diamond')], 28704, diamonds=5000)
+        self.assertEqual([r[2] for r in two], ['would buy (guide consensus, diamonds)', 'buy limit'])
         self.assertEqual(P([('Invite Letter', 500, None)], 28704)[0][2], 'currency unknown')
         self.assertEqual(P([('Invite Letter', 6000, 'guild')], 28704)[0][2], 'over budget')
         self.assertEqual(P([('Invite Letter', 500, 'guild')], 100)[0][2], 'short of tokens')

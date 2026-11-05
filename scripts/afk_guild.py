@@ -114,6 +114,15 @@ ALLOWED_CURRENCY = ('guild', 'gold')
 BUY_BUDGET = 5000
 MAX_BUYS = 2
 BUYS_APPROVED = True           # user 2026-11-05: guild-token buys allowed, never diamonds (see docstring)
+# User rule 2026-11-05: diamonds only for a use several INDEPENDENT guides clearly recommend. Research
+# (2026-11-05, every source fetched, clones counted once): the ONLY such use is the discounted daily
+# Invite Letter in the Guild Store, 210 instead of 300 diamonds, 1 per day - GameLeap 'Guild Store
+# buying guide' (2024-04), Prydwen shop guide / afk.guide Emporium guide (one source, 2025), LootBar
+# (2026-02), r/AFKJourney. Monthly Stellar Crystal / Epic Invite Letter: verifiers disagree -> no.
+# Complete Now, refreshes, summons, attempts: no consensus -> never.
+GUIDE_DIAMOND_ITEM = 'invite letter'
+GUIDE_DIAMOND_PRICE = 210
+GUIDE_DIAMOND_DAILY = 1
 ITEM_DX, ITEM_DY = 120, 200    # shortcut: guessed card geometry, recalibrate on the first store frame with items
 OUT_POLLS = 3
 OUT_WAIT = 2.5
@@ -223,15 +232,33 @@ def store_items(boxes):
     return items
 
 
-def plan_buys(items, token, budget=BUY_BUDGET, max_buys=MAX_BUYS):
-    """[(name, price, verdict)], preferred items first. Only 'would buy' rows may ever be bought."""
+def guide_diamond_item(name: str, price) -> bool:
+    """The one diamond buy with a multi-source guide consensus: the daily 210-diamond Invite Letter
+    (not the monthly Epic Invite Letter, not the 300 full price)."""
+    n = name.lower()
+    return GUIDE_DIAMOND_ITEM in n and 'epic' not in n and price == GUIDE_DIAMOND_PRICE
+
+
+def plan_buys(items, token, budget=BUY_BUDGET, max_buys=MAX_BUYS, diamonds=None):
+    """[(name, price, verdict)], preferred items first. Only rows whose verdict starts with
+    'would buy' may ever be bought. Diamond prices: only guide_diamond_item(), once a day."""
     pref = lambda name: any(p in name.lower() for p in PREFERRED)  # noqa: E731
-    out, n = [], 0
+    out, n, dia = [], 0, 0
     for name, price, cur in sorted(items, key=lambda it: not pref(it[0])):
         if not pref(name):
             verdict = 'not preferred'
         elif cur == 'diamond':
-            verdict = 'diamond price'
+            if not guide_diamond_item(name, price):
+                verdict = 'diamond price'
+            elif dia >= GUIDE_DIAMOND_DAILY or n >= max_buys:
+                verdict = 'buy limit'
+            elif diamonds is None:
+                verdict = 'diamond balance unread'
+            elif diamonds < price:
+                verdict = 'short of diamonds'
+            else:
+                verdict = 'would buy (guide consensus, diamonds)'
+                dia, n = dia + 1, n + 1
         elif cur not in ALLOWED_CURRENCY:
             verdict = 'currency unknown'
         elif price is None:

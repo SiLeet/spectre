@@ -68,6 +68,7 @@ case "$script" in
   *afk_homestead.py) exit "${FAKE_HOMESTEAD_RC:-0}" ;;
   *afk_homestead_upgrade.py) exit "${FAKE_UPGRADE_RC:-0}" ;;
   *afk_homestead_requests.py) exit "${FAKE_REQUESTS_RC:-0}" ;;
+  *afk_guild.py) exit "${FAKE_GUILD_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -97,7 +98,7 @@ esac
                     env=env,
                     capture_output=True,
                     text=True,
-                    timeout=30,
+                    timeout=90,   # T106 review: +1 phase, 30 s flaked under load
                 )
             calls = calls_file.read_text(encoding="utf-8").splitlines() if calls_file.exists() else []
             self.markers = sorted(p.name for p in (root / ".spectre").glob("*-last.txt"))
@@ -299,6 +300,37 @@ esac
         self.assertFalse(any("afk_homestead_requests.py" in call for call in calls), calls)
         self.assertTrue(any("afk_homestead_upgrade.py" in call for call in calls), calls)
 
+
+    # --- T106 guild daily (soft log-only phase right after the homestead requests) ---
+    def test_guild_runs_once_after_homestead_requests(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        gd = [c for c in calls if "afk_guild.py" in c]
+        self.assertEqual(gd, ["scripts/afk_guild.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_guild.py")
+        self.assertLess(self._index(calls, "afk_homestead_requests.py"), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("guild-last.txt", self.markers)
+
+    def test_guild_nothing_to_do_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_GUILD_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("guild-last.txt", self.markers)
+
+    def test_guild_failure_is_soft(self):
+        result, calls = self._run_wrapper(runs=2, FAKE_GUILD_RC="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertNotIn("guild-last.txt", self.markers)
+        self.assertIn("guild rc=1 (soft phase", result.stdout)
+        self.assertEqual(sum("afk_guild.py" in c for c in calls), 2, calls)
+
+    def test_guild_switch_off(self):
+        result, calls = self._run_wrapper(AFK_GUILD="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_guild.py" in call for call in calls), calls)
+        self.assertTrue(any("afk_homestead_requests.py" in call for call in calls), calls)
 
 if __name__ == "__main__":
     unittest.main()

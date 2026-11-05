@@ -342,6 +342,22 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         *) echo "afk-bot-watch: homestead requests rc=$rq_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
+    # T106: guild daily, LOG-ONLY: hall -> chest countdown, store read + would-buy log (no buy /
+    # confirm taps), Challenge / Guild Duel state logged. Soft phase like the requests: rc 0 done /
+    # 4 nothing to do -> done for today; other rc logged, no marker. AFK_GUILD=0 = off.
+    if [ "${AFK_GUILD:-1}" = "1" ] && \
+       [ "$(cat "$OUT_DIR/guild-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "guild"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) guild (chest + store read, log-only)"
+        "$PY" scripts/afk_guild.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      gd_rc="${PIPESTATUS[0]}"
+      case "$gd_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/guild-last.txt" ;;
+        *) echo "afk-bot-watch: guild rc=$gd_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     normalize_or_abort "stage push"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \

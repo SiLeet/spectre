@@ -248,3 +248,42 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 `feature/T106b-guild-claims-buy` @ `6a04ca4`.
 - **Claims:** Board nur über das gemessene Challenge-Label öffnen; leuchtende Badges nur in den 9 Slot-Fenstern (Orange-Regel — deine Rot-Regel traf einen rothaarigen Avatar, das Hallenfeuer und −30 %-Tags); Popup „Guild Medal/Owned" über eine creme Stelle schließen (nicht (960,850), das liegt auf einer erledigten Karte); Fortschritt = weniger leuchtende Slots, sonst Stopp; max 5. Auf gcE löste ein Badge-Tap nur den Tooltip aus — Claim-Mechanik bleibt LIVE-offen.
 - **Store:** weiter LOG-ONLY — kein Kaufdialog auf einem Frame, Karten ohne Namen. „210 → 180" = zwei Kartenpreise von OCR zusammengezogen: die tägliche Invite Letter kostet 210 (= Guide-Artikel), die 180er-Karte ist ein anderer Diamant-Artikel (nie kaufen). Bitte live: Kaufdialog der 210er-Karte (abbrechen!) als Frame.
+
+## Nachtrag T104c (Küche finden: Kamera + Spire-Go)
+
+`feature/T104c-kitchen-camera` @ `c6a54bc`.
+- **Stufe 1:** Küche über den Spire-Turm verankert (Versatz auf 14 Frames gemessen); liegt der Punkt außerhalb des Bildfensters, bis zu 2 Kamera-Drags Richtung Anker (Start auf gemessenem freiem Boden, Ende nicht im rechten HUD), nach jedem Drag Cook-Scheibe prüfen. Deine festen Wischer „erst Süd, dann West" ersetzt: st0 braucht eine andere Richtung als die übrigen Frames — ein festes Paar passt nicht.
+- **Stufe 2:** Spire-Dialog → „Go" unter fehlender „Level N Kitchen"-Karte → Cook-Scheibe. Review-Fund behoben: Es wird nur das Interact des Spire selbst angenommen, nie das Radial des noch ausgewählten Golden-Supplier-NPC. Wahrscheinlich heute ohne Wirkung: Küche ist schon Level 5, die Karte erfüllt, kein Go → weich beendet.
+- LIVE offen: Drags/Anker auf neuen Kameras, Tap auf die schwebende Cook-Scheibe.
+
+## Nachtrag T107 (Watch wartet auf Idle-Fenster)
+
+`feature/T107-idle-wait` @ `57bb86e`.
+- `--scheduled` / `--scheduled-progress` prüfen das Idle alle 60 s, bis ≥ 180 s oder 3 h (auch Wanduhr-Frist) — dann laufen die Phasen; sonst „no idle window", Exit 5. Während des Wartens kein Lock, kein BlueStacks-Start, kein Tap. Manuell / `--force` / `--dry-run` warten nie.
+- **Für deine manuellen Tagesläufe: `afk-bot-watch.sh --scheduled --wait-timeout 0`**, sonst blockieren sie bis zu 3 h, solange der PC benutzt wird.
+- Task-Scheduler gelesen: ExecutionTimeLimit 72 h, IgnoreNew → die 3 h Wartezeit wird nicht abgebrochen. LIVE offen: liefert eine synthetische Eingabe nachts dauernd „idle 1s", endet jeder Lauf mit „no idle window" (Poll-Zeilen im Log prüfen). afk-night.sh (02:00) ist nicht Teil dieser Änderung.
+
+## Nachtrag T111 (Spire nach dem Turm-Tap, Held laufen)
+
+`feature/T111-hero-walk` @ `e1ef2b5`.
+- **Befund (shots-41556):** Der Turm-Tap hat funktioniert — die schwebende Upgrade-Scheibe des Spire erschien bei (330,48), **oberhalb** des alten Suchbands (y ≥ 60), und der Frame galt wegen einer Wolke am BACK-Prüfpunkt als UNKNOWN. Deshalb „kein Interact".
+- **Fix:** nach dem Turm-Tap bis zu 2 Neu-Aufnahmen ohne Tap (je Radial/Interact/Icon prüfen), Icon-Suche direkt neben dem Turm; erst danach `walk_towards()`: Held je Frame verortet, Taps nur auf gemessenem freiem Boden (nicht Gebäude, Bäume, Wasser, HUD, Joystick, Icons, Spire-Plattform), Stopp bei < 250 px, festgefahren (2× < 30 px), 12 Taps oder Nicht-Welt (Dialog über Zurück-Fläche schließen).
+- **Dein Fallback „Spire-Go-Teleport" greift nicht:** Die Go-Pille sitzt im Spire-Dialog, den wir gerade nicht öffnen können, und springt zu einem fehlenden Gebäude, nicht zum Spire. Fallback = weicher Stopp.
+- **LIVE offen:** Bewegt ein Boden-Tap den Helden überhaupt? Kein Frame-Paar zeigt das (Held auf allen deinen Frames 05:57–06:37 an derselben Stelle). Bitte ein Paar vor/nach einem Boden-Tap. Interact-Reichweite, Held bei Tageslicht.
+
+## Nachtrag T109 (Events, Stufe 1 = nur lesen)
+
+`feature/T109-events-claims` @ `ec3f6d4`. Neue Soft-Phase nach der Gilde (Marker `events-last.txt`, `AFK_EVENTS=0`).
+- Battle Modes → Events-Tab (Layout A nur bei leuchtendem Tab-Badge) → Liste verifiziert → je Karte Titel + Timer (OCR je Spalte) und Claim-Badge (Orange-Streifen an der Kartenecke) loggen → zurück über den Routines-Tab + ein BACK aus dem verifizierten Menü. rc 0 = Badges gesehen, 4 = keine.
+- **Keine Event-Karte wird angetippt:** Kein Frame zeigt ein geöffnetes Event, seinen Claim-Button oder Preise (Event-Screens tragen teils Kauf-Angebote). Claims = Stufe 2, sobald diese Screens vermessen sind — bitte je Event einen Frame des geöffneten Screens.
+- Deine Fakten eingebaut: Golden Supplier = Requests-NPC (nie öffnen), District Preview = nur Vorschau, kein Claim; Baden Rate Up / Crescent Offering nie öffnen; Journey's Gift claimt afk-daily-gift.
+- LIVE offen: Ergebnis des Routines-Tabs, BACK auf der Event-Liste, Tab-Persistenz, Layout-B-Badges, Badge-Bedeutung (Geschenk vs. „!").
+
+## Nachtrag T112 (Legend Trial)
+
+`feature/T112-legend-trial` @ `1e4a911`. Neue Soft-Phase, Marker `legend-trial-last.txt`, `AFK_LEGEND_TRIAL=0`.
+- **Warum „Battle" verpufft:** Die Formation war **leer** (erster Besuch Eternity Floor 1, kein gespeichertes Team). Der grüne Deploy-Haken (89,175,115) sitzt auf allen 5 Karten der funktionierenden DR-/Arena-Preps und auf keiner LT-Karte. Battle-Farbe = aktivierter DR-Button (nicht deaktiviert), gleiche Hitbox wie die funktionierenden Preps, kein Overlay (9 Frames, Panelbereich pixelgleich).
+- **Fix:** `ensure_team()` tippt die zulässigen Roster-Karten einzeln an und prüft je den Haken; Battle erst mit ≥ 1 Held; Kampfstart nur bei Beweis (HP-Streifen / Laden / Ergebniskarte), sonst ein Retry und weicher Stopp. Sieg → nächster Floor, Niederlage → Stopp (nie „Retry"), max 10 Kämpfe. Nie Auto Battle, nie Käufe.
+- **Bitte live testen (steht im Modul-Docstring):** (a) Battle einmal tippen, Screencap nach 0,3 s (Toast?); (b) Karte (482,712) tippen, nach 1,5 s Haken bei (482,725) + Held auf einem Hex erwartet, dann 578/673/769/864; (c) Battle → Laden → HP-Streifen; (d) nur falls (b) nichts tut: Karte auf den Hex ziehen (`input swipe 482 712 872 472 600`).
+- „x3" ist vermutlich eine Meilenstein-Belohnung, keine Tickets (nur geloggt).
+- **Merge-Hinweis:** T109 und T112 fügen ihren Watch-Block an derselben Stelle ein → beide behalten (Events, dann Legend Trial); gleiches in `test_afk_daily_exit_code.py`.

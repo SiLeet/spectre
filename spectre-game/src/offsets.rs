@@ -58,6 +58,12 @@ pub struct YamlFieldDef {
     /// of 128); the same key the CLI's `--offsets` loader accepts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub length: Option<u32>,
+    /// Optional sanity range (inclusive) for a numeric field: `read-batch`
+    /// reports a decoded value outside `[min, max]` as `valid: false`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
 }
 
 /// Deserialize a `u64` from either a YAML integer or a string in decimal or

@@ -52,20 +52,19 @@ Individual hero data (dereferenced from heroes_ptr).
 | 0x18   | gear_ptr      | Pointer64  | Equipment pointer     |
 | 0x20   | skills_ptr    | Pointer64  | Skill data pointer    |
 
-## Discovery Notes
+## Status (T110 audit, 2026-11-05)
 
-These offsets were found using the gold-spend diff method:
-1. Player gold was recorded before and after a purchase
-2. The changed u64 was the gold field
-3. Nearby values were cross-referenced with known in-game values
-
-## Version Compatibility
+Everything above is a **template**: PlayerState / TeamState / HeroInfo base
+offsets are fake, `gems`/`energy` are unverified, and no "gold-spend diff"
+ever produced these offsets. The only memory value the bot uses is
+`team_power`, and its slot moves per process (relocated at runtime by
+`scripts/afk_memory.py`). Gold: server-side per T23, re-test pending (audit
+H3). Per-value status and the
+live-hunt plan: `docs/reports/memory-first-audit.md`.
 
 | Game Version  | Offsets Verified |
 |---------------|------------------|
-| 1.0.45        | ✅ Verified      |
-| 1.0.44        | ✅ Likely compatible |
-| < 1.0.44      | ❌ May not work  |
+| 1.0.45        | ❌ only `team_power` (per process, relocated) |
 
 ## Usage
 

@@ -47,6 +47,9 @@ pub struct Planned {
     pub field_type: Option<FieldType>,
     pub valid: bool,
     pub note: Option<String>,
+    /// Inclusive sanity range from the YAML (`min` / `max`).
+    pub min: Option<f64>,
+    pub max: Option<f64>,
 }
 
 /// One result row of the JSON output.
@@ -85,6 +88,8 @@ pub fn plan(file: &YamlGameFile, base: u64) -> Vec<Planned> {
                 field_type,
                 valid: !error,
                 note: (!notes.is_empty()).then(|| notes.join("; ")),
+                min: f.min,
+                max: f.max,
             });
         }
     }
@@ -141,8 +146,19 @@ pub fn read_all(read: &dyn Fn(u64, u32) -> Result<Vec<u8>>, planned: &[Planned])
             };
             match read(p.address, size_of(ft)).map(|b| decode(ft, &b)) {
                 Ok(Some(v)) => {
-                    e.value = v;
-                    e.valid = true;
+                    // NaN/Inf floats decode to null: out of range whenever a range is set
+                    let out = (p.min.is_some() || p.max.is_some())
+                        && v.as_f64().map_or(v.is_null(), |x| {
+                            p.min.is_some_and(|lo| x < lo) || p.max.is_some_and(|hi| x > hi)
+                        });
+                    e.value = v; // kept even when out of range: shows what the slot holds now
+                    if out {
+                        let b = |x: Option<f64>, inf: &str| x.map_or(inf.to_owned(), |x| x.to_string());
+                        let msg = format!("out of range [{}, {}]", b(p.min, "-inf"), b(p.max, "inf"));
+                        e.note = Some(e.note.take().map_or(msg.clone(), |n| format!("{n}; {msg}")));
+                    } else {
+                        e.valid = true;
+                    }
                 }
                 Ok(None) => e.note = Some("short read".to_owned()),
                 Err(err) => e.note = Some(format!("read failed: {err}")),
@@ -243,6 +259,78 @@ structures:
             v,
             json!([{ "name": "Player.power", "address": "0x110", "value": 5, "fmt": "U32", "valid": true }])
         );
+    }
+
+    const RANGED: &str = r#"
+game: "g"
+version: "1"
+structures:
+  - name: "S"
+    base_offset: 0x0
+    fields:
+      - { name: "power", field_type: U32, offset: 0x0, min: 100000, max: 10000000000 }
+      - { name: "lo_only", field_type: I64, offset: 0x8, min: 0 }
+      - { name: "flt", field_type: F32, offset: 0x10, max: 2.5 }
+"#;
+
+    #[test]
+    fn sanity_range_marks_out_of_range_values_invalid() {
+        let f: YamlGameFile = serde_yaml::from_str(RANGED).unwrap();
+        let planned = plan(&f, 0);
+        assert!(planned.iter().all(|p| p.valid), "{planned:?}");
+        assert_eq!((planned[0].min, planned[0].max), (Some(100_000.0), Some(1e10)));
+        let mem = |power: u32, lo: i64, flt: f32| {
+            move |addr: u64, _: u32| -> Result<Vec<u8>> {
+                Ok(match addr {
+                    0x0 => power.to_le_bytes().to_vec(),
+                    0x8 => lo.to_le_bytes().to_vec(),
+                    _ => flt.to_le_bytes().to_vec(),
+                })
+            }
+        };
+        let ok = read_all(&mem(258_316, 0, 2.5), &planned);
+        assert!(ok.iter().all(|e| e.valid && e.note.is_none()), "{ok:?}"); // bounds are inclusive
+        let bad = read_all(&mem(42, -1, 3.0), &planned);
+        assert_eq!((bad[0].value.clone(), bad[0].valid), (json!(42), false));
+        assert_eq!(bad[0].note.as_deref(), Some("out of range [100000, 10000000000]"));
+        assert_eq!(bad[1].note.as_deref(), Some("out of range [0, inf]"));
+        assert_eq!(bad[2].note.as_deref(), Some("out of range [-inf, 2.5]"));
+        assert!(bad.iter().all(|e| !e.valid));
+        let nan = read_all(&mem(258_316, 0, f32::NAN), &planned);
+        assert_eq!((nan[2].value.clone(), nan[2].valid), (json!(null), false));
+        assert_eq!(nan[2].note.as_deref(), Some("out of range [-inf, 2.5]"));
+    }
+
+    #[test]
+    fn bad_sanity_ranges_are_validation_errors() {
+        let f: YamlGameFile = serde_yaml::from_str(
+            r#"
+game: "g"
+version: "1"
+structures:
+  - name: "S"
+    base_offset: 0x0
+    fields:
+      - { name: "inverted", field_type: U32, offset: 0x0, min: 10, max: 5 }
+      - { name: "ptr", field_type: Pointer64, offset: 0x8, min: 1 }
+      - { name: "fine", field_type: U32, offset: 0x10, min: 5, max: 5 }
+"#,
+        )
+        .unwrap();
+        let p = plan(&f, 0);
+        assert!(!p[0].valid && p[0].note.as_deref().unwrap().contains("min 10 > max 5"));
+        assert!(!p[1].valid && p[1].note.as_deref().unwrap().contains("numeric field type"));
+        assert!(p[2].valid);
+    }
+
+    #[test]
+    fn bundled_afk_offsets_ranges_validate() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../games/afk-journey/offsets.yaml");
+        let f = read_yaml_file(path).unwrap();
+        let p = plan(&f, 0);
+        let tp = p.iter().find(|e| e.name == "Resources.team_power").unwrap();
+        assert_eq!((tp.min, tp.max), (Some(100_000.0), Some(10_000_000_000.0)));
+        assert!(tp.valid, "{tp:?}");
     }
 
     #[test]

@@ -99,6 +99,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _bot_lock  # noqa: E402  (tap lock: one bot tapping at a time)
 import afk_claim_vision as v  # noqa: E402
 import afk_homestead as hs  # noqa: E402  (tap_until, _gmax)
+import afk_hero_walk as walk  # noqa: E402  (T111: re-shot / icon by the tower / walk)
 
 # --- world: radial of the selected Spire (hm_requests / hm_req2, identical) ------
 SPIRE_LABEL = 'radiant spire'  # LIVE: full-frame OCR box (851,173,97,17) 'Radiant Spire'; the
@@ -801,6 +802,8 @@ def spire_dialog(strict: bool = False):
                 still = lambda im: v.classify(im) == 'WORLD' and spire_icon(im) is not None  # noqa: E731
                 if disc:
                     print(f'    tower tap deselected the Spire: upgrade icon at {disc}', flush=True)
+            if disc is None:                     # T111: cloud on the BACK probe / icon above ICON_BAND / hero far
+                disc, still, img = walk.spire_after_tower(img, tower, sys.modules[__name__])
             if disc is None:
                 print(f'    ERROR: no Interact/Level Up radial after the tower tap '
                       f'(OCR {[b[4] for b in boxes][:6]}) - stopping without a tap', flush=True)

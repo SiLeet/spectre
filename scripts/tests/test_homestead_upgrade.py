@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import afk_claim_vision as v  # noqa: E402
 import afk_homestead_upgrade as hu  # noqa: E402
+import afk_hero_walk as walk  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 from PIL import ImageDraw  # noqa: E402
 from test_homestead import HERMES, hermes  # noqa: E402
@@ -77,14 +78,37 @@ def icon_frame(xy, arrow='up', disc=(234, 230, 229), head=15):
     return img
 
 
-def beams_frame(axis=(960, 400), s=220, skip=()):
+def beams_frame(axis=(960, 400), s=220, skip=(), ground=None):
     """Synthetic WORLD frame with the 4 tower beams (measured colour) around axis: outer pair at
-    +-s/2, inner pair at +-s/4 and 60 px lower; `skip` drops beams by index (0..3, left to right)."""
+    +-s/2, inner pair at +-s/4 and 60 px lower; `skip` drops beams by index (0..3, left to right);
+    `ground` fills the walk window first (T111)."""
     img = frame('WORLD')
     d, (x, y) = ImageDraw.Draw(img), axis
+    if ground:
+        d.rectangle(walk.WALK_WIN, fill=ground)
     for i, (dx, dy) in enumerate(((-s / 2, 0), (-s / 4, 60), (s / 4, 60), (s / 2, 0))):
         if i not in skip:
             d.rectangle((x + dx - 5, y + dy - 50, x + dx + 5, y + dy + 50), fill=(245, 220, 112))
+    return img
+
+
+def paint_hero(img, xy=(957, 500)):
+    """T111: a white hero-aura blob (outline only: the live aura is sparse, 310..723 px) at xy."""
+    ImageDraw.Draw(img).ellipse((xy[0] - 15, xy[1] - 24, xy[0] + 15, xy[1] + 24), outline=(218, 219, 222), width=3)
+    return img
+
+
+NIGHT_GROUND = (57, 112, 135)   # T111: 41556 line ground k 300 (HSV 140,147,135: night-teal palette)
+
+
+def walk_frame(axis, hero_xy=(957, 500)):
+    """T111: synthetic WORLD frame: night-teal ground, the tower beams around axis and the hero blob."""
+    return paint_hero(beams_frame(axis, ground=NIGHT_GROUND), hero_xy)
+
+
+def world_probes(img):
+    """T111: the classify probes painted as on a plain world (the drifting cloud off the BACK probe)."""
+    ImageDraw.Draw(img).rectangle((474 - 14, 1010 - 14, 474 + 14, 1010 + 14), fill=v.avg(img, (564, 1010)))
     return img
 
 
@@ -362,10 +386,12 @@ class Flow(unittest.TestCase):
 
     def test_tower_tap_without_interact_stops(self):
         # radial not read / another screen after the tower tap: bounded stop, no blind tap
-        for name, after, boxes in (('no OCR', real(TOWER_TAP), []), ('no disc', 'hm_confirmed2.png', TOWER_BOXES),
-                                   ('not world', 'UNKNOWN', TOWER_BOXES)):
+        # T111: + the walk's start frame (hero hidden / not drawn -> no_hero) | 2 no-tap re-shots
+        for name, after, boxes, more in (('no OCR', real(TOWER_TAP), [], [real(TOWER_TAP)]),
+                                         ('no disc', 'hm_confirmed2.png', TOWER_BOXES, ['hm_confirmed2.png']),
+                                         ('not world', 'UNKNOWN', TOWER_BOXES, ['UNKNOWN', 'UNKNOWN'])):
             with self.subTest(name):
-                dev, rc = self.run_hu([real(KITCHEN), after], {'hu_world': KITCHEN_BOXES, 'hu_tower': boxes})
+                dev, rc = self.run_hu([real(KITCHEN), after, *more], {'hu_world': KITCHEN_BOXES, 'hu_tower': boxes})
                 self.assertEqual(rc, 1, dev.out.getvalue())
                 self.assertEqual(dev.taps, [TOWER_K])
 
@@ -406,6 +432,77 @@ class Flow(unittest.TestCase):
         self.assertEqual(rc, 4, dev.out.getvalue())
         self.assertEqual(dev.taps, [TOWER_K, (915, 378), GO])
         self.assertIn('tower tap deselected the Spire', dev.out.getvalue())
+
+    def test_live_41556_cloud_frame_reshot_finds_the_icon(self):
+        # T111 live shots-41556 (06:33): hu_tower is UNKNOWN (cloud on the BACK probe, lb-lg +40) and the
+        # icon sits at y 48, above ICON_BAND -> one no-tap re-shot (WORLD), icon next to the tower
+        start, after = SPECTRE / 'shots-41556' / 'hu_world.png', SPECTRE / 'shots-41556' / 'hu_tower.png'
+        tower_img = real(after)
+        self.assertEqual(v.classify(tower_img), 'UNKNOWN')
+        dev, rc = self.run_hu([real(start), tower_img, world_probes(real(after)), 'spire_sel2.png',
+                               'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
+                              {'hu_world': [], 'hu_tower': [], 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps[0], (339, 168))
+        self.assertLessEqual(max(abs(a - b) for a, b in zip(dev.taps[1], (330, 48))), 3)
+        self.assertEqual(dev.taps[2:], [GO])
+        self.assertEqual(dev.shots[:4], ['hu_world', 'hu_tower', 'hu_tower_s0', 'hu_dialog'])
+
+    def test_walk_fallback_retaps_the_tower_then_interact(self):
+        # T111: no icon after the tower tap -> walk (camera follows the hero: the tower comes closer)
+        # -> arrived -> tower re-tap -> tower_tap.png (Hermes: Spire selected, Interact) -> dialog
+        far = walk_frame((400, 300))
+        dev, rc = self.run_hu([far, far, far, walk_frame((760, 420)), real(TOWER_TAP), 'spire_sel2.png',
+                               'spire_sel2.png', 'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
+                              {'hu_world': [], 'hu_tower': [], 'hu_tower2': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.shots[:6], ['hu_world', 'hu_tower', 'hu_walk_0', 'hu_walk_1', 'hu_tower2', 'hu_dialog'])
+        walk_tap = dev.taps[1]
+        self.assertTrue(walk.safe_ground(far, walk_tap, (957, 500), (400, 300)), walk_tap)
+        self.assertEqual(dev.taps, [(400, 300), walk_tap, (760, 420), INTERACT, GO])
+
+    def test_cloud_reshot_with_interact_takes_it(self):
+        # review: the tower tap selected the Spire under a cloud (hu_tower UNKNOWN) -> the WORLD re-shot's
+        # Interact is read and tapped, no walk
+        dev, rc = self.run_hu([real(KITCHEN), 'UNKNOWN', real(TOWER_TAP), 'spire_sel2.png', 'spire_sel2.png',
+                               'hm_confirmed2.png', 'hm_confirmed2.png', 'hm_confirmed2.png'],
+                              {'hu_world': KITCHEN_BOXES, 'hu_tower': TOWER_BOXES, 'hu_tower_s0': TOWER_BOXES,
+                               'hu_read': DIALOG_BOXES})
+        self.assertEqual(rc, 4, dev.out.getvalue())
+        self.assertEqual(dev.taps, [TOWER_K, INTERACT, GO])
+        self.assertEqual(dev.shots[:3], ['hu_world', 'hu_tower', 'hu_tower_s0'])
+
+    def test_walk_dialog_is_closed_by_its_back_plate(self):
+        # T111: a walk tap opened a dialog -> 'not_world' -> close_dialog (back plate), rc 1, no more taps
+        far = walk_frame((400, 300))
+        dev, rc = self.run_hu([far, far, far, 'hm_up3.png', 'hm_confirmed2.png'], {'hu_world': [], 'hu_tower': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps[0], (400, 300))
+        self.assertEqual(dev.taps[2:], [hu.BACK_PLATE])
+        self.assertIn('walk to the Spire: not_world', dev.out.getvalue())
+
+    def test_walk_arrived_then_no_world_stops(self):
+        # T111: arrived -> tower re-tap -> hu_tower2 not WORLD: rc 1, no further tap
+        far = walk_frame((400, 300))
+        dev, rc = self.run_hu([far, far, far, walk_frame((760, 420)), 'UNKNOWN'], {'hu_world': [], 'hu_tower': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual((dev.taps[0], dev.taps[2:]), ((400, 300), [(760, 420)]))
+        self.assertEqual(dev.shots[-1], 'hu_tower2')
+
+    def test_walk_stuck_is_rc1(self):
+        far = walk_frame((400, 300))
+        dev, rc = self.run_hu([far] * 5, {'hu_world': [], 'hu_tower': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(len(dev.taps), 3)                  # tower + 2 walk taps
+        self.assertIn('walk to the Spire: stuck', dev.out.getvalue())
+
+    def test_walk_soft_stop_is_rc1_without_more_taps(self):
+        # T111: no hero on the walk frame (hidden / daylight) -> soft stop, only the tower tap
+        far = beams_frame((400, 300))
+        dev, rc = self.run_hu([far, far, far], {'hu_world': [], 'hu_tower': []})
+        self.assertEqual(rc, 1, dev.out.getvalue())
+        self.assertEqual(dev.taps, [(400, 300)])
+        self.assertIn('walk to the Spire: no_hero', dev.out.getvalue())
 
     def test_interact_far_from_the_tower_is_not_the_spires(self):
         img = real(TOWER_TAP)

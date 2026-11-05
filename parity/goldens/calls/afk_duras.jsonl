@@ -1,0 +1,51 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [["Challenge"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": false, "test": "test_duras.Parsers.test_floor_and_cleared"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "0/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": false, "test": "test_review_gaps.DurasPaths.test_no_tokens_uncleared_ends_cleanly"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "2/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 2, "out": false, "test": "test_review_gaps.DurasPaths.test_challenge_dialog_returns_without_fight"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "1/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "2/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "3/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 8, "out": true, "test": "test_duras.Duras.test_sweep_count_mismatch_stops"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "6/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_dry_run_reads_only"}
+{"args": [["Dura's Trials", "Floor 13", "Challenge", "2/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 4, "out": false, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "1/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "2/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 14", "Challenge", "3/6"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": false, "test": "test_duras.Duras.test_first_clear_fails_bounded_tokens_stay"}
+{"args": [["SWEEP x1"]], "fn": "afk_duras.is_cleared", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Parsers.test_floor_and_cleared"}
+{"args": [["Battle Modes", "Arena"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": false, "test": "test_duras.Duras.test_unknown_screen_aborts_without_taps"}
+{"args": [["Battle Modes"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": false, "test": "test_duras.Duras.test_unknown_screen_after_fight_is_stuck_not_done"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "0/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_review_gaps.DurasPaths.test_no_tokens_uncleared_ends_cleanly"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "2/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 2, "out": true, "test": "test_review_gaps.DurasPaths.test_challenge_dialog_returns_without_fight"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "0/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "1/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "2/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "3/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 6, "out": true, "test": "test_duras.Duras.test_sweep_count_mismatch_stops"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "6/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_dry_run_reads_only"}
+{"args": [["Dura's Trials", "Floor 13", "Challenge", "2/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 5, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "0/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "1/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "2/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": true, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 14", "Challenge", "3/6"]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 4, "out": true, "test": "test_duras.Duras.test_first_clear_fails_bounded_tokens_stay"}
+{"args": [[]], "fn": "afk_duras.is_duras", "kwargs": {}, "n": 1, "out": false, "test": "test_duras.Duras.test_coming_soon_is_soft_4"}
+{"args": [["Challenge"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": null, "test": "test_duras.Parsers.test_floor_and_cleared"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "0/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": 12, "test": "test_review_gaps.DurasPaths.test_no_tokens_uncleared_ends_cleanly"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "2/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": 12, "test": "test_review_gaps.DurasPaths.test_challenge_dialog_returns_without_fight"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "3/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 4, "out": 12, "test": "test_duras.Duras.test_sweep_count_mismatch_stops"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "6/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": 12, "test": "test_duras.Duras.test_dry_run_reads_only"}
+{"args": [["Dura's Trials", "Floor 13", "Challenge", "2/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 4, "out": 13, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 14", "Challenge", "3/6"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": 14, "test": "test_duras.Duras.test_first_clear_fails_bounded_tokens_stay"}
+{"args": [["Floor 9", "Floor12", "floor 11"]], "fn": "afk_duras.parse_floor", "kwargs": {}, "n": 1, "out": 12, "test": "test_duras.Parsers.test_floor_and_cleared"}
+{"args": [["0 / 6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 0, "test": "test_duras.Parsers.test_tokens"}
+{"args": [["12/60", "Floor 3"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": null, "test": "test_duras.Parsers.test_tokens"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "0/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 0, "test": "test_review_gaps.DurasPaths.test_no_tokens_uncleared_ends_cleanly"}
+{"args": [["Dura's Trials", "Floor 12", "Challenge", "2/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 2, "out": 2, "test": "test_review_gaps.DurasPaths.test_challenge_dialog_returns_without_fight"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "0/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 0, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "1/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 1, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "2/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 2, "test": "test_duras.Duras.test_sweep_until_zero"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "3/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 9, "out": 3, "test": "test_duras.Duras.test_sweep_count_mismatch_stops"}
+{"args": [["Dura's Trials", "Floor 12", "Sweep", "6/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 6, "test": "test_duras.Duras.test_dry_run_reads_only"}
+{"args": [["Dura's Trials", "Floor 13", "Challenge", "2/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 4, "out": 2, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "0/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 0, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "1/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 1, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 13", "Sweep", "2/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 2, "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [["Dura's Trials", "Floor 14", "Challenge", "3/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 3, "test": "test_duras.Duras.test_first_clear_fails_bounded_tokens_stay"}
+{"args": [["Tokens: 3/6"]], "fn": "afk_duras.parse_tokens", "kwargs": {}, "n": 1, "out": 3, "test": "test_duras.Parsers.test_tokens"}

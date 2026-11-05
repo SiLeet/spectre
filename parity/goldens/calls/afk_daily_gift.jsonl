@@ -1,0 +1,13 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "228a3ae3b18a3ba4"}], "fn": "afk_daily_gift.is_dimmed", "kwargs": {}, "n": 5, "out": false, "test": "test_review_fixes.F11GiftClaimSignal.test_late_popup_caught_by_reshot"}
+{"args": [{"img": "29a15a3be3e3e2c8"}], "fn": "afk_daily_gift.is_dimmed", "kwargs": {}, "n": 5, "out": false, "test": "test_review_fixes.F11GiftClaimSignal.test_late_popup_caught_by_reshot"}
+{"args": [{"img": "6d2c40e3c70cc52f"}], "fn": "afk_daily_gift.is_dimmed", "kwargs": {}, "n": 4, "out": true, "test": "test_review_fixes.F11GiftClaimSignal.test_signals"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_daily_gift.is_dimmed", "kwargs": {}, "n": 2, "out": false, "test": "test_review_fixes.F30GiftNoBlindDismiss.test_unknown_overlay_gets_back_not_blind_tap"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_daily_gift.is_dimmed", "kwargs": {}, "n": 8, "out": false, "test": "test_review_fixes.F10GiftEntry.test_entry_not_found_is_warn_not_done"}
+{"args": [{"img": "228a3ae3b18a3ba4"}], "fn": "afk_daily_gift.is_events_panel", "kwargs": {}, "n": 27, "out": true, "test": "test_review_fixes.F10GiftEntry.test_entry_tap_retried_once"}
+{"args": [{"img": "764a106dd63c87eb"}], "fn": "afk_daily_gift.is_events_panel", "kwargs": {}, "n": 6, "out": true, "test": "test_review_fixes.F11GiftClaimSignal.test_late_popup_caught_by_reshot"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_daily_gift.is_events_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_review_fixes.F30GiftNoBlindDismiss.test_unknown_overlay_gets_back_not_blind_tap"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_daily_gift.is_events_panel", "kwargs": {}, "n": 11, "out": false, "test": "test_review_fixes.F10GiftEntry.test_entry_not_found_is_warn_not_done"}
+{"args": [{"img": "228a3ae3b18a3ba4"}], "fn": "afk_daily_gift.is_events_tooltip", "kwargs": {}, "n": 3, "out": false, "test": "test_review_fixes.F11GiftClaimSignal.test_late_popup_caught_by_reshot"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_daily_gift.is_events_tooltip", "kwargs": {}, "n": 2, "out": false, "test": "test_review_fixes.F30GiftNoBlindDismiss.test_unknown_overlay_gets_back_not_blind_tap"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_daily_gift.is_events_tooltip", "kwargs": {}, "n": 8, "out": false, "test": "test_review_fixes.F10GiftEntry.test_entry_not_found_is_warn_not_done"}

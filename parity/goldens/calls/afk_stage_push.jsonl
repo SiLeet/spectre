@@ -1,0 +1,138 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "0617fde44fc632e7"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "062947b06235d842"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "077fb6cbcbdac5a2"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "08f344d883adbc55"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 5, "out": "LOADING", "test": "test_legend_trial.Flows.test_happy_path_deploys_then_battles_then_wins"}
+{"args": [{"img": "0b882c2d6c3a51ae"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "11fda5bc9bcbbeac"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "13c68de1f855f5f1"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "1658b9ba8a51f26a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "20e57f7cba191eb9"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "23fa84e5deedd065"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 12, "out": "UNKNOWN", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "25538944ceadc8d4"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LOADING", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "25f8e09e40a35871"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "2da31e273269d794"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "31f59f92d4da4de6"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "328bf43742491644"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "AFK_PANEL", "test": "test_review_fixes.T88NewPanelPalette.test_real_panel"}
+{"args": [{"img": "349c86bcaad9efa6"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "RESULT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "3585f00c5557fdad"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "3ab590b25d54253f"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "3d1e22388f4eeaf8"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "3f8ccaee00873462"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "410d2b6d5613992d"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "PREP", "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "41c8f9b365cb0eeb"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "45c98d58ea0660fc"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "UNKNOWN", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "4976b23a503f596e"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LOADING", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "49b15975b8e26b79"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "4bf97ea58c2f7007"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "4dd0ae076dccab60"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "5068b60e09897f4d"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "54a33e7d42b0ba41"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "561bf231145fac85"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 24, "out": "RESULT", "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [{"img": "57c8e71688a5a942"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "RESULT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "5be5a4f7ee3291d5"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "5e042f0a5f109688"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "6298deca65e8f3b1"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 21, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "66040eb846e01817"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "680b34efa9ac6c30"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "681b7355aecec851"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "6aafa3d66a01e466"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "6b558de52d33cc00"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "AFK_PANEL", "test": "test_review_fixes.T90PanelAnimatingIn.test_real_panel_without_badge"}
+{"args": [{"img": "6e19cf7d4a914ecd"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_round_start_recovery.RealFrames.test_stage_push_keeps_boss_page_popup"}
+{"args": [{"img": "6efe7ab21b854e19"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "71db72c9283c557a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "RESULT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "7270b5bd16c801c4"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "AFK_PANEL", "test": "test_review_fixes.T88NewPanelPalette.test_synthetic"}
+{"args": [{"img": "7398f863b624c522"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "74a3cb3e2062be7e"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LOADING", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "7503d330d906b2c1"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_round_start_recovery.RealFrames.test_stage_push_keeps_boss_page_popup"}
+{"args": [{"img": "75b9365cd3de8033"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "7c71e45c1b5d180e"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "82daf29aa3f3688b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "844acbb70095852c"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "DEFEAT", "test": "test_legend_trial.Flows.test_no_go_tab_no_tower_tap"}
+{"args": [{"img": "8574f972a46c2fb6"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "86821787353af753"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 16, "out": "BATTLE", "test": "test_metrics.StagePushWall.test_single_battle_wall"}
+{"args": [{"img": "89a863b14e3e944b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 4, "out": "STATS", "test": "test_legend_trial.Flows.test_prep_lost_after_tap_retry"}
+{"args": [{"img": "8acc6e2e17a0f7b8"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 31, "out": "PREP", "test": "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded"}
+{"args": [{"img": "8fc1e1fc72bd2970"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "91dbe1c15ca2c3c2"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "93705086bd302b8b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 3, "out": "PREP", "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "94c309d554c6c35b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "9645d8161c9ca371"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 3, "out": "POPUP", "test": "test_round_start_recovery.RealFrames.test_stage_push_keeps_boss_page_popup"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 61, "out": "UNKNOWN", "test": "test_duras.Duras.test_no_prep_screen_after_challenge_never_taps_fight"}
+{"args": [{"img": "98424dee2d3d1201"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "987ebebdd51a8d62"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "DEFEAT", "test": "test_review_fixes.T88NewPanelPalette.test_real_cream_lookalikes"}
+{"args": [{"img": "9a92d1f1a0985784"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "a114a8d9c76c4bfd"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "CONFIRM", "test": "test_review_fixes.F1ConfirmDialog.test_synthetic"}
+{"args": [{"img": "a8819f648d2c7855"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "DEFEAT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "adefedd60b9e25ae"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "UNKNOWN", "test": "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1"}
+{"args": [{"img": "ae459f802ec839d7"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "AFK_PANEL", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "b2727f29652d7d5e"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "b44d810b2e2044b8"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "b4f7ffdbabbd494b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LOADING", "test": "test_review_fixes.T88NewPanelPalette.test_synthetic"}
+{"args": [{"img": "b57d4c485bc8a997"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "ba76204defae0ac1"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "bc197edf37c0c1bd"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "bcfd62c054eac50b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "RESULT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "be81a06b8095d47b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "bf9c15613e2fa579"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "UNKNOWN", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "c039d04e5ffac52a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 33, "out": "PREP", "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [{"img": "c0a23734718361fb"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "c46a4379a7870457"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "c5c7e32af5f882ad"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "c91c49aa79d3261a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "AFK_PANEL", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "cc05eb490f9f0a67"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "PREP", "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "WORLD", "test": "test_runtime_fixes.T86StagePushIntro.test_intro_back_then_world_flow"}
+{"args": [{"img": "d1b0ae0a7c60c33c"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "d58f54998838d11a"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "LOADING", "test": "test_runtime_fixes.R3LauncherLoading.test_classifier"}
+{"args": [{"img": "d6331d9f1b1c0b56"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 3, "out": "PREP", "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "d747f3ffa031a2eb"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "AFK_PANEL", "test": "test_review_fixes.T90PanelAnimatingIn.test_synthetic"}
+{"args": [{"img": "d7d7213a9a267ef1"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "RESULT", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "da3d532dfad9fd7d"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "dd7ea89ffa4346b9"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "DEFEAT", "test": "test_review_fixes.T88NewPanelPalette.test_real_cream_lookalikes"}
+{"args": [{"img": "de38430dc3d80426"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LOADING", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "e0d39ad0d3fab903"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "BATTLE", "test": "test_runtime_fixes.R3LauncherLoading.test_classifier"}
+{"args": [{"img": "e1b5e4050b760b27"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "LAUNCHER", "test": "test_runtime_fixes.R3LauncherLoading.test_classifier"}
+{"args": [{"img": "e4427f8ca1d6effd"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "e7bbf1e4326daa29"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 8, "out": "DEFEAT", "test": "test_duras.Duras.test_first_clear_defeat_refund_then_win_then_sweep"}
+{"args": [{"img": "eb0fbd9bceeaa441"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "POPUP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "eb942d8a73a7049c"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 14, "out": "DEFEAT", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "ec933dc10887bb30"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "ed66056798e49de2"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "eddf76509fc010f8"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "f0aeb9da54c5fc07"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 2, "out": "LOADING", "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "f27b184529a803da"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "WORLD", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [{"img": "f42862ead60069bd"}], "fn": "afk_stage_push.classify_battle", "kwargs": {}, "n": 1, "out": "PREP", "test": "test_frame_regression.FrameRegression.test_manifest_verdicts"}
+{"args": [["Auto Battle Complete", "Tap to Close"]], "fn": "afk_stage_push.is_auto_complete", "kwargs": {}, "n": 4, "out": true, "test": "test_runtime_fixes.R16SummaryClose.test_failed_centre_close_gets_one_ocr_gated_fallback"}
+{"args": [["Level Up!", "Tap to close"]], "fn": "afk_stage_push.is_auto_complete", "kwargs": {}, "n": 11, "out": false, "test": "test_runtime_fixes.R12PopupFallback.test_level_popup_closed_via_centre"}
+{"args": [["Welcome back!"]], "fn": "afk_stage_push.is_auto_complete", "kwargs": {}, "n": 2, "out": false, "test": "test_runtime_fixes.T86StagePushIntro.test_unknown_without_intro_words_refuses"}
+{"args": [["Willkommen in", "Esperia!"]], "fn": "afk_stage_push.is_auto_complete", "kwargs": {}, "n": 4, "out": false, "test": "test_runtime_fixes.T86StagePushIntro.test_intro_back_then_world_flow"}
+{"args": [[]], "fn": "afk_stage_push.is_auto_complete", "kwargs": {}, "n": 38, "out": false, "test": "test_round_start_recovery.RealFrames.test_stage_push_keeps_boss_page_popup"}
+{"args": [["Level Up!", "Tap to close"]], "fn": "afk_stage_push.is_closable_popup", "kwargs": {}, "n": 11, "out": true, "test": "test_runtime_fixes.R12PopupFallback.test_level_popup_closed_via_centre"}
+{"args": [["Leveling", "Records"]], "fn": "afk_stage_push.is_closable_popup", "kwargs": {}, "n": 1, "out": false, "test": "test_runtime_fixes.R12PopupFallback.test_is_closable_popup"}
+{"args": [["New Perk unlocked"]], "fn": "afk_stage_push.is_closable_popup", "kwargs": {}, "n": 1, "out": true, "test": "test_runtime_fixes.R12PopupFallback.test_is_closable_popup"}
+{"args": [[]], "fn": "afk_stage_push.is_closable_popup", "kwargs": {}, "n": 31, "out": false, "test": "test_runtime_fixes.R12PopupFallback.test_is_closable_popup"}
+{"args": [{"img": "86821787353af753"}, {"img": "86821787353af753"}], "fn": "afk_stage_push.is_static", "kwargs": {}, "n": 4, "out": true, "test": "test_zombie_recovery.StageStillBattle.test_is_static"}
+{"args": [{"img": "86821787353af753"}, {"img": "b5be07bd6987ddb7"}], "fn": "afk_stage_push.is_static", "kwargs": {}, "n": 1, "out": false, "test": "test_zombie_recovery.StageStillBattle.test_is_static"}
+{"args": [["0 74451", "Battle !"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 74451, "test": "test_runtime_fixes.R17ParsePower.test_ocr_punctuation_anchor"}
+{"args": [["0 74451", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 74451, "test": "test_parsers.ParsePower.test_afk_panel_number_next_to_battle"}
+{"args": [["0 74451", "Battle."]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 74451, "test": "test_runtime_fixes.R17ParsePower.test_ocr_punctuation_anchor"}
+{"args": [["4 Battle Advice +-", "Level Ub", "Hero Level Mega Boost", "Power Up", "Requesting Chain AFK Proxy Battle", "A. AFK (1/1)", "Try out a tank hero!", "Retry"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParsePower.test_none_without_anchor"}
+{"args": [["4,999", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParsePower.test_out_of_range_and_level_numbers_ignored"}
+{"args": [["5,000,001", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParsePower.test_out_of_range_and_level_numbers_ignored"}
+{"args": [["57,997 v", "AFK stage 254", "? 100", "l?vl. 99", "Lvl.99", "Lvl. 80 Lvl. 90", "Lvl.80 LvL80", "Auto Battle", "Records", "74,986", "LvL99", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 2, "out": 74986, "test": "test_parsers.OcrLines.test_parsers_on_ocr_lines_output"}
+{"args": [["74,986", "Auto Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 2, "out": null, "test": "test_parsers.ParsePower.test_auto_battle_is_not_an_anchor"}
+{"args": [["74,986", "Battle Advice"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_runtime_fixes.R17ParsePower.test_words_after_battle_are_no_anchor"}
+{"args": [["74,986", "Battle", "12,345"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 74986, "test": "test_runtime_fixes.R17ParsePower.test_upward_before_below"}
+{"args": [["74,986"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParsePower.test_none_without_anchor"}
+{"args": [["99,999", "Records", "74,986", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 74986, "test": "test_parsers.ParsePower.test_nearest_number_wins_over_team_power"}
+{"args": [["AFK stage 254 (D", "ELVI 99", "Lv199", "LvL99", "O- Lv180 Lv1.90", "Auto Battle", "Records", "Battle"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParsePower.test_out_of_range_and_level_numbers_ignored"}
+{"args": [["Battle", "12,345"]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 1, "out": 12345, "test": "test_runtime_fixes.R17ParsePower.test_upward_before_below"}
+{"args": [[]], "fn": "afk_stage_push.parse_power", "kwargs": {}, "n": 15, "out": null, "test": "test_metrics.StagePushWall.test_retap_restarts_the_clock"}
+{"args": [["4 Battle Advice +-", "Level Ub", "Hero Level Mega Boost", "Power Up", "Requesting Chain AFK Proxy Battle", "A. AFK (1/1)", "Try out a tank hero!", "Retry"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParseStage.test_none_without_text"}
+{"args": [["57,997 v", "AFK stage 254", "? 100", "l?vl. 99", "Lvl.99", "Lvl. 80 Lvl. 90", "Lvl.80 LvL80", "Auto Battle", "Records", "74,986", "LvL99", "Battle"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 2, "out": 254, "test": "test_parsers.OcrLines.test_parsers_on_ocr_lines_output"}
+{"args": [["AFK 12", "AFK Stage 250"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 1, "out": 250, "test": "test_parsers.ParseStage.test_stage_line_beats_earlier_loose_match"}
+{"args": [["AFK 249"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 1, "out": 249, "test": "test_parsers.ParseStage.test_short_form_at_line_end"}
+{"args": [["AFK stage 254 (D", "ELVI 99", "Lv199", "LvL99", "O- Lv180 Lv1.90", "Auto Battle", "Records", "Battle"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 1, "out": 254, "test": "test_parsers.ParseStage.test_real_prep"}
+{"args": [["Complete AFK 2 quests"]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 1, "out": null, "test": "test_parsers.ParseStage.test_quest_counter_is_not_a_stage"}
+{"args": [[]], "fn": "afk_stage_push.parse_stage", "kwargs": {}, "n": 16, "out": null, "test": "test_metrics.StagePushWall.test_retap_restarts_the_clock"}

@@ -11,6 +11,7 @@ members = [
     "spectre-cli",
     "spectre-web",
     "spectre-mcp",
+    "spectre-afk",
 ]
 
 [workspace.package]

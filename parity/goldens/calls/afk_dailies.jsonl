@@ -1,0 +1,19 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "34cb3988ab57842c"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 3, "out": true, "test": "test_tap_seq.DailiesLeftoverPopup.test_adb_failure_raises_before_menu_read"}
+{"args": [{"img": "cecb8d3e90cf1e80"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 6, "out": false, "test": "test_review_fixes.F28DailiesDismiss.test_dismiss_verified"}
+{"args": [{"img": "d52f43ea87d0020b"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 2, "out": false, "test": "test_input_robustness.DeadTaps.test_dailies_quest_icon_hold_only_while_menu_is_open"}
+{"args": [{"img": "ed6c4244ca0cbf0f"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 2, "out": true, "test": "test_review_fixes.F28DailiesDismiss.test_dismiss_retried_once_then_warns"}
+{"args": [{"img": "155106ab136c4a8a"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "186a5af490daa1ec"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "53369c386ba36741"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "77bfe1757ffc271b"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "7a81fe551fd61c50"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "7eed5b5576ca6543"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "885d335247c11ae2"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 10, "out": false, "test": "test_input_robustness.DeadTaps.test_dailies_quest_icon_hold_only_while_menu_is_open"}
+{"args": [{"img": "a6f1a877168b49ad"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "ae636c64b72ccaea"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "b4adab7354464ccc"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": true, "test": "test_world_cloud.RealFrames.test_quest_panel"}
+{"args": [{"img": "cb4db853d8b60c41"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_input_robustness.DeadTaps.test_dailies_quest_icon_hold_only_while_menu_is_open"}
+{"args": [{"img": "cecb8d3e90cf1e80"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 6, "out": true, "test": "test_review_fixes.F9QuestTabs.test_failed_tab_reopens_panel_before_next_tab"}
+{"args": [{"img": "fe0e18c78ea20faa"}], "fn": "afk_dailies.is_quests_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_world_cloud.RealFrames.test_quest_panel"}

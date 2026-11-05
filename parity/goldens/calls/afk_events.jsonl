@@ -1,0 +1,19 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "06ae544f4159550a"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "0bc97c9b0f775b73"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "1655a7b8794215b5"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 2, "out": "B", "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "3970e489853b17dc"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 4, "out": null, "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "5b128e5e70b7bf04"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 8, "out": "A", "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "7384526574cec47d"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_not_events_list_real_frames"}
+{"args": [{"img": "7ab56bb92a020b38"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "A", "test": "test_events.Flow.test_no_card_badge_is_nothing_to_do"}
+{"args": [{"img": "8af1473db76a7d9e"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "A", "test": "test_events.Detectors.test_events_list_real_frames"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 8, "out": null, "test": "test_events.Flow.test_list_never_verified_stops"}
+{"args": [{"img": "ad9810244fe37018"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "B", "test": "test_events.Detectors.test_events_list_real_frames"}
+{"args": [{"img": "b5629899440a3bfc"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_events_list_synthetic"}
+{"args": [{"img": "b5c96d8394bcfd59"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "A", "test": "test_events.Detectors.test_events_list_real_frames"}
+{"args": [{"img": "b930921d1a70be38"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_not_events_list_real_frames"}
+{"args": [{"img": "c11dbe3c8c47be6b"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "A", "test": "test_events.Detectors.test_events_list_real_frames"}
+{"args": [{"img": "cae621b8a8aa458f"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_not_events_list_real_frames"}
+{"args": [{"img": "de81684838ff51f4"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_not_events_list_real_frames"}
+{"args": [{"img": "ee57a66219b9ed40"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": "A", "test": "test_events.Flow.test_badge_on_a_paid_title_is_logged_never_opened"}
+{"args": [{"img": "fe2bb1cc7f20161f"}], "fn": "afk_events.is_events_list", "kwargs": {}, "n": 1, "out": null, "test": "test_events.Detectors.test_not_events_list_real_frames"}

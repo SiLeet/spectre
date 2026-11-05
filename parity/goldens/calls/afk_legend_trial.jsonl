@@ -1,0 +1,63 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "0a7d60ed5042232e"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": [1084, 705], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "23fa84e5deedd065"}, [[981, 735, 125, 43, "Cha//enge/"]]], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 12, "out": [1043, 756], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "7c008699d0f3f8d8"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": [779, 464], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "7dba0a957c8d9c68"}, [[1020, 723, 126, 29, "Challenger"]]], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": [1083, 737], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "adefedd60b9e25ae"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1"}
+{"args": [{"img": "eb942d8a73a7049c"}, [[981, 735, 125, 43, "Cha//enge/"]]], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
+{"args": [{"img": "0a7d60ed5042232e"}, ["ower ofEternity"], "eternity"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "23fa84e5deedd065"}, ["ower of Light"], "light"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Flows.test_two_open_towers"}
+{"args": [{"img": "23fa84e5deedd065"}, ["ower ofEternity"], "eternity"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 18, "out": true, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "23fa84e5deedd065"}, ["ower ofEternity"], "light"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "23fa84e5deedd065"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 8, "out": true, "test": "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "7dba0a957c8d9c68"}, ["ower ofEternity"], "eternity"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "89a863b14e3e944b"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 2, "out": false, "test": "test_legend_trial.Flows.test_prep_lost_after_tap_retry"}
+{"args": [{"img": "970e009bb5369837"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Flows.test_unknown_frame_after_challenge_no_further_tap"}
+{"args": [{"img": "adefedd60b9e25ae"}, ["ower ofEternity"], "eternity"], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1"}
+{"args": [{"img": "adefedd60b9e25ae"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1"}
+{"args": [{"img": "bf9c15613e2fa579"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "e7bbf1e4326daa29"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "eb942d8a73a7049c"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "f0aeb9da54c5fc07"}, ["ower ofEternity"]], "fn": "afk_legend_trial.is_floor_view", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_floor_view"}
+{"args": [{"img": "08f344d883adbc55"}, 5], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 6, "out": true, "test": "test_legend_trial.Flows.test_defeat_stops_without_retry_or_close"}
+{"args": [{"img": "08f344d883adbc55"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "24c750062df03c78"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "439f5307e477b3f2"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {"heroes": 1}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "439f5307e477b3f2"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "6298deca65e8f3b1"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "8acc6e2e17a0f7b8"}, 5], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 6, "out": false, "test": "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded"}
+{"args": [{"img": "adbe36a1fb988b45"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "bf9c15613e2fa579"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "e2e6b6e0e5fe6fe4"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "e6f4dfa4e782d60a"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "eb942d8a73a7049c"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "f0aeb9da54c5fc07"}], "fn": "afk_legend_trial.is_lt_fight", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_fight_tell"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}, ["Tower of Eternity - Floor 1 (D"]], "fn": "afk_legend_trial.is_lt_prep", "kwargs": {}, "n": 13, "out": true, "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}, []], "fn": "afk_legend_trial.is_lt_prep", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_prep_pixels"}
+{"args": [{"img": "8acc6e2e17a0f7b8"}, ["Tower of Eternity - Floor 1 (D"]], "fn": "afk_legend_trial.is_lt_prep", "kwargs": {}, "n": 4, "out": true, "test": "test_legend_trial.Flows.test_confirm_dialog_after_battle_only_cancelled"}
+{"args": [{"img": "0a7d60ed5042232e"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "23fa84e5deedd065"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 9, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "4dce5697f2ff43be"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": true, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "561bf231145fac85"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 8, "out": false, "test": "test_legend_trial.Detectors.test_end_card_needs_title_and_text_to_agree"}
+{"args": [{"img": "63a9d1bb1ca08b0a"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "7dba0a957c8d9c68"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "844acbb70095852c"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 2, "out": true, "test": "test_legend_trial.Flows.test_no_go_tab_no_tower_tap"}
+{"args": [{"img": "89a863b14e3e944b"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 2, "out": false, "test": "test_legend_trial.Flows.test_prep_lost_after_tap_retry"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Flows.test_unknown_frame_after_challenge_no_further_tap"}
+{"args": [{"img": "a98bd4a06b98b63a"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 3, "out": true, "test": "test_legend_trial.Flows.test_two_open_towers"}
+{"args": [{"img": "adefedd60b9e25ae"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Flows.test_no_ribbon_on_floor_view_is_rc1"}
+{"args": [{"img": "bf9c15613e2fa579"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 3, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "de81684838ff51f4"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "e7bbf1e4326daa29"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 3, "out": false, "test": "test_legend_trial.Detectors.test_end_card_needs_title_and_text_to_agree"}
+{"args": [{"img": "eb942d8a73a7049c"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 28, "out": true, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [{"img": "f0aeb9da54c5fc07"}], "fn": "afk_legend_trial.is_lt_towers", "kwargs": {}, "n": 1, "out": false, "test": "test_legend_trial.Detectors.test_tower_tabs_and_is_lt_towers"}
+{"args": [["Auto Battle"]], "fn": "afk_legend_trial.parse_floor", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Parsers.test_tickets_and_floor"}
+{"args": [["Floor12"]], "fn": "afk_legend_trial.parse_floor", "kwargs": {}, "n": 1, "out": 12, "test": "test_legend_trial.Parsers.test_tickets_and_floor"}
+{"args": [["Tower of Eternity - Floor 1 (D"]], "fn": "afk_legend_trial.parse_floor", "kwargs": {}, "n": 13, "out": 1, "test": "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded"}
+{"args": [["x 0"]], "fn": "afk_legend_trial.parse_tickets", "kwargs": {}, "n": 1, "out": 0, "test": "test_legend_trial.Parsers.test_tickets_and_floor"}
+{"args": [["x0"]], "fn": "afk_legend_trial.parse_tickets", "kwargs": {}, "n": 3, "out": 0, "test": "test_legend_trial.Flows.test_tickets_zero_skips_tower"}
+{"args": [["x2"]], "fn": "afk_legend_trial.parse_tickets", "kwargs": {}, "n": 1, "out": 2, "test": "test_legend_trial.Flows.test_happy_path_deploys_then_battles_then_wins"}
+{"args": [["x3"]], "fn": "afk_legend_trial.parse_tickets", "kwargs": {}, "n": 16, "out": 3, "test": "test_legend_trial.Flows.test_battle_tap_without_effect_is_bounded"}
+{"args": [[]], "fn": "afk_legend_trial.parse_tickets", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Parsers.test_tickets_and_floor"}

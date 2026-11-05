@@ -1,0 +1,93 @@
+{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"args": [{"img": "0065ffb25c56603a"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 3, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "0065ffb25c56603a"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "08121baa0a7214ee"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 76, "out": null, "test": "test_homestead.Flow.test_at_limit_is_nothing_to_do"}
+{"args": [{"img": "08121baa0a7214ee"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 11, "out": null, "test": "test_homestead.Detectors.test_synthetic_frames_match_the_detectors"}
+{"args": [{"img": "2a6d069f61bafee1"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 2, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "3e5bf20f51ee8cc5"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 2, "out": [760, 877], "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "3e5bf20f51ee8cc5"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "4d321e2517ea19b0"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 2, "out": [966, 581], "test": "test_homestead.Detectors.test_marker_and_world"}
+{"args": [{"img": "59b07211c823103a"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "69a893e65cdaba58"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "69a893e65cdaba58"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "74f9a7aec60ecadb"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": [760, 877], "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "74f9a7aec60ecadb"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "7d530973ea470ca0"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": [760, 877], "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "7d530973ea470ca0"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "a39fb1d1e8febe9f"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 5, "out": [760, 877], "test": "test_homestead.Flow.test_collect_is_bounded"}
+{"args": [{"img": "c34f312275e721ea"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "cd925fec5970a85b"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Flow.test_no_build_button_is_nothing_to_do"}
+{"args": [{"img": "cf527d6b39837d90"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "d09beafe40ec6686"}, [250, 150, 1700, 1000]], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_finished_build_outside_the_build_window"}
+{"args": [{"img": "e373970252ae1dd4"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "e46823a18ae51a64"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "ff7b5ed2466b7259"}], "fn": "afk_homestead.find_marker", "kwargs": {}, "n": 24, "out": [964, 560], "test": "test_homestead.Detectors.test_synthetic_frames_match_the_detectors"}
+{"args": [{"img": "0065ffb25c56603a"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 3, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "06a0014c9e34346e"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 14, "out": null, "test": "test_homestead_build_all.Flow.test_cap_across_two_tiles"}
+{"args": [{"img": "08121baa0a7214ee"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 79, "out": null, "test": "test_homestead.Flow.test_at_limit_is_nothing_to_do"}
+{"args": [{"img": "2d1c818f858dbeaf"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_dream_realm_red_green_is_not_a_ring"}
+{"args": [{"img": "2e8693fbbdde6ae6"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": [[1089, 562], [842, 557]], "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "3e5bf20f51ee8cc5"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Flow.test_real_frames_collect"}
+{"args": [{"img": "4d321e2517ea19b0"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Flow.test_real_frames_one_field"}
+{"args": [{"img": "69a893e65cdaba58"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "76c8d641216cbe24"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 3, "out": null, "test": "test_homestead_build_all.Flow.test_insufficient_popup_after_the_check_parks"}
+{"args": [{"img": "82c1ce8f5829a14b"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 5, "out": null, "test": "test_homestead_build_all.Flow.test_dry_run_reads_both_tabs"}
+{"args": [{"img": "84d84e214c8d088e"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": [[933, 550], [686, 544]], "test": "test_homestead.Detectors.test_ring_follows_the_ghost"}
+{"args": [{"img": "8ecef45003818d1d"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead_layout_mode.Flow.test_start_frame_in_layout_mode"}
+{"args": [{"img": "8ef32294f10b23fc"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 72, "out": [[1089, 562], [842, 557]], "test": "test_homestead.Detectors.test_synthetic_frames_match_the_detectors"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 9, "out": null, "test": "test_homestead.Flow.test_tile_tap_without_placement_never_retries_on_a_changed_screen"}
+{"args": [{"img": "9dff0e60b872da0a"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": [[1089, 562], [842, 557]], "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "a03fa3f862a482ad"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 34, "out": null, "test": "test_homestead.Flow.test_at_limit_is_nothing_to_do"}
+{"args": [{"img": "a114a8d9c76c4bfd"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead_build_all.Flow.test_confirm_dialog_right_after_the_tile_tap_is_cancelled"}
+{"args": [{"img": "a5119343d906c5e2"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": [[1284, 574], [1039, 568]], "test": "test_homestead.Detectors.test_ring_follows_the_ghost"}
+{"args": [{"img": "a9a5a57421d2d237"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 3, "out": [[1089, 562], [842, 557]], "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "c34f312275e721ea"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Flow.test_no_build_button_is_nothing_to_do"}
+{"args": [{"img": "d09beafe40ec6686"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 3, "out": null, "test": "test_homestead.Detectors.test_build_menu"}
+{"args": [{"img": "d5fb7ee80de2b91c"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": [[1176, 491], [930, 486]], "test": "test_homestead.Detectors.test_ring_follows_the_ghost"}
+{"args": [{"img": "e373970252ae1dd4"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "e46823a18ae51a64"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "f5516b50bab41642"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 2, "out": null, "test": "test_homestead_build_all.Flow.test_greyed_but_below_the_limit_is_an_error"}
+{"args": [{"img": "ff7b5ed2466b7259"}], "fn": "afk_homestead.find_ring", "kwargs": {}, "n": 23, "out": null, "test": "test_homestead.Flow.test_counter_mismatch_after_build_stops"}
+{"args": [{"img": "0065ffb25c56603a"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 4, "out": false, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "06a0014c9e34346e"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 61, "out": true, "test": "test_homestead_build_all.Flow.test_cap_across_two_tiles"}
+{"args": [{"img": "08121baa0a7214ee"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 131, "out": false, "test": "test_homestead.Flow.test_at_limit_is_nothing_to_do"}
+{"args": [{"img": "0d07f30388b31ac5"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 2, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "2570a53f3ca5bc53"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "2a6d069f61bafee1"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Flow.test_real_frames_collect"}
+{"args": [{"img": "2e8693fbbdde6ae6"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "3e5bf20f51ee8cc5"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Flow.test_real_frames_collect"}
+{"args": [{"img": "526b1e26162bda9f"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_layout_mode.Detector.test_layout_mode_on_the_live_frames"}
+{"args": [{"img": "5cf879ad35df8121"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 2, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "69a893e65cdaba58"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "711e2c5947f8a692"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "76c8d641216cbe24"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 3, "out": false, "test": "test_homestead_build_all.Flow.test_insufficient_popup_after_the_check_parks"}
+{"args": [{"img": "7a68ef30027cf3a9"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_layout_mode.Detector.test_layout_mode_on_the_live_frames"}
+{"args": [{"img": "82c1ce8f5829a14b"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 27, "out": true, "test": "test_homestead_build_all.Detectors.test_synthetic_frames"}
+{"args": [{"img": "85a6aec6fcd26aed"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "8ecef45003818d1d"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 8, "out": false, "test": "test_homestead_layout_mode.Flow.test_menu_opened_in_layout_mode"}
+{"args": [{"img": "970e009bb5369837"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 40, "out": false, "test": "test_homestead.Flow.test_counter_mismatch_after_build_stops"}
+{"args": [{"img": "9dff0e60b872da0a"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "a03fa3f862a482ad"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 168, "out": true, "test": "test_homestead.Detectors.test_synthetic_frames_match_the_detectors"}
+{"args": [{"img": "a114a8d9c76c4bfd"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_build_all.Flow.test_confirm_dialog_right_after_the_tile_tap_is_cancelled"}
+{"args": [{"img": "a9a5a57421d2d237"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_ring_found_on_the_frame"}
+{"args": [{"img": "bc572fed7bb9f1dd"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_layout_mode.Detector.test_layout_mode_on_the_live_frames"}
+{"args": [{"img": "bd55bfa4a2c9a787"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "c34f312275e721ea"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 2, "out": false, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Flow.test_no_build_button_is_nothing_to_do"}
+{"args": [{"img": "d09beafe40ec6686"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 11, "out": true, "test": "test_homestead.Detectors.test_build_menu"}
+{"args": [{"img": "dff3092be976d90a"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "e373970252ae1dd4"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "e46823a18ae51a64"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead.Detectors.test_negatives"}
+{"args": [{"img": "e72916a4135249c1"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "e914f048c9a96da0"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_layout_mode.Detector.test_layout_mode_on_the_live_frames"}
+{"args": [{"img": "f5516b50bab41642"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 8, "out": true, "test": "test_homestead_build_all.Flow.test_greyed_but_below_the_limit_is_an_error"}
+{"args": [{"img": "fdfdd8ec476fcc12"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 1, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [{"img": "feca38a68d4be264"}], "fn": "afk_homestead.is_build_menu", "kwargs": {}, "n": 2, "out": true, "test": "test_homestead_build_all.Detectors.test_only_the_field_tile_is_white_on_every_menu_frame"}
+{"args": [["3848", "460"]], "fn": "afk_homestead.parse_resources", "kwargs": {}, "n": 1, "out": null, "test": "test_homestead.Parsers.test_resources"}
+{"args": [["@ 50 3848", "460"]], "fn": "afk_homestead.parse_resources", "kwargs": {}, "n": 1, "out": [50, 3848], "test": "test_homestead.Flow.test_resources_short_stops_cleanly"}
+{"args": [["@ 653,402 3848", "460"]], "fn": "afk_homestead.parse_resources", "kwargs": {}, "n": 33, "out": [653402, 3848], "test": "test_homestead.Flow.test_counter_mismatch_after_build_stops"}
+{"args": [[]], "fn": "afk_homestead.parse_resources", "kwargs": {}, "n": 21, "out": null, "test": "test_homestead_build_all.Flow.test_cap_across_two_tiles"}
+{"args": ["q0"], "fn": "afk_homestead.read_counter", "kwargs": {"bw": 200, "tag": "q", "variants": [[[1440, 84, 1485, 108], 3, ""], [[1440, 84, 1485, 108], 5, ""], [[1445, 86, 1480, 106], 3, ""], [[1445, 86, 1480, 106], 4, ""], [[1445, 86, 1480, 106], 5, ""], [[1440, 84, 1485, 108], 5, "pad"], [[1445, 86, 1480, 106], 4, "pad"]]}, "n": 1, "out": [0, 2], "test": "test_homestead_build_all.RealQueue.test_queue_reads_0_of_2"}
+{"args": ["q1"], "fn": "afk_homestead.read_counter", "kwargs": {"bw": 200, "tag": "q", "variants": [[[1440, 84, 1485, 108], 3, ""], [[1440, 84, 1485, 108], 5, ""], [[1445, 86, 1480, 106], 3, ""], [[1445, 86, 1480, 106], 4, ""], [[1445, 86, 1480, 106], 5, ""], [[1440, 84, 1485, 108], 5, "pad"], [[1445, 86, 1480, 106], 4, "pad"]]}, "n": 1, "out": [0, 2], "test": "test_homestead_build_all.RealQueue.test_queue_reads_0_of_2"}
+{"args": ["q2"], "fn": "afk_homestead.read_counter", "kwargs": {"bw": 200, "tag": "q", "variants": [[[1440, 84, 1485, 108], 3, ""], [[1440, 84, 1485, 108], 5, ""], [[1445, 86, 1480, 106], 3, ""], [[1445, 86, 1480, 106], 4, ""], [[1445, 86, 1480, 106], 5, ""], [[1440, 84, 1485, 108], 5, "pad"], [[1445, 86, 1480, 106], 4, "pad"]]}, "n": 1, "out": [0, 2], "test": "test_homestead_build_all.RealQueue.test_queue_reads_0_of_2"}

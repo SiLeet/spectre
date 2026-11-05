@@ -278,3 +278,12 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - **Keine Event-Karte wird angetippt:** Kein Frame zeigt ein geöffnetes Event, seinen Claim-Button oder Preise (Event-Screens tragen teils Kauf-Angebote). Claims = Stufe 2, sobald diese Screens vermessen sind — bitte je Event einen Frame des geöffneten Screens.
 - Deine Fakten eingebaut: Golden Supplier = Requests-NPC (nie öffnen), District Preview = nur Vorschau, kein Claim; Baden Rate Up / Crescent Offering nie öffnen; Journey's Gift claimt afk-daily-gift.
 - LIVE offen: Ergebnis des Routines-Tabs, BACK auf der Event-Liste, Tab-Persistenz, Layout-B-Badges, Badge-Bedeutung (Geschenk vs. „!").
+
+## Nachtrag T112 (Legend Trial)
+
+`feature/T112-legend-trial` @ `1e4a911`. Neue Soft-Phase, Marker `legend-trial-last.txt`, `AFK_LEGEND_TRIAL=0`.
+- **Warum „Battle" verpufft:** Die Formation war **leer** (erster Besuch Eternity Floor 1, kein gespeichertes Team). Der grüne Deploy-Haken (89,175,115) sitzt auf allen 5 Karten der funktionierenden DR-/Arena-Preps und auf keiner LT-Karte. Battle-Farbe = aktivierter DR-Button (nicht deaktiviert), gleiche Hitbox wie die funktionierenden Preps, kein Overlay (9 Frames, Panelbereich pixelgleich).
+- **Fix:** `ensure_team()` tippt die zulässigen Roster-Karten einzeln an und prüft je den Haken; Battle erst mit ≥ 1 Held; Kampfstart nur bei Beweis (HP-Streifen / Laden / Ergebniskarte), sonst ein Retry und weicher Stopp. Sieg → nächster Floor, Niederlage → Stopp (nie „Retry"), max 10 Kämpfe. Nie Auto Battle, nie Käufe.
+- **Bitte live testen (steht im Modul-Docstring):** (a) Battle einmal tippen, Screencap nach 0,3 s (Toast?); (b) Karte (482,712) tippen, nach 1,5 s Haken bei (482,725) + Held auf einem Hex erwartet, dann 578/673/769/864; (c) Battle → Laden → HP-Streifen; (d) nur falls (b) nichts tut: Karte auf den Hex ziehen (`input swipe 482 712 872 472 600`).
+- „x3" ist vermutlich eine Meilenstein-Belohnung, keine Tickets (nur geloggt).
+- **Merge-Hinweis:** T109 und T112 fügen ihren Watch-Block an derselben Stelle ein → beide behalten (Events, dann Legend Trial); gleiches in `test_afk_daily_exit_code.py`.

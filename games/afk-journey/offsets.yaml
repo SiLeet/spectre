@@ -7,9 +7,7 @@
 #   - team_power VERIFIED LIVE via spectre hot (2026-11-01, commit 97b32ee):
 #     on-device scan for pattern 0a f7 03 00 (259850) resolves to exactly
 #     base+0xA578. HUD "259K" = POWER (Wappen-Icon), NOT gold.
-#   - gold raw value is SMALL (~9.963 -> 12.300 after a reward claim);
-#     the exact u32 slot NOT yet pinned (display copy not found in first
-#     8MB of hot heap) — next step: claim reward with SHORT action-diff.
+#   - (10-31 note "gold raw value SMALL ~9.963" superseded by T116, see below.)
 #   - AFK income pool slots @ base+0x453B58 / +0x453B90 (grow continuously)
 # UNVERIFIED entries need an action-diff (short interval!) before use.
 #
@@ -20,8 +18,15 @@
 #     static entry below is STALE for any current process; the bot reads the
 #     relocated slot via scripts/afk_memory.py (power-state.json + drift guard).
 #   - `min`/`max` = read-batch sanity range (out of range -> valid:false).
-#   - gold: hero gold is 8.57M (OCR '8572K/9390'), not ~9,963; T23 says
-#     server-side, re-test pending (audit H3). gold @0x0 is NOT an offset.
+#   - gold (T116, Hermes live 2026-11-05, pid 4039): HOMESTEAD gold (Requests
+#     panel / Spire dialog, 654,398) is a u32 at gold-region base + 0x7518C8,
+#     mirrored as u64 at the same address -> Homestead.gold below. Proof:
+#     u32 scan 653198 -> exactly 1 hit 0x7607b07518c8; later direct read
+#     654398 = Spire dialog "654.398"; search --continue 654398 -> still the
+#     only hit (one process). The gold region (0x7607b0000000) is NOT the
+#     power heap (0x7607E0000000); expected to move per process (ASLR). Supersedes T23 "server-side"
+#     and the old "gold @0x0". Hero gold (8.57M) is a different value, not pinned.
+#     Restart check (same offset after a new pid) still open.
 #   - afk_pool_*: STALE since the 10-31 restart (never re-found).
 #
 # !! team_power: ALWAYS read via scripts/afk_memory.py power() (relocation +
@@ -69,10 +74,6 @@ structures:
         min: 100000               # = afk_claim_vision GUARD_LO/GUARD_HI
         max: 10000000000
         desc: "Team combat power (HUD '259K'). Slot moves per process; use afk_memory.power()."
-      - name: "gold"
-        field_type: I64
-        offset: 0x0000000000000   # NOT AN OFFSET — T23: server-side, re-test pending (audit H3); never read this
-        desc: "Gold coins. Raw value SMALL (9,963 before / 12,300 after a reward claim — delta +2,337). Needs short action-diff to pin."
       - name: "afk_pool_gold"
         field_type: I64
         offset: 0x0000000453B58    # STALE since 10-31 restart (grew ~300-700/2min then)
@@ -141,3 +142,13 @@ structures:
         field_type: Pointer64
         offset: 0x20
         desc: "Pointer to skill data"
+
+  - name: "Homestead"
+    base_offset: 0x7607b0000000   # gold RW region base, pid 4039 (ASLR per process!)
+    fields:
+      - name: "gold"
+        field_type: U32
+        offset: 0x7518C8          # VERIFIED LIVE 2026-11-05 (T116, pid 4039 only), rescan-verified; same value as u64; restart check open
+        min: 0
+        max: 1000000000
+        desc: "Homestead gold (Requests panel / Spire dialog). Region base moves per process; use afk_memory.gold()."

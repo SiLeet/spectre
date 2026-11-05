@@ -331,6 +331,10 @@ structures:
         let tp = p.iter().find(|e| e.name == "Resources.team_power").unwrap();
         assert_eq!((tp.min, tp.max), (Some(100_000.0), Some(10_000_000_000.0)));
         assert!(tp.valid, "{tp:?}");
+        let gold = p.iter().find(|e| e.name == "Homestead.gold").unwrap();
+        assert_eq!((gold.min, gold.max), (Some(0.0), Some(1_000_000_000.0)));
+        assert_eq!(gold.address, 0x7607_b075_18c8);
+        assert!(gold.valid, "{gold:?}");
     }
 
     #[test]

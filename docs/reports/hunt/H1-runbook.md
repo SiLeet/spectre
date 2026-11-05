@@ -5,6 +5,26 @@ Arbeitsteilung: **Hermes** fährt live und legt Logs/States/Dumps ab; **Claude**
 schreibt die Relokation + `offsets.yaml` (erst nach dem Neustart-Check). Ersetzt den H1-Abschnitt
 in `docs/reports/memory-first-audit.md`.
 
+## GOLD: DONE (Slot + Offsets) — T116, 2026-11-05 (1 Prozess, Neustart-Check offen)
+
+Homestead-Gold ist gefunden (Hermes live, pid 4039; Gold aus dem Requests-Panel bzw. dem Spire-Dialog,
+**nicht** das Helden-Gold 8,57M):
+
+- **Slot:** `0x7607b07518c8` = Region `0x7607b0000000` (eigene RW-Region, nicht die Power-Region
+  `0x7607E0000000`) + Offset `0x7518C8`. Typ u32; live als u64 gelesen derselbe Wert (oberes Dword 0).
+- **Beweis-Kette:** (1) `search u32 653198` (Requests-Panel) → genau 1 Kandidat `0x7607b07518c8`;
+  (2) späterer Direkt-Read → 654398 = Spire-Dialog „654.398" (Gold war live gestiegen);
+  (3) `search --continue u32 654398` → der Kandidat bleibt der einzige Treffer.
+- **Umgebung (64 B):** `3e fc 09 00 | 00 00 00 00 | 03 44 | …` (Record mit `0x4403`-Marker).
+  Die Nachbar-u32 `0x02e6bd` (190141) und `0x05f5e121` (100000033) sind Amber-/Power-Kandidaten
+  für die nächste Runde.
+- **Eingetragen:** `offsets.yaml` → `Homestead.gold` (U32, min 0, max 1e9);
+  `scripts/afk_memory.py` → `gold(pid, gold_base)` (u32 und u64 müssen gleich sein und im Bereich
+  liegen, sonst `invalid`), `gold-state.json` `{offset, base?, pid?}`, `--show --gold-base`.
+- **Offen:** Neustart-Check (gleicher Offset `0x7518C8` in der neuen Gold-Region nach einem neuen PID)
+  und wie die Gold-Region ohne Suche gefunden wird. Bis dahin: Region-Base pro Prozess per
+  `search` + `gold-state.json` setzen; OCR bleibt Fallback.
+
 ## Was sich gegenüber dem Audit-Plan ändert
 
 - **Felder stehen auf 16/16** → „genau 1 Field bauen (−100 Gold / −10 Amber)" geht nicht mehr.

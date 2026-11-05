@@ -17,7 +17,14 @@ adb/spectre itself; only afk_claim_vision (the guard definition) and this
 module call memory_preflight / read_power / adb_exec_dump. Enforced by the
 grep-assert in scripts/tests/test_afk_memory.py (TRollout).
 
-CLI:  python scripts/afk_memory.py --show --pid P --base 0x...
+gold(pid, gold_base) (T116) reads HOMESTEAD gold (Requests panel / Spire
+dialog, not hero gold): u32 at gold-region base + 0x7518C8,
+mirrored as u64 at the same address (Hermes live, pid 4039, rescan-verified
+2026-11-05, one process). gold_base is the gold RW region (pid 4039:
+0x7607b0000000), NOT the power heap base; expected to move per process (ASLR),
+restart check open. No runtime relocation yet: base via --gold-base or gold-state.json.
+
+CLI:  python scripts/afk_memory.py --show --pid P --base 0x... [--gold-base 0x...]
       [--offsets games/afk-journey/offsets.yaml]   (absolute base_offsets: --base 0x0)
 """
 from __future__ import annotations
@@ -36,8 +43,13 @@ SPECTRE = v.REPO / 'target' / 'release' / 'spectre.exe'
 CACHE_TTL = 1.5
 TIMEOUT = 30           # one attach + a handful of reads; a hung adb must not hang the bot
 
+GOLD_STATE = v.POWER_STATE.with_name('gold-state.json')   # {offset, base?, pid?}
+DEFAULT_GOLD_OFFSET = 0x7518C8   # T116: offset inside the gold RW region (pid 4039)
+GOLD_MIN, GOLD_MAX = 0, 1_000_000_000   # sanity range, same as offsets.yaml Homestead.gold
+
 _snap_cache: dict[tuple, tuple[float, dict]] = {}
 _power_cache: dict[tuple, tuple[float, tuple]] = {}
+_gold_cache: dict[tuple, tuple[float, tuple]] = {}
 
 
 def _run_read_batch(pid: str, base: str, yaml_path: Path) -> list | None:
@@ -141,11 +153,50 @@ def power(pid: str, base: str) -> tuple[str, int | None]:
     return res
 
 
+def load_gold_state() -> dict:
+    try:
+        return json.loads(GOLD_STATE.read_text())
+    except Exception:
+        return {}
+
+
+def gold(pid: str, base: str) -> tuple[str, int | None]:
+    """('ok', gold) | ('invalid', None) | ('fail', None); base = gold region base.
+
+    invalid (valid:false): out of GOLD_MIN..GOLD_MAX, or the u64 view != the u32
+    view (live: both read the same value, i.e. the high dword is 0; a mismatch
+    means a stale/foreign slot - fails safe, OCR stays the fallback).
+    Only 'ok' is cached (CACHE_TTL)."""
+    key = (str(pid), str(base))
+    now = time.monotonic()
+    hit = _gold_cache.get(key)
+    if hit and now - hit[0] < CACHE_TTL:
+        return hit[1]
+    off = load_gold_state().get('offset', DEFAULT_GOLD_OFFSET)
+    try:
+        offset = int(off, 0) if isinstance(off, str) else int(off)   # hand-written state: "0x..." ok
+    except (TypeError, ValueError):
+        return ('fail', None)
+    # shortcut: read via the 16-byte power-slot yaml (gold needs 8 of them); fine while
+    # gold sits mid-region, switch to a 4/8-byte gold yaml if it ever lands at a region end
+    u32 = read_value(pid, base, offset, width=4)   # both views: one cached read-batch
+    u64 = read_value(pid, base, offset, width=8)
+    if u32 is None or u64 is None:
+        return ('fail', None)
+    if u32 != u64 or not GOLD_MIN <= u32 <= GOLD_MAX:
+        return ('invalid', None)
+    res = ('ok', u32)
+    _gold_cache[key] = (now, res)
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     ap.add_argument('--show', action='store_true', help='print a snapshot (+ power)')
     ap.add_argument('--pid', required=True)
     ap.add_argument('--base', required=True, help='hot heap base (hex)')
+    ap.add_argument('--gold-base', help='gold region base (hex); default: gold-state.json '
+                    'base when its pid matches')
     ap.add_argument('--offsets', help='offsets YAML for the snapshot (default: power slot)')
     a = ap.parse_args(argv)
     if not a.show:
@@ -164,6 +215,14 @@ def main(argv: list[str] | None = None) -> int:
     if not a.offsets:
         status, val = power(a.pid, a.base)
         print(f'team_power: {status} {val}')
+        gst = load_gold_state()
+        gbase = a.gold_base or (gst.get('base') if str(gst.get('pid')) == str(a.pid) else None)
+        if gbase is None:
+            print('gold: n/a (no gold region base for this pid; pass --gold-base)')
+        else:
+            status, val = gold(a.pid, gbase)
+            note = '  (valid false: out of range or u32 != u64)' if status == 'invalid' else ''
+            print(f'gold: {status} {val}{note}')
     return 0 if snap else 2
 
 

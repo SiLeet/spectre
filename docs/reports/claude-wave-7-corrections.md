@@ -171,3 +171,46 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 - **Nie getippt:** „Give Up" (Tap-Guard wirft), Auto, x1/x3, Process Upgrade; kein keyevent BACK.
 - **Gazette:** Der Login-Rewards-Eintrag öffnet jetzt die Esperia-Monthly-Gazette statt des Events-Panels — `afk-daily-gift.py` lief dann in „panel did not open" (rc 1). Neu: OCR des letzten Warte-Frames erkennt die Gazette → `resolve_startup_popup` tippt die orange Claim-Platte per Farbscan (live x 815–1104, y 895–975, Mitte (959,934); Fallback `LOGIN_CLAIM`) → rc 0. Derselbe Scan gilt in Claim-Runde, Normalizer und Device-Ready. Korrektur meiner Zwischenmeldung: Die rc-3-Tage („no Login Rewards entry") lagen nicht an der Pixelprobe (1804,662) — die trifft auf allen 8 Homestead-Frames.
 - LIVE offen: Kopfzähler „n/5" (post3 zeigt 4/5 nach EINER Lieferung → nicht als Tageslimit benutzt); Slot 2 nie live getippt; Banner mit mehreren Rezepten; Kitchen-Tap (1040,410) aus anderen Kameras; ob „Make" je durch Ressourcen abgelehnt wird (dann stoppt „Stock stieg nicht").
+
+## Nachtrag T104b (Küche finden, Karten per OCR)
+
+`feature/T104b-kitchen-find` @ `72586ef` — von `main` (`e92b155`). Requests-Tests 30 OK; volle Suite 725 gelaufen, 3 Fehler = 30-s-Timeouts der unveränderten watch.sh-Wrapper-Tests unter Parallellast (die identische Datei lief in T104 mit 24/24).
+
+- **Befund (shots-42848/rq_ck_w → rq_ck_k):** Der Tap auf (1040,410) hat die Küche nur **fokussiert** (Klammern, Kamera unbewegt, keine Beschriftung) und zwei schwebende Scheiben über dem Dach gezeigt: Cook (1075,298) + Level Up (1147,298). Das ist dieselbe Darstellung wie die unselektierte Spire in T103b. Eine ausgewählte Küche zeigt ihr beschriftetes Radial immer *unter* dem Gebäude (18 Frames). Meine erste Annahme („Beschriftung blendet noch ein") war falsch; das unabhängige Review hat sie widerlegt.
+- **Fix:** zuerst das beschriftete Cook-Radial, sonst bis zu 3 Frames nach dem Tap das schwebende Cook/Level-Up-Paar (im Fenster über der Küche nur auf rq_ck_k, 1 von 87 Welt-Frames) → linke Scheibe. Wählt der Tap die Küche nur aus, wird ihr beschriftetes Radial einmal genommen; ein fremder Dialog wird über seine Zurück-Fläche geschlossen. `cook_disc` sucht breiter (shots-63328/hu_go: „Kitchen"-Label 164 px rechts von „Cook").
+- **Kein Kamera-Schwenk:** Auf allen Frames steht „Kitchen" nur zusammen mit ihrem eigenen Radial (ausgewählt). Nach einem Schwenk gäbe es also keinen Text, an dem ein Tap ansetzen könnte; das wäre ein Blindtap.
+- **Karten:** werden am OCR-„Select" verankert (grün = verfügbar, gesperrt = grau). Gekocht wird immer die erste Banner-Karte eines frischen Lesevorgangs (das Raster ordnet sich neu, sobald ein Banner erfüllt ist). Nur wenn die Liste gar kein Banner zeigt: bis zu 3 Proben nach niedrigstem Bestand. „Make" nur, wenn das Deck „Request > Stock" liest.
+- LIVE offen: was der Tap auf die schwebende Cook-Scheibe öffnet (Analogie Spire-Icon → direkt der Dialog); das Deck eines nicht angefragten Rezepts; der „>"-Link im Popup „Insufficient resources … Level 3 Kitchen" als kameraunabhängiger Weg zur Küche (kein Frame davon). Bitte je einen Frame nach diesen Taps.
+
+## Nachtrag T105 (Build-all + Upgrade-all)
+
+`feature/T105-homestead-all` — von `main` (`5301323`). Umgesetzt per Workflow (Recon → Implementierung → je 3 unabhängige Reviews → Fix), Diffs von mir geprüft.
+
+- **A, Build-all (`afk_homestead.py`):** Kachelraster im Build-Menü (Production, Functions nur wenn Production nichts hat oder die Quest es verlangt), weißes Kachel-Gate (grau = gesperrt/Limit), Zähler-OCR je Kachel, Quest-Kachel zuerst, Build-Queue gelesen (voll = Stopp), max 4 pro Lauf. Abgelehnter Bau oder „Insufficient resources" → Kachel für diesen Lauf parken, nächste. Kachel-Tap ohne Radial → Menü über Exit verlassen, parken. Bestätigungsdialog → immer X, Lauf endet.
+- **B, Upgrade-all (`afk_homestead_upgrade.py`):** erst der bisherige Spire-Pfad, dann das Quest-Gebäude aus dem Tracker, dann grüne Upgrade-Pins (oberster zuerst): Pin → Dialog/Radial/Icon (3 Frames Poll), sonst ein Tap auf den Gebäudekörper, sonst parken. Fehlende Karte, abgelehntes Level Up → Gebäude parken (über den Dialogtitel); volle Queue → Stopp. Max 2 Level-ups pro Lauf; wurde eines gestartet, ist das Ergebnis rc 0 (Marker), auch wenn danach etwas hängt. Gefundener Fehler: Das „Speed Up"-Sanduhr-Radial (57584/hu_after) konnte als Level Up durchgehen — jetzt Pfeil-Test + „eed"-Guard. Complete-Now-Sperrfläche auf (530,960,1012,1052) verbreitert; ein OCR-geprüfter „… Upgraded"-Overlay-Schließtap tippt nie, wenn „Complete" im Bild steht.
+- **Ore Refinery:** Auf keinem Frame beschriftet sichtbar; Name nur über den Dialogtitel zur Laufzeit. Das Refinery-Label sitzt 205 px links von seinem „Level U" (trash/shots-38632) — `building_level_up` sucht deshalb mit name=None und Pfeil-Test.
+- **LIVE offen (Kalibrierung per erstem `--dry-run`, schießt `hs_0_fread` bzw. Pin-Frames):** Functions-Tab (nie gesehen), jede verfügbare Nicht-Field-Kachel (Mine/Logging Site/Altar waren auf allen 11 Menü-Frames grau am Limit), Kosten von Nicht-Field-Kacheln, Platzierungsradial größerer Gebäude, Pin-Tap-Ergebnis, Tracker-Tap (160,915), Ebenen-Unlocks (kein Frame).
+
+## Nachtrag T106 (Gilde, LOG-ONLY)
+
+`feature/T106-guild-daily` — liegt auf T104 (`75de628`), wegen derselben Einfügestelle in `afk-bot-watch.sh`. Neue Soft-Phase nach den Homestead-Requests, Marker `guild-last.txt`, Schalter `AFK_GUILD=0`.
+
+- **Ablauf (nur lesen):** Gilden-Icon (nur HUD-Layout A) → Halle (OCR) → Challenge-Badge und Duel-Phase loggen → Guild Chest öffnen, Countdown + „Activeness Required" loggen → zurück → Store → Guild-Tab → Daily-Pille → Artikel lesen → `plan_buys()` loggt, was gekauft *würde* (Invite Letter / DR Essence bevorzugt, Gilden-Token/Gold ≤ Budget, **nie Diamanten**) → zurück zur Welt.
+- **Kein Kauf-, Bestätigungs-, Artikel-, Challenge- oder Duel-Tap.** Ein Bestätigungsdialog wird nur abgebrochen; ein Tap auf den grünen Haken wirft. Käufe brauchen erst die Freigabe des Users (Standregel: nie Kaufdialoge bestätigen).
+- **Korrektur zu den Recon-Frames:** `gchal.png` und `gstore.png` zeigen noch das Chest-Panel — die Taps auf Challenge (1445,915) und Store landeten auf Listenzeilen des Panels. `gstore2` zeigt den Store mit **leerer** Artikelliste. Die Chest hat keinen Claim-Button; die Verteilung wirkt automatisch („Distributed 38+N").
+- **LIVE offen:** Store-Artikelliste (Layout, Preis, Währung, Kaufdialog), Ergebnis der Daily-Pille, Ziele der Zurück-Pfeile, Gilden-Icon im HUD-Layout B (167 von 394 Welt-Frames → dort rc 1 ohne Tap), Challenge- und Duel-Screen, Dream-Store-Tab, guild4 wird von `classify` als UNKNOWN gelesen. Wrapper-Test-Timeout 30 → 90 s (Flake unter Last).
+
+### T106 — Freigabe Gilden-Store-Käufe (User, 2026-11-05)
+
+`feature/T106-guild-daily` @ `c786c16` (Branch-Spitze, auf 864be02). Der User hat Käufe im Gilden-Store mit **Gilden-Token** freigegeben, **nie mit Diamanten** (`BUYS_APPROVED`). Einen Kauf-Tap gibt es trotzdem noch nicht: Kein Frame zeigt Artikelkarten, das Währungssymbol neben dem Preis (Token vs. Diamant; im Store liegt auch ein 210-Diamanten-Ticket) oder den Kaufdialog. Bis dahin bleibt die Währung „unknown", es wird nichts getippt, und das Log sagt es.
+
+**Bitte live aufnehmen (Hermes):** (1) Guild Store → Daily-Liste *mit* Artikeln, (2) eine Karte mit Diamantpreis im selben Bild oder separat, (3) den Kaufdialog eines billigen Token-Artikels (danach abbrechen, nicht kaufen). Damit kalibriere ich Karte, Währungs-Tell und Dialog; danach kommt der Kauf-Tap auf die „would buy"-Zeilen.
+
+### Diamanten-Regel (User, 2026-11-05) + Quellenrecherche
+
+User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/quellen (verschiedene!)". Recherche per Workflow (3 unabhängige Sweeps: Guide-Seiten, Community, Video/offiziell; danach je Verwendung eine adversariale Prüfung; jede Quelle geöffnet, Klone einmal gezählt):
+
+- **Klarer Konsens (≥3 unabhängige):** nur die rabattierte tägliche **Invite Letter im Guild Store, 210 statt 300 Diamanten, 1×/Tag** (GameLeap, Prydwen/afk.guide, LootBar 2026, Reddit) → in `plan_buys()` erlaubt (`f7ce1af` auf `feature/T106-guild-daily`), nicht der 300er-Preis, nicht die monatliche Epic Invite Letter.
+- **Widersprüchlich → nein:** monatliche Stellar Crystal (400) / Epic Invite Letter, Summons (nur 10er All-Hero, nur unter Bedingungen), AFK-Instant-Rewards, Arena-/Dream-Realm-Versuche.
+- **Keine Quelle dafür → nie:** **„Complete Now" im Homestead** (0 dafür, LDShop ausdrücklich dagegen — Freunde/Gilden-Hilfe und Speed-up-Items stattdessen), 4. Bau-Queue (120), Order-Refresh (gratis: aufgeben + 5 min warten), Store-Refreshes, Gold/EXP/Equipment.
+- Damit ist die alte Frage (Hermes' ≥10×-Kosten-Regel für Complete Now) erledigt: **nein.** Die Complete-Now-Sperre in `afk_homestead_upgrade.py` bleibt.

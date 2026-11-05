@@ -358,6 +358,26 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         *) echo "afk-bot-watch: guild rc=$gd_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
+    # T109: events stage 1, READ-ONLY: Battle Modes Events tab -> log event cards (title, timer,
+    # badge), Routines tab restored, no card / claim tap. Soft phase like the guild: rc 0 read /
+    # 4 nothing to do -> done for today; rc 1 (stuck) ALSO marks the day: its taps are partly
+    # unmeasured and the next normalize BACKs on the list, so one attempt per day. Other rc (5 PC in
+    # use, 7 lock) logged, no marker. AFK_EVENTS=0 = off.
+    if [ "${AFK_EVENTS:-1}" = "1" ] && \
+       [ "$(cat "$OUT_DIR/events-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "events"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) events (event list read, read-only)"
+        "$PY" scripts/afk_events.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      ev_rc="${PIPESTATUS[0]}"
+      case "$ev_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/events-last.txt" ;;
+        1) echo "afk-bot-watch: events rc=1 (soft phase, stuck - not retried today)" | tee -a "$LOG"
+           date -u +%Y-%m-%d > "$OUT_DIR/events-last.txt" ;;
+        *) echo "afk-bot-watch: events rc=$ev_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     normalize_or_abort "stage push"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \

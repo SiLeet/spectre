@@ -69,6 +69,7 @@ case "$script" in
   *afk_homestead_upgrade.py) exit "${FAKE_UPGRADE_RC:-0}" ;;
   *afk_homestead_requests.py) exit "${FAKE_REQUESTS_RC:-0}" ;;
   *afk_guild.py) exit "${FAKE_GUILD_RC:-0}" ;;
+  *afk_events.py) exit "${FAKE_EVENTS_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -331,6 +332,43 @@ esac
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse(any("afk_guild.py" in call for call in calls), calls)
         self.assertTrue(any("afk_homestead_requests.py" in call for call in calls), calls)
+
+    # --- T109 events stage 1 (soft read-only phase right after the guild) ---
+    def test_events_runs_once_after_guild(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        evs = [c for c in calls if "afk_events.py" in c]
+        self.assertEqual(evs, ["scripts/afk_events.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_events.py")
+        self.assertLess(self._index(calls, "afk_guild.py"), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("events-last.txt", self.markers)
+
+    def test_events_nothing_to_do_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_EVENTS_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("events-last.txt", self.markers)
+
+    def test_events_stuck_is_soft_and_not_retried_today(self):
+        result, calls = self._run_wrapper(FAKE_EVENTS_RC="1")   # marker = the later runs skip it
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertIn("events-last.txt", self.markers)
+        self.assertIn("events rc=1 (soft phase, stuck", result.stdout)
+
+    def test_events_lock_held_retries(self):
+        result, calls = self._run_wrapper(runs=2, FAKE_EVENTS_RC="7")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("events-last.txt", self.markers)
+        self.assertIn("events rc=7 (soft phase", result.stdout)
+        self.assertEqual(sum("afk_events.py" in c for c in calls), 2, calls)
+
+    def test_events_switch_off(self):
+        result, calls = self._run_wrapper(AFK_EVENTS="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_events.py" in call for call in calls), calls)
+        self.assertTrue(any("afk_guild.py" in call for call in calls), calls)
 
 if __name__ == "__main__":
     unittest.main()

@@ -167,7 +167,7 @@ class Flow(unittest.TestCase):
         after = dev.taps[dev.taps.index(gd.STORE_BTN) + 1:]      # taps on the store screen
         self.assertFalse(any(l <= x <= r and t <= y <= b for x, y in after), after)
         for s in ('distribution in 94', 'Activeness Required: 200', 'Challenge badge lit',
-                  'Guild Duel phase: Preparati on', '28704', 'store list empty', 'LOG-ONLY'):
+                  'Guild Duel phase: Preparati on', '28704', 'store list empty', 'LOG-ONLY', 'buys approved'):
             self.assertIn(s, out)
 
     def test_items_are_logged_not_bought(self):

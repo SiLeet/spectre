@@ -23,8 +23,14 @@ Flow (bounded, every step verified on its frame, soft phase, NO buy / confirm / 
      DR Essence, guild/gold price <= BUY_BUDGET, never a diamond price) -> store back arrow ->
      hall (or world) -> hall back arrow -> world. A failure on a verified hall leaves via the hall
      back arrow before rc 1 (afk_normalize would send keyevent BACK there - unmeasured in the hall).
-Buys stay disabled until the user approves store purchases: enabling them = a tap step on the
-'would buy' rows of plan_buys() (rc 4 is reserved for 'nothing qualifies' then).
+Buys: the user APPROVED guild-store buys with guild tokens (2026-11-05, 'Allow token buys'; never
+diamonds - BUYS_APPROVED). No buy tap exists yet because nothing it needs is on a frame: the
+item cards (gstore2 is empty), the currency tell (guild token vs diamond icon next to a price;
+the store also sells a 210-diamond ticket) and the purchase dialog. Until those are calibrated
+store_items() reports currency None -> plan_buys() 'currency unknown' -> no tap; the log says
+so. Calibration frames needed (Hermes): the Daily list with items, one card priced in diamonds,
+the purchase dialog of a cheap token item (cancelled). Then the tap step goes on the 'would buy'
+rows (rc 4 reserved for 'nothing qualifies').
 Never tapped: the confirm dialog's green check (refused by _tap), Challenge, Guild Duel, any item.
 A confirm dialog is only ever cancelled (v.CONFIRM_CANCEL). No keyevent BACK (no v.back /
 reach_world / open_battle_modes): every screen is left via its own back arrow. An unrecognised
@@ -107,6 +113,7 @@ PREFERRED = ('invite letter', 'essence')
 ALLOWED_CURRENCY = ('guild', 'gold')
 BUY_BUDGET = 5000
 MAX_BUYS = 2
+BUYS_APPROVED = True           # user 2026-11-05: guild-token buys allowed, never diamonds (see docstring)
 ITEM_DX, ITEM_DY = 120, 200    # shortcut: guessed card geometry, recalibrate on the first store frame with items
 OUT_POLLS = 3
 OUT_WAIT = 2.5
@@ -317,7 +324,11 @@ def store(hboxes):
             print(f'    store item OCR: {[b for b in iboxes if _in_items(b)]}', flush=True)
             for name, price, verdict in plan_buys(store_items(iboxes), token_balance(iboxes) or token):
                 print(f'    would-buy: {name} {price} -> {verdict}', flush=True)
-        print('    store is LOG-ONLY (no buy/confirm taps)', flush=True)
+        if BUYS_APPROVED:
+            print('    buys approved (guild tokens, never diamonds) but uncalibrated: no item card, '
+                  'currency tell or purchase dialog on any frame - no buy tap (LOG-ONLY, LIVE-open)', flush=True)
+        else:
+            print('    store is LOG-ONLY (no buy/confirm taps)', flush=True)
     _tap(STORE_BACK, 2.5)
     for i in range(rq.OPEN_POLLS):               # transition frames: poll both destinations
         if i:

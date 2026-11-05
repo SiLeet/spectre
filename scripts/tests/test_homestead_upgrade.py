@@ -230,7 +230,7 @@ class Detectors(unittest.TestCase):
 
     def test_complete_now_is_never_tapped(self):
         with mock.patch.object(v, 'tap') as tap:
-            for xy in ((770, 995), (538, 967), (1005, 1047)):
+            for xy in ((770, 995), (538, 967), (1005, 1047), (536, 1040)):   # T105B: Kitchen plate x 536
                 with self.assertRaises(RuntimeError):
                     hu._tap(xy, 0)
             hu._tap(hu.LEVEL_UP_BTN, 0)
@@ -267,6 +267,9 @@ class Flow(unittest.TestCase):
     def run_hu(self, frames, boxes, *argv):
         dev = FakeDevice(self, [hermes(f) if isinstance(f, str) and f.endswith('.png') else f
                                 for f in frames], boxes=boxes)
+        p = mock.patch.object(hu, 'upgrade_all', lambda *a, **k: 4)   # T105B: Spire path only here
+        p.start()
+        self.addCleanup(p.stop)
         rc = hu.main(list(argv))
         self.assertNotIn(NO_BACK_KEY, dev.taps)       # keyevent BACK opens the exit-game dialog here
         return dev, rc

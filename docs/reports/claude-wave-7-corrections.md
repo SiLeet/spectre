@@ -270,3 +270,11 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - **Fix:** nach dem Turm-Tap bis zu 2 Neu-Aufnahmen ohne Tap (je Radial/Interact/Icon prüfen), Icon-Suche direkt neben dem Turm; erst danach `walk_towards()`: Held je Frame verortet, Taps nur auf gemessenem freiem Boden (nicht Gebäude, Bäume, Wasser, HUD, Joystick, Icons, Spire-Plattform), Stopp bei < 250 px, festgefahren (2× < 30 px), 12 Taps oder Nicht-Welt (Dialog über Zurück-Fläche schließen).
 - **Dein Fallback „Spire-Go-Teleport" greift nicht:** Die Go-Pille sitzt im Spire-Dialog, den wir gerade nicht öffnen können, und springt zu einem fehlenden Gebäude, nicht zum Spire. Fallback = weicher Stopp.
 - **LIVE offen:** Bewegt ein Boden-Tap den Helden überhaupt? Kein Frame-Paar zeigt das (Held auf allen deinen Frames 05:57–06:37 an derselben Stelle). Bitte ein Paar vor/nach einem Boden-Tap. Interact-Reichweite, Held bei Tageslicht.
+
+## Nachtrag T109 (Events, Stufe 1 = nur lesen)
+
+`feature/T109-events-claims` @ `ec3f6d4`. Neue Soft-Phase nach der Gilde (Marker `events-last.txt`, `AFK_EVENTS=0`).
+- Battle Modes → Events-Tab (Layout A nur bei leuchtendem Tab-Badge) → Liste verifiziert → je Karte Titel + Timer (OCR je Spalte) und Claim-Badge (Orange-Streifen an der Kartenecke) loggen → zurück über den Routines-Tab + ein BACK aus dem verifizierten Menü. rc 0 = Badges gesehen, 4 = keine.
+- **Keine Event-Karte wird angetippt:** Kein Frame zeigt ein geöffnetes Event, seinen Claim-Button oder Preise (Event-Screens tragen teils Kauf-Angebote). Claims = Stufe 2, sobald diese Screens vermessen sind — bitte je Event einen Frame des geöffneten Screens.
+- Deine Fakten eingebaut: Golden Supplier = Requests-NPC (nie öffnen), District Preview = nur Vorschau, kein Claim; Baden Rate Up / Crescent Offering nie öffnen; Journey's Gift claimt afk-daily-gift.
+- LIVE offen: Ergebnis des Routines-Tabs, BACK auf der Event-Liste, Tab-Persistenz, Layout-B-Badges, Badge-Bedeutung (Geschenk vs. „!").

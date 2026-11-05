@@ -214,3 +214,11 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - **Widersprüchlich → nein:** monatliche Stellar Crystal (400) / Epic Invite Letter, Summons (nur 10er All-Hero, nur unter Bedingungen), AFK-Instant-Rewards, Arena-/Dream-Realm-Versuche.
 - **Keine Quelle dafür → nie:** **„Complete Now" im Homestead** (0 dafür, LDShop ausdrücklich dagegen — Freunde/Gilden-Hilfe und Speed-up-Items stattdessen), 4. Bau-Queue (120), Order-Refresh (gratis: aufgeben + 5 min warten), Store-Refreshes, Gold/EXP/Equipment.
 - Damit ist die alte Frage (Hermes' ≥10×-Kosten-Regel für Complete Now) erledigt: **nein.** Die Complete-Now-Sperre in `afk_homestead_upgrade.py` bleibt.
+
+## Nachtrag T105b (Avalon Creator im Layout-Modus)
+
+`feature/T105b-layout-mode` @ `a927ee0` — von `main` (`9a4aa1a`). Suite 848 OK (skipped=204).
+
+- **Befund (shots-79896/hs_0_menu = t105b_diag):** kein Einblend-Problem. Das Menü hat sich im **Layout-Modus** geöffnet (Deko-Raster mit Designs/Ornaments/Plants, „Multiselect"/„Foundation", „Save"-Knopf). Es merkt sich seinen letzten Modus. Die alte Erkennung kannte nur den Build-Modus (grüne Build-Pille).
+- **Signatur:** Layout-Modus = Build-Pille creme (G−max −7, L222) + Layout-Pille grün (G−max 39, L157); Build-Modus umgekehrt. Sweep über 149 Frames: Layout nur auf shots-79896, t105b_diag, final16, reset1.
+- **Fix:** Nach dem Build-Tap bis zu 3 Frames: Layout-Modus → Tap auf die Build-Pille (~902,1022), **nie „Save"**; sonst (Einblenden) 1,5 s später neu lesen; Build-Modus über die Pixel-Anker bestätigen. Klappt das nicht, loggt der Fehler die gesehenen OCR-Menüwörter. Gleiches gilt, wenn der Lauf schon im Menü startet.

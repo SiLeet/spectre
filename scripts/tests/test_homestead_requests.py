@@ -282,7 +282,7 @@ class KitchenT104c(unittest.TestCase):
 
     def test_spire_stage_stuck_off_the_world(self):
         w = live('rq_ck_w.png')
-        dev = FakeDevice(self, [w, w, w, w, w, 'UNKNOWN', 'UNKNOWN'], boxes={'hu_tower': TOWER_BOXES})
+        dev = FakeDevice(self, [w, w, w, w, w, 'UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN'], boxes={'hu_tower': TOWER_BOXES})
         self.assertIsNone(rq.cook_trip('t'))
         self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W])
 
@@ -294,7 +294,7 @@ class KitchenT104c(unittest.TestCase):
 
     def test_kitchen_tap_opening_a_dialog_closes_it_then_spire_stage(self):
         w, d = live('rq_ck_w.png'), hermes('hm_up3.png')   # a requirement dialog with its back plate
-        dev = FakeDevice(self, [w, d, w, w, 'UNKNOWN', 'UNKNOWN'],
+        dev = FakeDevice(self, [w, d, w, w, 'UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN'],
                          boxes={'hu_tower': TOWER_BOXES})
         self.assertIsNone(rq.cook_trip('t'))           # closed (soft) -> stage 2 -> off the world there
         self.assertEqual(dev.taps, [rq.KITCHEN_BASE, hu.BACK_PLATE, TOWER_W])
@@ -325,7 +325,7 @@ class KitchenT104c(unittest.TestCase):
         # st1: supplier NPC selected; its Interact is pixel-identical to the Spire's -> after the tower
         # tap only a tower-anchored Interact counts -> no Interact tap, soft 0
         s, npc = hermes('st1.png'), [(927, 731, 66, 15, 'Interact')]
-        dev = FakeDevice(self, [s, s, s], boxes={'hu_world': npc, 'hu_tower': npc})
+        dev = FakeDevice(self, [s, s, s, s, s], boxes={'hu_world': npc, 'hu_tower': npc})
         self.assertEqual(rq.spire_go('t'), 0)
         self.assertEqual(dev.taps, [(338, 168)])
         self.assertIn('no Interact/Level Up radial after the tower tap', dev.out.getvalue())

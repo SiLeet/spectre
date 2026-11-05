@@ -569,6 +569,7 @@ list of issues with the structure/field they belong to.
 | Duplicate field name within a structure | error |
 | Unknown field type | error |
 | String length 0 (`string:0`, `String(0)`, `length: 0`) | error |
+| `min`/`max` on a non-numeric type, `min > max`, or NaN | error |
 | Overlapping field byte ranges within a structure (`offset` .. `offset + size(type)`) | warning |
 
 Exits with status 1 if any error is found; warnings alone exit 0, since
@@ -602,6 +603,24 @@ Resources @ 0x724df0000000  team_power     I64         0xa578    Team combat pow
 
 validation: ok
 ```
+
+## read-batch
+
+Read every field of an offsets YAML in one run through one reader:
+`spectre read-batch --offsets <game|yaml> --pid P --base 0x.. [--adb] [--json]`.
+Address = `base + base_offset + offset`. Each field gets its own entry
+(`name`, `address`, `value`, `fmt`, `valid`, `note`); a validation error or
+a failed read marks only that entry `valid: false`.
+
+Optional per-field sanity range (inclusive, numeric types only):
+
+```yaml
+- { name: "team_power", field_type: I64, offset: 0x10, min: 100000, max: 10000000000 }
+```
+
+A value outside the range keeps its `value` but is reported `valid: false`
+with `note: "out of range [min, max]"` (consumers such as
+`scripts/afk_memory.py` already ignore invalid entries).
 
 ## serve
 

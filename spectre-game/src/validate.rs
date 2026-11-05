@@ -2,7 +2,7 @@
 //
 // Sanity checks for a game-offset YAML file: non-empty version, unique
 // structure names, unique field names per structure, known field types and
-// non-zero string lengths (errors) and overlapping field byte ranges within a structure (warning —
+// non-zero string lengths, sane min/max ranges (errors) and overlapping field byte ranges within a structure (warning —
 // placeholder offsets may legitimately overlap until confirmed).
 
 use std::collections::HashSet;
@@ -50,6 +50,27 @@ pub fn field_size(ft: FieldType) -> u64 {
     }
 }
 
+/// A `min`/`max` sanity range must sit on a numeric field and not be inverted.
+fn range_error(ft: FieldType, min: Option<f64>, max: Option<f64>) -> Option<String> {
+    if min.is_none() && max.is_none() {
+        return None;
+    }
+    let numeric = !matches!(
+        ft,
+        FieldType::Bool | FieldType::Pointer32 | FieldType::Pointer64 | FieldType::String(_)
+    );
+    if !numeric {
+        return Some("min/max range needs a numeric field type".to_owned());
+    }
+    if min.is_some_and(f64::is_nan) || max.is_some_and(f64::is_nan) {
+        return Some("min/max must be numbers".to_owned());
+    }
+    match (min, max) {
+        (Some(lo), Some(hi)) if lo > hi => Some(format!("min {lo} > max {hi}")),
+        _ => None,
+    }
+}
+
 /// Validate an offsets file.  An empty result means "ok".
 pub fn validate(file: &YamlGameFile) -> Vec<Issue> {
     let mut issues = Vec::new();
@@ -94,6 +115,9 @@ pub fn validate(file: &YamlGameFile) -> Vec<Issue> {
                     "string length must be > 0".to_owned(),
                 )),
                 Some(ft) => {
+                    if let Some(msg) = range_error(ft, f.min, f.max) {
+                        issues.push(Issue::new(Severity::Error, &sd.name, Some(&f.name), msg));
+                    }
                     ranges.push((f.offset, f.offset.saturating_add(field_size(ft)), &f.name))
                 }
                 None => issues.push(Issue::new(

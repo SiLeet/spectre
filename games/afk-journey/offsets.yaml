@@ -12,6 +12,17 @@
 #     8MB of hot heap) — next step: claim reward with SHORT action-diff.
 #   - AFK income pool slots @ base+0x453B58 / +0x453B90 (grow continuously)
 # UNVERIFIED entries need an action-diff (short interval!) before use.
+#
+# T110 audit (2026-11-05, docs/reports/memory-first-audit.md):
+#   - Offsets here are PER PROCESS. team_power moved I64 @0xA578 (10-31) ->
+#     u32 map entry @0x2FE8 / 0x1BD838 -> u64 display copy (width 8, no
+#     map-entry shape) @0x4A728 (pid 4039, 11-04). The
+#     static entry below is STALE for any current process; the bot reads the
+#     relocated slot via scripts/afk_memory.py (power-state.json + drift guard).
+#   - `min`/`max` = read-batch sanity range (out of range -> valid:false).
+#   - gold: hero gold is 8.57M (OCR '8572K/9390'), not ~9,963; T23 says
+#     server-side, re-test pending (audit H3). gold @0x0 is NOT an offset.
+#   - afk_pool_*: STALE since the 10-31 restart (never re-found).
 
 game: "afk-journey"
 version: "1.0.45"
@@ -49,19 +60,21 @@ structures:
     fields:
       - name: "team_power"
         field_type: I64
-        offset: 0x000000000A578   # VERIFIED LIVE via `spectre hot` (97b32ee: 0a f7 03 00 -> exact)
-        desc: "Team combat power (HUD shows rounded '259K'; raw 259850 stable across restarts)."
+        offset: 0x000000000A578   # VERIFIED LIVE 10-31 only (97b32ee); STALE per process, see header
+        min: 100000               # = afk_claim_vision GUARD_LO/GUARD_HI
+        max: 10000000000
+        desc: "Team combat power (HUD '259K'). Slot moves per process; use afk_memory.power()."
       - name: "gold"
         field_type: I64
-        offset: 0x0000000000000   # NOT FOUND YET — display copy not in first 8MB of hot heap
+        offset: 0x0000000000000   # NOT AN OFFSET — T23: server-side, re-test pending (audit H3); never read this
         desc: "Gold coins. Raw value SMALL (9,963 before / 12,300 after a reward claim — delta +2,337). Needs short action-diff to pin."
       - name: "afk_pool_gold"
         field_type: I64
-        offset: 0x0000000453B58    # UNVERIFIED (grows ~300-700/2min)
+        offset: 0x0000000453B58    # STALE since 10-31 restart (grew ~300-700/2min then)
         desc: "AFK income pool slot. Grows monotonically; +190000 jump observed while a reward was being claimed."
       - name: "afk_pool_exp"
         field_type: I64
-        offset: 0x0000000453B90    # UNVERIFIED (parallel growth)
+        offset: 0x0000000453B90    # STALE since 10-31 restart
         desc: "Likely EXP/essence pool, parallel to afk_pool_gold."
       - name: "gems"
         field_type: I64

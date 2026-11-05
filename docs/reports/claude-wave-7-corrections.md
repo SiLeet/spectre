@@ -205,3 +205,12 @@ Die „Build"-Bubble bei Boden-Taps (helr0/helr1) ist nicht eingebaut — sie ge
 `feature/T106-guild-daily` @ `c786c16` (Branch-Spitze, auf 864be02). Der User hat Käufe im Gilden-Store mit **Gilden-Token** freigegeben, **nie mit Diamanten** (`BUYS_APPROVED`). Einen Kauf-Tap gibt es trotzdem noch nicht: Kein Frame zeigt Artikelkarten, das Währungssymbol neben dem Preis (Token vs. Diamant; im Store liegt auch ein 210-Diamanten-Ticket) oder den Kaufdialog. Bis dahin bleibt die Währung „unknown", es wird nichts getippt, und das Log sagt es.
 
 **Bitte live aufnehmen (Hermes):** (1) Guild Store → Daily-Liste *mit* Artikeln, (2) eine Karte mit Diamantpreis im selben Bild oder separat, (3) den Kaufdialog eines billigen Token-Artikels (danach abbrechen, nicht kaufen). Damit kalibriere ich Karte, Währungs-Tell und Dialog; danach kommt der Kauf-Tap auf die „would buy"-Zeilen.
+
+### Diamanten-Regel (User, 2026-11-05) + Quellenrecherche
+
+User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/quellen (verschiedene!)". Recherche per Workflow (3 unabhängige Sweeps: Guide-Seiten, Community, Video/offiziell; danach je Verwendung eine adversariale Prüfung; jede Quelle geöffnet, Klone einmal gezählt):
+
+- **Klarer Konsens (≥3 unabhängige):** nur die rabattierte tägliche **Invite Letter im Guild Store, 210 statt 300 Diamanten, 1×/Tag** (GameLeap, Prydwen/afk.guide, LootBar 2026, Reddit) → in `plan_buys()` erlaubt (`f7ce1af` auf `feature/T106-guild-daily`), nicht der 300er-Preis, nicht die monatliche Epic Invite Letter.
+- **Widersprüchlich → nein:** monatliche Stellar Crystal (400) / Epic Invite Letter, Summons (nur 10er All-Hero, nur unter Bedingungen), AFK-Instant-Rewards, Arena-/Dream-Realm-Versuche.
+- **Keine Quelle dafür → nie:** **„Complete Now" im Homestead** (0 dafür, LDShop ausdrücklich dagegen — Freunde/Gilden-Hilfe und Speed-up-Items stattdessen), 4. Bau-Queue (120), Order-Refresh (gratis: aufgeben + 5 min warten), Store-Refreshes, Gold/EXP/Equipment.
+- Damit ist die alte Frage (Hermes' ≥10×-Kosten-Regel für Complete Now) erledigt: **nein.** Die Complete-Now-Sperre in `afk_homestead_upgrade.py` bleibt.

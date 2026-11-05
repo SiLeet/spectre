@@ -222,3 +222,29 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - **Befund (shots-79896/hs_0_menu = t105b_diag):** kein Einblend-Problem. Das Menü hat sich im **Layout-Modus** geöffnet (Deko-Raster mit Designs/Ornaments/Plants, „Multiselect"/„Foundation", „Save"-Knopf). Es merkt sich seinen letzten Modus. Die alte Erkennung kannte nur den Build-Modus (grüne Build-Pille).
 - **Signatur:** Layout-Modus = Build-Pille creme (G−max −7, L222) + Layout-Pille grün (G−max 39, L157); Build-Modus umgekehrt. Sweep über 149 Frames: Layout nur auf shots-79896, t105b_diag, final16, reset1.
 - **Fix:** Nach dem Build-Tap bis zu 3 Frames: Layout-Modus → Tap auf die Build-Pille (~902,1022), **nie „Save"**; sonst (Einblenden) 1,5 s später neu lesen; Build-Modus über die Pixel-Anker bestätigen. Klappt das nicht, loggt der Fehler die gesehenen OCR-Menüwörter. Gleiches gilt, wenn der Lauf schon im Menü startet.
+
+## Nachtrag T110 (Memory-First-Audit)
+
+`feature/T110-memory-audit` @ `5ac4c9d` (gemergt in `da0dbaa`). Bericht: `docs/reports/memory-first-audit.md`.
+- Jeder Wert, den der Bot per OCR/Pixel liest, mit Konsument und Entscheidung; Status MEM / OCR / HUNT / SERVER / N/A mit Beleg. **Einziger verifizierter Offset: team_power** — und der wandert je Prozess (0xA578 → 0x2FE8/0x1BD838 → 0x4A728, width 8). Helden-Gold server-seitig laut T23 (Re-Test H3 offen).
+- Rust: `min`/`max` je Feld in offsets.yaml, Validierung, read-batch markiert Werte außerhalb als `valid:false`. Kein Skript umgestellt (offline kein zweiter verifizierter Offset).
+
+## Nachtrag T113 (H1-Fahrplan + dumpdiff-Slot-Modus)
+
+`feature/T113-h1-runbook` @ `f8c826c` — von `main` (`da0dbaa`).
+- **Bestätigung H1:** exakter Fahrplan in `docs/reports/hunt/H1-runbook.md`, Ergebnis-Vorlage `docs/reports/hunt/TEMPLATE.md` (eine Datei je Wert: `H1-gold.md`, `H1-amber.md`, `H1-queue.md`). **Änderung:** Felder stehen auf 16/16 → statt „1 Field bauen" jeder diamantfreie Auslöser mit abgelesenem v0 → v1; ein Level Up liefert Gold, Amber und Queue zusammen.
+- **Neu (Rust):** `spectre dumpdiff … --value-type u32 --from v0 --to v1` listet direkt die Slots mit genau diesem Übergang — kleine Zähler ohne langsames `--continue` über adb. CLI aus dem Branch bauen, bevor H1 läuft.
+- offsets.yaml/README: **team_power immer über `afk_memory.power()`**; der yaml-Slot ist nur Dump-Diff-Referenz (dein Live-Befund „read failed").
+- Arbeitsteilung: du Logs/States/Dumps, ich Relokation + yaml-Eintrag erst nach dem Neustart-Check.
+
+## Nachtrag T108 (Arena)
+
+`feature/T108-arena-supreme` @ `98b6e9c`.
+- Vor „Challenge" wird die Ticket-Pille gelesen: bei **0/1** Stopp ohne Tap (Challenge öffnet dort den 10-Diamanten-Kauf, shots-41632), rc 0 wie bisher; Dialog-Cancel bleibt zweite Sicherung.
+- **Supreme Arena:** auf keinem Frame (Konto Adept I) → LIVE-open TODO, Normal-Flow bleibt. Korrekturen zum Brief: Challenge-Leiste bei y 970–1050 (nicht 930), Reward-Plate „100/20,500".
+
+## Nachtrag T106b (Gilden-Challenge-Claims, Store)
+
+`feature/T106b-guild-claims-buy` @ `6a04ca4`.
+- **Claims:** Board nur über das gemessene Challenge-Label öffnen; leuchtende Badges nur in den 9 Slot-Fenstern (Orange-Regel — deine Rot-Regel traf einen rothaarigen Avatar, das Hallenfeuer und −30 %-Tags); Popup „Guild Medal/Owned" über eine creme Stelle schließen (nicht (960,850), das liegt auf einer erledigten Karte); Fortschritt = weniger leuchtende Slots, sonst Stopp; max 5. Auf gcE löste ein Badge-Tap nur den Tooltip aus — Claim-Mechanik bleibt LIVE-offen.
+- **Store:** weiter LOG-ONLY — kein Kaufdialog auf einem Frame, Karten ohne Namen. „210 → 180" = zwei Kartenpreise von OCR zusammengezogen: die tägliche Invite Letter kostet 210 (= Guide-Artikel), die 180er-Karte ist ein anderer Diamant-Artikel (nie kaufen). Bitte live: Kaufdialog der 210er-Karte (abbrechen!) als Frame.

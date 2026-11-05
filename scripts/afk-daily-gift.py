@@ -1,5 +1,8 @@
 """Daily Journey's Gift claim, state-checked like the AFK chest driver.
 
+T104: when the entry opens the Esperia Monthly gazette instead, its orange Claim is
+tapped (afk_claim_vision.resolve_startup_popup) and the run ends with 0.
+
 Flow: open the Login Rewards panel, tap every row whose badge is green
 (G-R > 40 at x=720 — claimed rows AND today's claimable row; future days are
 grey and are never tapped, which keeps us away from the purchase-bearing event
@@ -157,6 +160,12 @@ def main() -> int:
         return 3
     v.tap(LOGIN_REWARDS, 3.5)
     img = wait_events_panel('dg_panel')
+    # T104 (Hermes live 2026-11-05, backzone/claim1): the entry now opens the Esperia Monthly
+    # gazette ('Daily Rewards', orange Claim) instead of the events panel - read from the last
+    # wait shot, claimed by the shared startup-popup resolver (orange plate scan)
+    if img is None and v.is_gazette(v.ocr_lines('dg_panel_2')) and v.resolve_startup_popup('dg_gazette'):
+        print('    Login Rewards opened the Esperia gazette: daily reward claimed', flush=True)
+        return 0
     if img is None and login_btn_visible(v.shot('dg_entry_retry')):
         # live 10-31: the entry tap opened nothing (dg_panel was the world)
         # T97b: the re-tap goes through the tap-mode chain (LIVE: unverified). The

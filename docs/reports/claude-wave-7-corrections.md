@@ -248,3 +248,17 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 `feature/T106b-guild-claims-buy` @ `6a04ca4`.
 - **Claims:** Board nur über das gemessene Challenge-Label öffnen; leuchtende Badges nur in den 9 Slot-Fenstern (Orange-Regel — deine Rot-Regel traf einen rothaarigen Avatar, das Hallenfeuer und −30 %-Tags); Popup „Guild Medal/Owned" über eine creme Stelle schließen (nicht (960,850), das liegt auf einer erledigten Karte); Fortschritt = weniger leuchtende Slots, sonst Stopp; max 5. Auf gcE löste ein Badge-Tap nur den Tooltip aus — Claim-Mechanik bleibt LIVE-offen.
 - **Store:** weiter LOG-ONLY — kein Kaufdialog auf einem Frame, Karten ohne Namen. „210 → 180" = zwei Kartenpreise von OCR zusammengezogen: die tägliche Invite Letter kostet 210 (= Guide-Artikel), die 180er-Karte ist ein anderer Diamant-Artikel (nie kaufen). Bitte live: Kaufdialog der 210er-Karte (abbrechen!) als Frame.
+
+## Nachtrag T104c (Küche finden: Kamera + Spire-Go)
+
+`feature/T104c-kitchen-camera` @ `c6a54bc`.
+- **Stufe 1:** Küche über den Spire-Turm verankert (Versatz auf 14 Frames gemessen); liegt der Punkt außerhalb des Bildfensters, bis zu 2 Kamera-Drags Richtung Anker (Start auf gemessenem freiem Boden, Ende nicht im rechten HUD), nach jedem Drag Cook-Scheibe prüfen. Deine festen Wischer „erst Süd, dann West" ersetzt: st0 braucht eine andere Richtung als die übrigen Frames — ein festes Paar passt nicht.
+- **Stufe 2:** Spire-Dialog → „Go" unter fehlender „Level N Kitchen"-Karte → Cook-Scheibe. Review-Fund behoben: Es wird nur das Interact des Spire selbst angenommen, nie das Radial des noch ausgewählten Golden-Supplier-NPC. Wahrscheinlich heute ohne Wirkung: Küche ist schon Level 5, die Karte erfüllt, kein Go → weich beendet.
+- LIVE offen: Drags/Anker auf neuen Kameras, Tap auf die schwebende Cook-Scheibe.
+
+## Nachtrag T107 (Watch wartet auf Idle-Fenster)
+
+`feature/T107-idle-wait` @ `57bb86e`.
+- `--scheduled` / `--scheduled-progress` prüfen das Idle alle 60 s, bis ≥ 180 s oder 3 h (auch Wanduhr-Frist) — dann laufen die Phasen; sonst „no idle window", Exit 5. Während des Wartens kein Lock, kein BlueStacks-Start, kein Tap. Manuell / `--force` / `--dry-run` warten nie.
+- **Für deine manuellen Tagesläufe: `afk-bot-watch.sh --scheduled --wait-timeout 0`**, sonst blockieren sie bis zu 3 h, solange der PC benutzt wird.
+- Task-Scheduler gelesen: ExecutionTimeLimit 72 h, IgnoreNew → die 3 h Wartezeit wird nicht abgebrochen. LIVE offen: liefert eine synthetische Eingabe nachts dauernd „idle 1s", endet jeder Lauf mit „no idle window" (Poll-Zeilen im Log prüfen). afk-night.sh (02:00) ist nicht Teil dieser Änderung.

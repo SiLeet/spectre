@@ -455,6 +455,21 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         1) echo "afk-bot-watch: events rc=1 (soft phase, stuck - not retried today)" | tee -a "$LOG"
            date -u +%Y-%m-%d > "$OUT_DIR/events-last.txt" ;;
         *) echo "afk-bot-watch: events rc=$ev_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+    # T112: Legend Trial tower push (free 'x3' tickets only, never buys; the frame's 'Go!' tab
+    # picks the tower, max 10 floors, stops on the first defeat). Soft phase like the guild:
+    # rc 0 floor(s) won / 4 nothing to do (no tower open, no ticket, wall) -> done for today;
+    # other rc logged, no marker. AFK_LEGEND_TRIAL=0 = off.
+    if [ "${AFK_LEGEND_TRIAL:-1}" = "1" ] && \
+       [ "$(cat "$OUT_DIR/legend-trial-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "legend trial"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) legend trial (tower push)"
+        "$PY" scripts/afk_legend_trial.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      lt_rc="${PIPESTATUS[0]}"
+      case "$lt_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/legend-trial-last.txt" ;;
+        *) echo "afk-bot-watch: legend trial rc=$lt_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
     normalize_or_abort "stage push"

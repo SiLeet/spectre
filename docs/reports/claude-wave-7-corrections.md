@@ -262,3 +262,11 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - `--scheduled` / `--scheduled-progress` prüfen das Idle alle 60 s, bis ≥ 180 s oder 3 h (auch Wanduhr-Frist) — dann laufen die Phasen; sonst „no idle window", Exit 5. Während des Wartens kein Lock, kein BlueStacks-Start, kein Tap. Manuell / `--force` / `--dry-run` warten nie.
 - **Für deine manuellen Tagesläufe: `afk-bot-watch.sh --scheduled --wait-timeout 0`**, sonst blockieren sie bis zu 3 h, solange der PC benutzt wird.
 - Task-Scheduler gelesen: ExecutionTimeLimit 72 h, IgnoreNew → die 3 h Wartezeit wird nicht abgebrochen. LIVE offen: liefert eine synthetische Eingabe nachts dauernd „idle 1s", endet jeder Lauf mit „no idle window" (Poll-Zeilen im Log prüfen). afk-night.sh (02:00) ist nicht Teil dieser Änderung.
+
+## Nachtrag T111 (Spire nach dem Turm-Tap, Held laufen)
+
+`feature/T111-hero-walk` @ `e1ef2b5`.
+- **Befund (shots-41556):** Der Turm-Tap hat funktioniert — die schwebende Upgrade-Scheibe des Spire erschien bei (330,48), **oberhalb** des alten Suchbands (y ≥ 60), und der Frame galt wegen einer Wolke am BACK-Prüfpunkt als UNKNOWN. Deshalb „kein Interact".
+- **Fix:** nach dem Turm-Tap bis zu 2 Neu-Aufnahmen ohne Tap (je Radial/Interact/Icon prüfen), Icon-Suche direkt neben dem Turm; erst danach `walk_towards()`: Held je Frame verortet, Taps nur auf gemessenem freiem Boden (nicht Gebäude, Bäume, Wasser, HUD, Joystick, Icons, Spire-Plattform), Stopp bei < 250 px, festgefahren (2× < 30 px), 12 Taps oder Nicht-Welt (Dialog über Zurück-Fläche schließen).
+- **Dein Fallback „Spire-Go-Teleport" greift nicht:** Die Go-Pille sitzt im Spire-Dialog, den wir gerade nicht öffnen können, und springt zu einem fehlenden Gebäude, nicht zum Spire. Fallback = weicher Stopp.
+- **LIVE offen:** Bewegt ein Boden-Tap den Helden überhaupt? Kein Frame-Paar zeigt das (Held auf allen deinen Frames 05:57–06:37 an derselben Stelle). Bitte ein Paar vor/nach einem Boden-Tap. Interact-Reichweite, Held bei Tageslicht.

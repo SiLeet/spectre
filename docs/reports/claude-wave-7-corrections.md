@@ -287,3 +287,11 @@ User: „niemals diamanten ausgeben AUSSER es wird ABSOLUT empfohlen aus guides/
 - **Bitte live testen (steht im Modul-Docstring):** (a) Battle einmal tippen, Screencap nach 0,3 s (Toast?); (b) Karte (482,712) tippen, nach 1,5 s Haken bei (482,725) + Held auf einem Hex erwartet, dann 578/673/769/864; (c) Battle → Laden → HP-Streifen; (d) nur falls (b) nichts tut: Karte auf den Hex ziehen (`input swipe 482 712 872 472 600`).
 - „x3" ist vermutlich eine Meilenstein-Belohnung, keine Tickets (nur geloggt).
 - **Merge-Hinweis:** T109 und T112 fügen ihren Watch-Block an derselben Stelle ein → beide behalten (Events, dann Legend Trial); gleiches in `test_afk_daily_exit_code.py`.
+
+## Nachtrag T114 (Rust-Port-Plan)
+
+`feature/T114-rust-port-plan` @ `61ec028`: `docs/reports/rust-port-plan.md`.
+- Neue Crate + Binary `spectre-afk` (nicht als Subcommand von spectre-cli — sonst hinge der Bot an Lua/Web/tokio); das adb-Exec kommt aus der spectre-mcp-Lib, MCP bleibt einziger adb-Owner.
+- Etappen: **E0a** Frame-Korpus einfrieren (außerhalb des Repos), **E0b** Paritäts-Harness (Python-Verhalten als geordneter Event-Strom unter virtueller Uhr, auf Python-Stand gepinnt) → E1 android-infra → E2 Vision → Tracer-Task → E3 OCR (erst ps1, dann WinRT) → E4 State → E5 Tasks → E6 Runner → E7 Umschalten pro Task (`AFK_RUST_TASKS`), dann Runner.
+- Abweichungen von deinem Vorschlag (Kapitel 11): Etappe 0 vor android-infra, Tracer-Bullet direkt nach E2, `claim` zuletzt, Shadow-Replay vor Live.
+- **Vor Phase 1 nötig:** Freigabe der Dependency `png` (Pflicht ab E0b/E1; `windows` optional später, `regex` nein), Ort für den ~1 GB-Korpus, Antworten auf F1–F11 (Kapitel 12). Phase 1 startet erst nach diesen Freigaben.

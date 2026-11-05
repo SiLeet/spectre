@@ -39,7 +39,8 @@ BTN = (hs.BUILD_BTN, 6, (165, 165, 165))
 WORLD = lambda: paint('WORLD', [BTN])                                       # noqa: E731
 MENU = lambda: paint('UNKNOWN', [(hs.EXIT_BTN, 12, (198, 187, 183)), (hs.BUILD_TAB, 12, (146, 183, 134)),  # noqa: E731
                                  (hs.LAYOUT_TAB, 12, (230, 223, 221)),
-                                 (hs.PRODUCTION_TAB, 12, (145, 184, 138))])
+                                 (hs.PRODUCTION_TAB, 12, (145, 184, 138)),
+                                 ((512, 786), 40, (255, 255, 255))])   # T105A: white Field tile body
 RING = lambda: paint('UNKNOWN', [((1089, 562), 30, (250, 250, 250)), ((842, 557), 30, (250, 250, 250)),  # noqa: E731
                                  ((1089, 562), 7, (60, 200, 60)), ((842, 557), 7, (220, 40, 40))])
 MARK = lambda: paint('WORLD', [BTN, ((964, 560), 26, (254, 238, 93))])       # noqa: E731
@@ -136,6 +137,8 @@ class Detectors(unittest.TestCase):
         self.assertEqual(v.classify(WORLD()), 'WORLD')
         self.assertTrue(hs.build_btn(WORLD()))
         self.assertTrue(hs.is_build_menu(MENU()) and hs.production_active(MENU()))
+        self.assertTrue(hs.white_tile(MENU(), 0))
+        self.assertFalse(hs.white_tile(MENU(), 1))
         self.assertEqual(hs.find_ring(RING()), (CHECK, CANCEL))
         self.assertEqual(v.classify(MARK()), 'WORLD')
         self.assertEqual(hs.find_marker(MARK()), (964, 560))
@@ -189,9 +192,10 @@ class Parsers(unittest.TestCase):
 
 class Flow(unittest.TestCase):
     def run_hs(self, frames, ocr, *argv, max_builds=1):
-        p = mock.patch.object(hs, 'MAX_BUILDS', max_builds)
-        p.start()
-        self.addCleanup(p.stop)
+        for p in (mock.patch.object(hs, 'MAX_BUILDS', max_builds),
+                  mock.patch.object(hs, 'TABS', hs.TABS[:1])):   # T105A: Production only (legacy taps)
+            p.start()
+            self.addCleanup(p.stop)
         dev = FakeDevice(self, [f() if callable(f) else f for f in frames], ocr=ocr)
         return dev, hs.main(list(argv))
 
@@ -245,7 +249,7 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps.count(('key', 4)), 1)
 
     def test_toast_that_never_closes_is_bounded(self):
-        frames = self.entry(0) + [RING, MARK] + [TOAST] * (hs.TOAST_TRIES + 1)
+        frames = self.entry(0) + [RING, MARK] + [TOAST] * (hs.TOAST_TRIES + 2)   # + stuck shot
         ocr = {**cnt('hs_0_read', 12), 'hs_0_read_res': RES, 'hs_b0_1': FIELD_BUILT,
                **{f'hs_b0_t{n}': FIELD_BUILT for n in range(hs.TOAST_TRIES)}}
         dev, rc = self.run_hs(frames, ocr)
@@ -370,11 +374,14 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps.count(hs.FIELD_TILE), 1)
 
     def test_refused_build_cancels_and_exits(self):
-        # check tap: still placing, the T97b retry too -> X, Exit, world
-        frames = self.entry(0) + [RING, RING, RING, MENU, WORLD]
-        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES})
+        # check tap: still placing, the T97b retry too -> X, Exit, world; T105A: the Field is
+        # parked, the next visit finds nothing else to build
+        frames = self.entry(0) + [RING, RING, RING, MENU, WORLD] + self.entry(1) + [MENU, WORLD]
+        dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES,
+                                       **cnt('hs_1_read', 12), 'hs_1_read_res': RES})
         self.assertEqual(rc, 4, dev.out.getvalue())
-        self.assertEqual(dev.taps[3:], [CHECK, ('touchscreen', *CHECK), CANCEL, hs.EXIT_BTN])
+        self.assertEqual(dev.taps[3:], [CHECK, ('touchscreen', *CHECK), CANCEL, hs.EXIT_BTN,
+                                        v.GROUND, hs.BUILD_BTN, hs.EXIT_BTN])
 
     def test_diamond_dialog_is_cancelled(self):
         frames = self.entry(0) + [RING, 'DIALOG', MENU, WORLD]
@@ -383,15 +390,15 @@ class Flow(unittest.TestCase):
         self.assertEqual(dev.taps[3:], [CHECK, v.CONFIRM_CANCEL, hs.EXIT_BTN])
 
     def test_unknown_screen_while_building_stops_without_taps(self):
-        frames = self.entry(0) + [RING, MARK, TOAST]
+        frames = self.entry(0) + [RING, MARK, TOAST, TOAST]     # + stuck shot (no menu -> no Exit)
         dev, rc = self.run_hs(frames, {**cnt('hs_0_read', 12), 'hs_0_read_res': RES,
                                        'hs_b0_1': ['Something else']})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps[-1], (964, 560))      # the marker; nothing after the unknown frame
 
     def test_tile_tap_without_placement_never_retries_on_a_changed_screen(self):
-        dev, rc = self.run_hs(self.entry(0) + [TOAST], {**cnt('hs_0_read', 12),
-                                                         'hs_0_read_res': RES})
+        dev, rc = self.run_hs(self.entry(0) + [TOAST, TOAST], {**cnt('hs_0_read', 12),
+                                                                'hs_0_read_res': RES})
         self.assertEqual(rc, 1)
         self.assertEqual(dev.taps[-1], hs.FIELD_TILE)
 

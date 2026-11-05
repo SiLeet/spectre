@@ -23,7 +23,7 @@ T103c (operator live 22:28): a start frame showing 'exit the game?' (shots-9308)
 via its X; no radial and no icon (shots-80480: Kitchen selected after a 'Go', Spire bottom-left)
 -> camera_search() (deselect + 2 bounded drags, LIVE-unverified); find_radial only takes a
 'Level Up' whose 'Radiant Spire' label stands above it (never the Kitchen's radial).
-Not implemented, noted: quest 'Upgrade the Ore Refinery to Level 5' = a further upgrade chain.
+Quest 'Upgrade the Ore Refinery to Level 5': see T105B (upgrade_all).
 
 T103d (Hermes live: the icon is FLAKY, sometimes not drawn -> 'nothing to do'): order (a) Level Up
 radial / floating icon, (b) spire_tower() - the tower found by its 4 golden light beams, tapped on
@@ -34,10 +34,41 @@ The tower is tried on the start frame and on every camera-search frame (after th
 selected (hm_requests/hm_req2/hs_0_world, always with its radial up -> (a)); it floats over the
 tower top, so a tap there is a tower tap; no frame shows what a label tap opens.
 
-LIVE-open (no frame): the icon with the Spire elsewhere on screen / off screen, the
-same icon on other buildings (topmost wins; OCR rejects their dialog), what 'Go'
-opens (the missing-requirement recursion is NOT implemented), a 7/7 dialog, the screen after
-'Level Up', the queue icon's meaning (busy/total assumed).
+LIVE-open (no frame): the icon with the Spire elsewhere on screen / off screen, a 7/7 Spire
+dialog, the queue icon's meaning (busy/total assumed).
+
+T105B (UPGRADE-ALL): after the Spire path (rc 0|4) upgrade_all() spends the rest of the budget
+(MAX_UPGRADES = 2 per run, minus a Spire start) on other buildings, in this order:
+  (q) quest building: the world quest tracker (bottom left, orange pill) names it - LIVE 'Upgrade the
+      Ore Refinery to Level 5' (OCR box 'Refinery' (180,901), shots-57584/80480/42848). Its labelled
+      radial Level Up when already selected (LIVE trash/shots-38632 bm_0/bm_1/rw_0, trash/shots-31044
+      norm_1: label 'Ore Refinery' (962,365), radial 'Smelt' + 'Level U' (1167,725) -> disc (1167,695);
+      the label sits ~206 px left of the text -> NAME_DX).
+  (p) green 'upgrade-ready' pins (dark disc, green up-arrow + rim, (146,214,125)): 129 hits on 247
+      frames; one false hit on a 'Full' production badge at y 888 (trash/shots-48532/dg_cam_2) -> PIN_BAND
+      ends at y 860. The Kitchen pin at 4/4 (57584/hu_world (1110,300)) is gone once its Level Up
+      started (hu_after). Topmost first, MAX_PINS per run: pin tap -> dialog | compact radial
+      (rq_ck_k: Level Up disc above the building, no text - level_icons, searched around the pin) |
+      nothing -> ONE body tap (PIN_TO_BODY, only while the pin still stands where it was) -> else the
+      pin is parked. A radial already up before the pin tap (57584/hu_world: the Kitchen's) is not the
+      pin's - ignored after the tap. A pin that opens an unrecognised dialog: closed via its back plate.
+  (t) LAST (LIVE-open tap, fix-review): the tracker pill (QUEST_TAP) when budget is left and the quest
+      building was not parked; only a requirement dialog or the radial labelled with that name is used.
+  The dialog -> upgrade_or_go(go=False): a missing card (resource short) / refused / diamond confirm
+  -> closed, building parked by its title (title_name) for this run, next one; queue full -> stop.
+Kitchen dialog now LIVE (shots-57584/hu_bread: 4/4, queue 0/2, Level Up -> world = started);
+CAMERA_DRAGS do pan (shots-59732 hu_cam1/hu_cam2: Kitchen pin (1100,250) -> (1082,504) -> (1472,282)).
+Fix: the Cook-anchor fallback took the 'Speed Up' hourglass for Level Up (57584/hu_after (1052,730))
+-> every Level Up disc needs an arrow tip (arrow_up) and no fallback while 'Speed Up' is read.
+A finished-upgrade overlay on the start frame ('Kitchen Upgraded', Hermes rq0) is closed via its
+'Tap to close' (hs.TOAST_CLOSE, once).
+LIVE-open (T105B, no frame): what a pin tap opens; pin = 'upgradable now' (inferred from the Kitchen
+only); the Ore Refinery's dialog and pin (no frame shows either - parking uses the dialog title);
+what the tracker tap opens; PIN_TO_BODY for buildings other than the Kitchen; whether pin /
+tracker taps pan the camera (PIN_ICON_R assumed); buildings off screen (no zone scan, only pins on
+the current frame); 'Ebenen-Unlocks' (never on a frame); an 'Insufficient resources' popup after a
+met Level Up (-> unknown screen, rc 1); the Go under a missing RESOURCE card (not followed); the
+queue counter after one start (1/2); other buildings' dialog layout (assumed = Spire/Kitchen).
 
 Never spends diamonds: 'Complete Now' (1800 diamonds) is never tapped - every tap
 is checked against its plate - and a confirm dialog is always cancelled.
@@ -46,7 +77,8 @@ No keyevent BACK in here: in homestead menus it opens the exit-game dialog
 unrecognised screen stops the run (rc 1) without a tap.
 
 Usage: python scripts/afk_homestead_upgrade.py [--dry-run] [--min-idle S]
-Exit codes: 0 upgrade started (dialog closed after Level Up), 1 stuck / unknown
+Exit codes: 0 an upgrade started (Spire path or upgrade-all - also when a later step got stuck: the
+watch marker must stop the phase for today, the normalizer handles the screen), 1 stuck / unknown
 screen (also: no Interact radial after the tower tap), 4 nothing to do (no Level Up radial,
 no Spire upgrade icon and no tower after the camera search,
 requirements missing, queue full, Level Up refused), 5 skipped (PC in use),
@@ -106,8 +138,7 @@ ICON_HEAD = 26                 # widest dark row within r 20 = the arrow head's 
                                # plate (livecheck/c0) 18..19 - both pass ring/out/dark
 ICON_CLUSTER = 40              # hits this close to the first hit belong to the same icon
 # --- T103c camera search: no radial, no icon -> deselect (GROUND) + up to 2 drags, icon re-searched.
-# LIVE-unverified (no frame of a drag): that a drag pans the homestead camera at all, and the
-# distances. shots-80480/hu_world (after the operator's 'Go' to the Kitchen): Kitchen selected,
+# LIVE (T105B, shots-59732): both drags DO pan - Kitchen pin (1100,250) -> (1082,504) -> (1472,282). shots-80480/hu_world (after the operator's 'Go' to the Kitchen): Kitchen selected,
 # Spire door (512,705) vs (920,460) on the icon frames (spire_sel/shots-8632), ~1.1x zoom ->
 # the icon would sit near (507,373), ON screen - and there is none there, so the icon is most
 # likely ABSENT while another building has the focus (not just off the top edge); the deselect
@@ -164,8 +195,9 @@ LEVEL_UP_BTN = (1252, 1000)    # LIVE: 'Level Up' text box (1201,985,102,29), pl
 BACK_PLATE = (478, 1007)       # LIVE: cream back plate x 432..525 y ~967..1046, corners L247-250,
                                # dark arrow at the centre L149; brief (490,995) is on the plate too
 BACK_CORNERS = ((445, 980), (510, 980), (445, 1035), (510, 1035))
-COMPLETE_NOW = (538, 967, 1005, 1047)  # LIVE: 1800-diamond plate (brief x 538-1005 / y 967-1047,
-                                       # grey plate from x 539) - NEVER tapped
+COMPLETE_NOW = (530, 960, 1012, 1052)  # LIVE: diamond plate - NEVER tapped. hm_up3 grey plate from
+                                       # x 539; T105B shots-57584/hu_bread (Kitchen) ORANGE plate x 536..1005
+                                       # at y 1040 (545..1005 at y 975) -> widened from (538,967,1005,1047)
 # T103f: live shots-49372/hu_read - the dialog opened, OCR read 'Upgrade Requirement (5/7)' and
 # every card, but NOT the 'Radiant Spire' title (still fading in) -> 'dialog not recognised'.
 # The dialog = requirement line + back plate; the title is re-read once after TITLE_SETTLE.
@@ -179,8 +211,8 @@ DIALOG_POLL_WAIT = 1.5
 # label: label 'Level 5 Kitchen' centre (531,616) -> pill centre (531,640) (hu_read, hm_up3: white
 # L>=246 at x +-25, 'Go' text L~175). Go -> world with that building selected (kitchen_go.png,
 # shots-80480): its small 'Level Up' radial disc (1054,730) sits 30 px above its 'Level U' text
-# (centre (1051,760)), cream L>=226 at +-25 px, dark arrow L 80..117. LIVE: the building's own
-# upgrade dialog after that tap was never seen - only the generic dialog check guards it.
+# (centre (1051,760)), cream L>=226 at +-25 px, dark arrow L 80..117. LIVE (T105B): the Kitchen's own
+# dialog after that tap = shots-57584/hu_bread (same layout as the Spire's).
 GO_DY = 24
 GO_PILL_DX = 25
 SMALL_DISC_DY = 30
@@ -191,9 +223,44 @@ GO_WAIT = 3.0
 # frames (hu_go, kn2, shots-80480) = the 'Cook' text centre (959,738) + (95,-8); the Cook disc
 # passes small_disc_at too, so the fallback searches only +-ANCHOR_R around that offset.
 COOK_TO_LU = (95, -8)
-ANCHOR_R = 10
+ANCHOR_R = 4                   # LIVE: the real disc passes at r 0 (hu_go, kn2, 80480: dy -4..+4); the 'Speed Up'
+                               # hourglass (57584/hu_after) only at dy +8..+10 -> never reached (was 10)
 BUILDING_RE = re.compile(r'level\s*\d+\s+([a-z][a-z ]+)', re.I)   # 'Level 5 Kitchen' -> kitchen
 BTN_NEAR = 40                  # an OCR 'Level Up' box centre must be this close to LEVEL_UP_BTN
+# --- T105B upgrade-all: quest building first, then buildings with a green upgrade pin ------------
+NAME_DX = 230                  # building_level_up: name label vs 'Level U' text centre in x. LIVE: Ore Refinery
+                               # (962,365)/(1167,725) dx 205..206 (trash/shots-38632 bm_0/bm_1/rw_0, shots-31044
+                               # norm_1), Kitchen dx 10..20 (80480, 57584/hu_world). Spire path keeps LABEL_DX
+ARROW_TIP = 6                  # dark px (L<120, r 20) in the topmost dark row = an up-arrow's tip. LIVE 1..5:
+                               # compact rq_ck_k (1149,300) 1, spire_sel (915,171) 3, 25208/hu_tower 1, Kitchen
+                               # small disc 80480 (1051,730) 1, Spire big disc hm_requests (956,686) 5; the
+                               # 'Speed Up' HOURGLASS (shots-57584/hu_after (1052,730)) 20
+UPGRADED_WORD = 'upgraded'     # LIVE Hermes rq0: (750,329,425,59,'Kitchen Upgraded') + 'Tapto Close' whose
+                               # centre (960,1021) = hs.TOAST_CLOSE (POPUP, no back plate)
+QUEST_WIN = (0, 880, 360, 960)  # LIVE: tracker box (180,901,63,20,'Refinery') on 57584/hu_world, 80480,
+                                # tower_tap, fin3, 42848/rq_ck_w; rq1 OCR-shifted (190,921) still inside
+QUEST_BUILDINGS = ('refinery', 'kitchen', 'forge')  # refinery LIVE (tracker 'Upgrade the Ore Refinery to
+                               # Level 5'); kitchen/forge = requirement card names (hm_up3). Spire: own path
+QUEST_PILL = (70, 900, 250, 940)  # LIVE: orange tracker pill x 0..262 y 891..939 (220,131,35): 4963..4998
+QUEST_PILL_PX = 3600              # of 7200 px on 57584/hu_world, hm_requests, quest1, rq1; 0 on zone2 / hm_up3
+QUEST_TAP = (160, 915)         # on the pill, off the gift badge (~50,903) / Story tab / AFK Progress.
+                               # LIVE-open: what the tap opens (only a dialog or a labelled radial is used)
+PIN_BAND = (120, 40, 1800, 860)   # LIVE: green upgrade pins at x 562..1736, y 56..564 (129 hits, 247 frames);
+                                  # a 'Full' badge at (1782,888) (trash/shots-48532/dg_cam_2) passes pin_at -> y <= 860
+PIN_MIN = (20, 50, 30, 6)      # IN green / MID dark / RIM green / rim octants >=. LIVE 57584/hu_world
+                               # (1108,299) 35/69/62/8, (1593,68) 33/77/47/8; fog 59732 (1376,122) 32/63/32/6
+PIN_OUT_MAX = 10               # green px at r 17..20 (LIVE 0): a bounded pin, not grass
+PIN_CLUSTER = 20
+PIN_WAIT = 1.5                 # LIVE-unverified (no frame of a pin tap)
+PIN_ICON_R = 200               # compact Level Up disc near the tapped pin (scan window pin +-R, not ICON_BAND:
+                               # pins reach x 1736 / y 564, the disc ~(+2,+14) from its pin): Kitchen pin camera-corrected
+                               # ~(1147,286) vs its disc (1149,300) on rq_ck_k (derived, LIVE-open)
+PIN_TO_BODY = (-107, 124)      # pin -> building body: Kitchen pin ~(1147,286) vs Hermes' body tap (1040,410)
+                               # that selected it (rq_ck_w -> rq_ck_k). Kitchen only, LIVE-open elsewhere
+TITLE_WIN = (700, 345, 1220, 400)  # LIVE dialog titles: "Kitchen 'i" (898,367,113,21) hu_bread, '? Radiant
+                                   # Spire i' (844,364,199,27) hm_up3; 'Lvl. 4?Lvl. 5' y 309 is outside
+MAX_UPGRADES = 2               # brief: 1-2 level-ups per run (the phase runs once a day)
+MAX_PINS = 3                   # pins tried per run
 
 
 def _centre(b):
@@ -382,16 +449,108 @@ def _icon_at(px, x, y) -> bool:
             and max(dark.count(dy) for dy in set(dark)) >= ICON_HEAD)
 
 
+def _clusters(pts, d):
+    """Medians of the points grouped by their first hit (Chebyshev distance <= d), in scan order."""
+    cl = []
+    for p in pts:
+        c = next((c for c in cl if max(abs(c[0][0] - p[0]), abs(c[0][1] - p[1])) <= d), None)
+        if c:
+            c.append(p)
+        else:
+            cl.append([p])
+    return [hs._median(c) for c in cl]
+
+
+def arrow_up(img, xy) -> bool:
+    """T105B: the dark glyph within r 20 of xy ends in an up-arrow TIP (topmost dark row narrow),
+    not the 'Speed Up' hourglass (flat top bar, 20 px)."""
+    px = img.convert('RGB').load()
+    rows = [dy for dx, dy in _DISC20 if v.lum(px[xy[0] + dx, xy[1] + dy]) < 120]
+    return bool(rows) and rows.count(min(rows)) <= ARROW_TIP
+
+
+def level_icons(img, band=ICON_BAND) -> list:
+    """T105B: centres of ALL white-disc/up-arrow Level Up icons in `band` (topmost first): the
+    floating Spire icon and the compact radial disc of any selected building (rq_ck_k)."""
+    px = img.convert('RGB').load()
+    l, t, r, b = band
+    hits = [(x, y) for y in range(t, b, ICON_STEP) for x in range(l, r, ICON_STEP) if _icon_at(px, x, y)]
+    return [c for c in _clusters(hits, ICON_CLUSTER) if arrow_up(img, c)]
+
+
+def near_band(img, xy, r=PIN_ICON_R):
+    """level_icons window +-r around xy, clipped so the ICON_OUT ring stays on the frame."""
+    w, h = img.size
+    l, t = (max(ICON_OUT + ICON_STEP, c - r) for c in xy)
+    return (l - l % ICON_STEP, t - t % ICON_STEP,           # same scan grid as ICON_BAND (same centres)
+            min(w - ICON_OUT - 1, xy[0] + r), min(h - ICON_OUT - 1, xy[1] + r))
+
+
 def spire_icon(img):
     """Centre of the floating white-disc/dark-up-arrow upgrade icon in ICON_BAND, else None.
     shortcut: several such icons on screen -> the topmost one; the dialog OCR ('Radiant Spire')
-    rejects another building's dialog. Upgrade if live shows icons on other buildings."""
+    rejects another building's dialog. T105B: the same icon is the compact radial of ANY selected
+    building (rq_ck_k) - harmless, upgrade_or_go upgrades whatever dialog opens, never diamonds."""
+    icons = level_icons(img)
+    return icons[0] if icons else None
+
+
+def _ann(r0, r1):
+    return [(dx, dy) for dx in range(-r1, r1 + 1) for dy in range(-r1, r1 + 1) if r0 * r0 <= dx * dx + dy * dy <= r1 * r1]
+
+
+PIN_IN, PIN_MID, PIN_RIM, PIN_OUT = _ann(0, 4), _ann(6, 8), _ann(10, 13), _ann(17, 20)
+
+
+def _pin_green(c) -> bool:                    # LIVE pin arrow/rim (146,214,125)
+    return c[1] > 170 and c[1] - c[0] > 45 and c[1] - c[2] > 60
+
+
+def pin_at(px, x, y) -> bool:
+    """Green upgrade pin centred at (x, y): green arrow, dark disc, green rim all round, no green outside."""
+    def green(pts):
+        return sum(_pin_green(px[x + a, y + b]) for a, b in pts)
+    if green(PIN_IN) < PIN_MIN[0] or green(PIN_OUT) > PIN_OUT_MAX:
+        return False
+    if sum(sum(px[x + a, y + b]) < 300 for a, b in PIN_MID) < PIN_MIN[1]:
+        return False
+    rim = [(a, b) for a, b in PIN_RIM if _pin_green(px[x + a, y + b])]
+    return len(rim) >= PIN_MIN[2] and len({round(math.atan2(b, a) / (math.pi / 4)) % 8 for a, b in rim}) >= PIN_MIN[3]
+
+
+def upgrade_pins(img) -> list:
+    """T105B: centres of the green 'upgrade-ready' pins on the homestead world, topmost first.
+    Seeds on the measured step-2 grid."""
     px = img.convert('RGB').load()
-    l, t, r, b = ICON_BAND
-    hits = [(x, y) for y in range(t, b, ICON_STEP) for x in range(l, r, ICON_STEP) if _icon_at(px, x, y)]
-    if not hits:
-        return None
-    return hs._median([p for p in hits if max(abs(p[0] - hits[0][0]), abs(p[1] - hits[0][1])) <= ICON_CLUSTER])
+    seeds = [p for p in hs._pixels(img, PIN_BAND, lambda r, g, b: _pin_green((r, g, b)))
+             if p[0] % 2 == 0 and p[1] % 2 == 0]
+    return _clusters([p for p in seeds if pin_at(px, *p)], PIN_CLUSTER)
+
+
+def title_name(boxes):
+    """T105B: lower-case building name from the dialog title ("Kitchen 'i" -> 'kitchen'), else None."""
+    for b in boxes:
+        cx, cy = _centre(b)
+        if TITLE_WIN[0] <= cx <= TITLE_WIN[2] and TITLE_WIN[1] <= cy <= TITLE_WIN[3]:
+            words = re.findall(r'[A-Za-z]{3,}', b[4])
+            if words:
+                return ' '.join(words).lower()
+    return None
+
+
+def quest_building(boxes):
+    """T105B: building named by the world quest tracker (bottom left), else None."""
+    for b in boxes:
+        cx, cy = _centre(b)
+        if QUEST_WIN[0] <= cx <= QUEST_WIN[2] and QUEST_WIN[1] <= cy <= QUEST_WIN[3]:
+            hit = next((n for n in QUEST_BUILDINGS if n in b[4].lower()), None)
+            if hit:
+                return hit
+    return None
+
+
+def quest_pill(img) -> bool:
+    return len(hs._pixels(img, QUEST_PILL, lambda r, g, b: r > 200 and 110 < g < 190 and b < 110)) >= QUEST_PILL_PX
 
 
 def camera_search():
@@ -472,29 +631,39 @@ def small_disc_at(img, xy) -> bool:
                     for dx, dy in ((-r, 0), (r, 0), (0, -r), (0, r))))
 
 
-def building_level_up(img, boxes, name: str):
+def building_level_up(img, boxes, name: str | None):
     """Tap point of the selected `name` building's radial 'Level Up' disc ('Level U' as read),
-    with its own name label above it (LABEL_DX), else None."""
+    with its own name label above it (NAME_DX), else None. T105B: name None = any building;
+    every disc must carry an up-arrow (arrow_up), and the Cook-anchor fallback is skipped while
+    the radial reads 'Speed Up' (shots-57584/hu_after: it took the hourglass disc (1052,730))."""
     def labelled(cx, cy):
-        return any(name in lb[4].lower() and abs(_centre(lb)[0] - cx) <= LABEL_DX and _centre(lb)[1] < cy
-                   for lb in boxes)
+        return name is None or any(name in lb[4].lower() and abs(_centre(lb)[0] - cx) <= NAME_DX
+                                   and _centre(lb)[1] < cy for lb in boxes)
+
+    def disc(x, y):
+        return small_disc_at(img, (x, y)) and arrow_up(img, (x, y))
 
     for b in boxes:
-        if 'evel' not in b[4].lower():          # 'Level U', T103g live 'l_evel CP'
+        text = b[4].lower()                     # 'Level U', T103g live 'l_evel CP'; not 'Level 4' sub-labels
+        if 'evel' not in text or re.search(r'level\s*\d', text):
             continue
         cx, cy = _centre(b)
-        if not labelled(cx, cy):
+        if not (RADIAL_WIN[0] <= cx <= RADIAL_WIN[2] and RADIAL_WIN[1] <= cy <= RADIAL_WIN[3]) \
+                or not labelled(cx, cy):
             continue
         for y in (cy - SMALL_DISC_DY, cy - SMALL_DISC_DY + 4, cy - SMALL_DISC_DY - 4):
             for x in range(cx - 8, cx + 9, 4):  # the arrow sits a few px right of the text centre
-                if small_disc_at(img, (x, y)):
+                if disc(x, y):
                     return x, y
-    cook = _line(boxes, 'cook', RADIAL_WIN)     # T103g: Level Up text unread -> anchor on 'Cook'
-    if cook and labelled(*_centre(cook)):
+    # T103g: Level Up text unread -> anchor on 'Cook'. T105B: never while 'Speed Up' is read, nor when
+    # 'Level U' WAS read cleanly but its disc failed above; ANCHOR_R 4 keeps the hourglass (dy +8) out
+    cook = _line(boxes, 'cook', RADIAL_WIN)
+    if name and cook and labelled(*_centre(cook)) and not _line(boxes, 'eed', RADIAL_WIN) \
+            and not _line(boxes, 'level u', RADIAL_WIN):
         ax, ay = _centre(cook)[0] + COOK_TO_LU[0], _centre(cook)[1] + COOK_TO_LU[1]
         for r in range(0, ANCHOR_R + 1, 2):
             for x, y in ((ax + dx, ay + dy) for dx in (-r, 0, r) for dy in (-r, 0, r)):
-                if small_disc_at(img, (x, y)):
+                if disc(x, y):
                     return x, y
     return None
 
@@ -545,6 +714,17 @@ def main(argv: list[str] | None = None) -> int:
         return 7
     _bot_lock.release_at_exit()
 
+    rc = spire(args.dry_run)
+    if rc not in (0, 4):
+        return rc
+    rc2 = upgrade_all(MAX_UPGRADES - (rc == 0), args.dry_run)   # T105B: quest building, then pins
+    if rc == 0 and rc2 == 1:     # a started Spire upgrade must still write today's watch marker
+        print('    Spire upgrade started; upgrade-all got stuck -> rc 0', flush=True)
+    return 0 if 0 in (rc, rc2) else (1 if rc2 == 1 else 4)
+
+
+def spire(dry_run: bool) -> int:
+    """T103..T103i: the Radiant Spire path (also owns the start frame). Exit code."""
     name = 'hu_world'
     img = v.shot(name)
     if v.is_confirm_dialog(img):                 # T103c: 'exit the game?' (shots-9308) - X only
@@ -552,6 +732,15 @@ def main(argv: list[str] | None = None) -> int:
         _tap(v.CONFIRM_CANCEL, 1.5)
         name = 'hu_world_c'
         img = v.shot(name)
+    if v.classify(img) != 'WORLD' and not back_plate(img):
+        ob = v.ocr_boxes(name)                   # T105B: 'Kitchen Upgraded' overlay (Hermes rq0), once
+        if _line(ob, UPGRADED_WORD) and _line(ob, 'close') and not _line(ob, 'complete'):
+            print('    upgrade-finished overlay -> Tap to close', flush=True)
+            # v.tap, not _tap: TOAST_CLOSE lies in the COMPLETE_NOW box, but this OCR-verified
+            # overlay has no Complete Now plate (no back plate, no dialog)
+            v.tap(hs.TOAST_CLOSE, 1.5)
+            name = 'hu_world_u'
+            img = v.shot(name)
     if v.classify(img) == 'WORLD':
         boxes = v.ocr_boxes(name)
         disc = find_radial(img, boxes)
@@ -624,7 +813,144 @@ def main(argv: list[str] | None = None) -> int:
             img, boxes = img2, boxes2
         title = 'Radiant Spire' if _line(boxes, SPIRE_LABEL) else 'title unread (reached via the Spire)'
         print(f'    dialog: {title}', flush=True)
-    return upgrade_or_go(img, boxes, 'Radiant Spire', args.dry_run, go=True)
+    return upgrade_or_go(img, boxes, 'Radiant Spire', dry_run, go=True)
+
+
+def resolve(tag: str, near, name=None, icons=True, ignore=None):
+    """T105B: after a pin / tracker tap, poll up to DIALOG_POLLS shots (no taps) for what opened:
+    ('dialog', frame, boxes) | ('disc', xy, None) a labelled radial Level Up (not the one at `ignore`,
+    already up before the tap) | ('icon', xy, None) a compact Level Up within PIN_ICON_R of `near` |
+    ('none', frame, boxes) on the world | ('stuck', frame, boxes)."""
+    for i in range(DIALOG_POLLS):
+        if i:
+            time.sleep(DIALOG_POLL_WAIT)
+        shot = tag if i == 0 else f'{tag}_p{i}'
+        img = v.shot(shot)
+        boxes = v.ocr_boxes(shot)
+        if back_plate(img) and parse_requirement(boxes):
+            return 'dialog', img, boxes
+        if v.classify(img) == 'WORLD':
+            disc = building_level_up(img, boxes, name)
+            if disc and not (ignore and max(abs(disc[0] - ignore[0]), abs(disc[1] - ignore[1])) <= ICON_CLUSTER):
+                return 'disc', disc, None
+            found = (level_icons(img, near_band(img, near)) if near else level_icons(img)) if icons else []
+            if near:
+                found.sort(key=lambda p: (p[0] - near[0]) ** 2 + (p[1] - near[1]) ** 2)
+            if found:
+                return 'icon', found[0], None
+    return ('none' if v.classify(img) == 'WORLD' else 'stuck'), img, boxes
+
+
+def upgrade_target(kind: str, a, boxes, k, parked: set, dry_run: bool):
+    """T105B: open the building dialog (disc/icon tap) or take the open one, then upgrade_or_go
+    without Go. (exit code, building name, build queue full)."""
+    if kind in ('disc', 'icon'):
+        if kind == 'disc':
+            still = lambda im: v.classify(im) == 'WORLD' and small_disc_at(im, a)  # noqa: E731
+        else:
+            still = lambda im: v.classify(im) == 'WORLD' and any(  # noqa: E731
+                max(abs(p[0] - a[0]), abs(p[1] - a[1])) <= ICON_CLUSTER for p in level_icons(im, near_band(im, a)))
+        img = hs.tap_until(a, 2.5, f'ua_dialog{k}', lambda im: v.classify(im) != 'WORLD', still)
+        if img is None:
+            print(f'    ERROR: no dialog after the Level Up tap at {a} - stopping', flush=True)
+            return 1, None, False
+        img, boxes = read_dialog(f'ua_read{k}')
+    else:
+        img = a
+    if not (back_plate(img) and parse_requirement(boxes)):
+        print(f'    ERROR: building dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)
+        if back_plate(img):
+            close_dialog(img)
+        return 1, None, False
+    name = title_name(boxes) or f'building {k}'
+    if name in parked:
+        print(f'    {name} already parked this run - closing', flush=True)
+        return (4 if close_dialog(img) else 1), name, False
+    q = parse_queue(boxes)
+    return upgrade_or_go(img, boxes, name, dry_run, go=False), name, bool(q and q[0] >= q[1])
+
+
+def _in(xy, win) -> bool:
+    return win[0] <= xy[0] <= win[2] and win[1] <= xy[1] <= win[3]
+
+
+def upgrade_all(budget: int, dry_run: bool) -> int:
+    """T105B: up to `budget` level-ups: the quest-tracker building's radial when already selected, then
+    buildings with a green upgrade pin (MAX_PINS), then (LIVE-open) the tracker tap. Resource-short /
+    refused -> parked for this run, next one. Build queue full -> stop. Exit code (0 one started, also
+    when a later step got stuck; 4 none; 1 stuck before any start)."""
+    img = v.shot('ua_world')
+    if v.classify(img) != 'WORLD':
+        print('    ERROR: upgrade-all: not on the world view - stopping without a tap', flush=True)
+        return 1
+    boxes = v.ocr_boxes('ua_world')
+    done, parked, tried, full = 0, set(), [], False
+
+    def stop(why: str) -> int:
+        print(f'    ERROR: {why} - stopping without a tap'
+              + (f' ({done} level-up(s) already started -> rc 0)' if done else ''), flush=True)
+        return 0 if done else 1
+
+    def take(kind, a, b, k):
+        nonlocal done, full
+        rc, nm, full = upgrade_target(kind, a, b, k, parked, dry_run)
+        done += rc == 0
+        if rc == 4:
+            parked.add(nm)
+        return rc
+
+    quest = quest_building(boxes) if quest_pill(img) else None
+    disc = building_level_up(img, boxes, quest) if quest and budget else None   # quest building selected
+    if disc and take('disc', disc, None, 'q') == 1:
+        return stop(f'quest {quest} dialog')
+    for k in range(MAX_PINS):
+        if done >= budget or full:
+            break
+        img = v.shot(f'ua_pins{k}')
+        if v.classify(img) != 'WORLD':
+            return stop('upgrade-all: not on the world view')
+        pins = [p for p in upgrade_pins(img)
+                if all(max(abs(p[0] - q[0]), abs(p[1] - q[1])) > PIN_CLUSTER for q in tried)]
+        if not pins:
+            break
+        pin = pins[0]
+        tried.append(pin)
+        stale = building_level_up(img, v.ocr_boxes(f'ua_pins{k}'), None)   # a radial already up is not the pin's
+        print(f'    upgrade pin at {pin}', flush=True)
+        _tap(pin, PIN_WAIT)
+        kind, a, b = resolve(f'ua_pin{k}', pin, ignore=stale)
+        body = (pin[0] + PIN_TO_BODY[0], pin[1] + PIN_TO_BODY[1])
+        if kind == 'none' and _in(body, WORLD_WIN) and any(          # blind body tap only on an unchanged view
+                max(abs(p[0] - pin[0]), abs(p[1] - pin[1])) <= PIN_CLUSTER for p in upgrade_pins(a)):
+            print(f'    pin tap opened nothing -> building body {body} (LIVE-open)', flush=True)
+            _tap(body, PIN_WAIT)
+            kind, a, b = resolve(f'ua_body{k}', pin, ignore=stale)
+        if kind == 'none':
+            print(f'    pin {pin}: no Level Up after the taps - parked', flush=True)
+            continue
+        if kind == 'stuck':
+            if back_plate(a) and close_dialog(a):
+                print(f'    pin {pin}: unrecognised dialog closed via its back plate - parked', flush=True)
+                continue
+            return stop('unknown screen after the pin tap')
+        if take(kind, a, b, k) == 1:
+            return stop('building dialog')
+    if quest and not full and done < budget and not any(quest in p for p in parked):
+        img = v.shot('ua_qworld')                                    # LIVE-open tracker tap: last
+        if v.classify(img) != 'WORLD':
+            return stop('upgrade-all: not on the world view')
+        if quest_pill(img):
+            print(f'    quest {quest}: tracker tap (LIVE-open)', flush=True)
+            _tap(QUEST_TAP, GO_WAIT)
+            kind, a, b = resolve('ua_quest', None, quest, icons=False)
+            if kind == 'stuck' and not (back_plate(a) and close_dialog(a)):
+                return stop('unknown screen after the quest tracker tap')
+            if kind == 'none':
+                print(f'    quest {quest}: no Level Up reached', flush=True)
+            elif kind in ('dialog', 'disc') and take(kind, a, b, 'q') == 1:
+                return stop(f'quest {quest} dialog')
+    print(f'    upgrade-all: {done} level-up(s) started, parked {sorted(parked)}', flush=True)
+    return 0 if done else 4
 
 
 def upgrade_or_go(img, boxes, name: str, dry_run: bool, go: bool) -> int:

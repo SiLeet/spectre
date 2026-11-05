@@ -69,6 +69,7 @@ case "$script" in
   *afk_homestead_upgrade.py) exit "${FAKE_UPGRADE_RC:-0}" ;;
   *afk_homestead_requests.py) exit "${FAKE_REQUESTS_RC:-0}" ;;
   *afk_guild.py) exit "${FAKE_GUILD_RC:-0}" ;;
+  *afk_legend_trial.py) exit "${FAKE_LEGEND_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -331,6 +332,37 @@ esac
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse(any("afk_guild.py" in call for call in calls), calls)
         self.assertTrue(any("afk_homestead_requests.py" in call for call in calls), calls)
+
+    # --- T112 legend trial (soft tower-push phase right after the guild) ---
+    def test_legend_trial_runs_once_after_guild(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        lt = [c for c in calls if "afk_legend_trial.py" in c]
+        self.assertEqual(lt, ["scripts/afk_legend_trial.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_legend_trial.py")
+        self.assertLess(self._index(calls, "afk_guild.py"), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("legend-trial-last.txt", self.markers)
+
+    def test_legend_trial_nothing_to_do_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_LEGEND_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("legend-trial-last.txt", self.markers)
+
+    def test_legend_trial_failure_is_soft(self):
+        result, calls = self._run_wrapper(runs=2, FAKE_LEGEND_RC="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertNotIn("legend-trial-last.txt", self.markers)
+        self.assertIn("legend trial rc=1 (soft phase", result.stdout)
+        self.assertEqual(sum("afk_legend_trial.py" in c for c in calls), 2, calls)
+
+    def test_legend_trial_switch_off(self):
+        result, calls = self._run_wrapper(AFK_LEGEND_TRIAL="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_legend_trial.py" in call for call in calls), calls)
+        self.assertTrue(any("afk_guild.py" in call for call in calls), calls)
 
 if __name__ == "__main__":
     unittest.main()

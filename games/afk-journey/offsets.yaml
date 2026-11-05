@@ -23,6 +23,11 @@
 #   - gold: hero gold is 8.57M (OCR '8572K/9390'), not ~9,963; T23 says
 #     server-side, re-test pending (audit H3). gold @0x0 is NOT an offset.
 #   - afk_pool_*: STALE since the 10-31 restart (never re-found).
+#
+# !! team_power: ALWAYS read via scripts/afk_memory.py power() (relocation +
+#    drift guard). The Resources.team_power slot below is only a DUMP-DIFF
+#    reference: read-batch with this yaml address returns "read failed" (stale
+#    base/slot) - confirmed live by Hermes 2026-11-05 (T113).
 
 game: "afk-journey"
 version: "1.0.45"

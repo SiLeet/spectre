@@ -8,7 +8,7 @@ pub mod scanner;
 pub mod types;
 
 pub use chain::{ChainStep, ChainStop, PointerChain, follow, follow_until_end};
-pub use diff::{ChangedRegion, DEFAULT_MERGE_GAP, DumpDiff, diff_dumps, diff_dumps_with_gap};
+pub use diff::{ChangedRegion, DEFAULT_MERGE_GAP, DumpDiff, diff_dumps, diff_dumps_with_gap, transition_slots};
 pub use dump_reader::DumpFileReader;
 pub use error::SpectreError;
 pub use reader::MemoryReader;

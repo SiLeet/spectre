@@ -114,6 +114,8 @@ rechnet nicht.
 
 Reihenfolge nach Nutzen pro Aufwand:
 
+> **Aktueller Fahrplan: `docs/reports/hunt/H1-runbook.md`** (Felder 16/16 → Auslöser per v0→v1, Slot-Modus von `dumpdiff`).
+
 **H1 — Homestead-Gold + Amber + Field-Zähler + Queue (ein Field-Bau).** Exakten Wert G (z. B. 653402)
 und A ablesen, N/16, Queue q.
 ```

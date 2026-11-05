@@ -120,3 +120,24 @@ pub fn diff_dumps_with_gap(old: &[u8], new: &[u8], max_gap: usize) -> DumpDiff {
         .collect();
     DumpDiff { changed }
 }
+
+/// Byte offsets of the aligned slots that hold `from` in `old` and `to` in `new`,
+/// e.g. a u32 counter that went 15 -> 16 between two dumps of the same range.
+/// Slots are `from.len()` bytes wide at that natural alignment; only the common
+/// length of both dumps is compared. Empty when the patterns differ in width.
+pub fn transition_slots(old: &[u8], new: &[u8], from: &[u8], to: &[u8]) -> Vec<usize> {
+    let width = from.len();
+    if width == 0 || width != to.len() {
+        return Vec::new();
+    }
+    let common = old.len().min(new.len());
+    let mut out = Vec::new();
+    let mut off = 0;
+    while off + width <= common {
+        if old[off..off + width] == *from && new[off..off + width] == *to {
+            out.push(off);
+        }
+        off += width;
+    }
+    out
+}

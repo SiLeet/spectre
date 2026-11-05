@@ -62,6 +62,11 @@ ever produced these offsets. The only memory value the bot uses is
 H3). Per-value status and the
 live-hunt plan: `docs/reports/memory-first-audit.md`.
 
+> **team_power: always via `scripts/afk_memory.py` → `power()`** (relocation
+> chain + drift guard). The `Resources.team_power` slot in `offsets.yaml` is
+> only a dump-diff reference — `read-batch` with that yaml address returns
+> `read failed` (stale base/slot; Hermes live, 2026-11-05).
+
 | Game Version  | Offsets Verified |
 |---------------|------------------|
 | 1.0.45        | ❌ only `team_power` (per process, relocated) |

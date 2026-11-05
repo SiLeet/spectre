@@ -138,6 +138,17 @@ spectre dumpdiff before.dump after.dump --base 0x7ff0000
 spectre dumpdiff before.dump after.dump --base 0x7ff0000 --json > diff.json
 ```
 
+**Slot mode** (T113): with `--value-type <u8..u64|i8..i64|f32|f64> --from <v0> --to <v1>`
+`dumpdiff` lists only the aligned slots that held `v0` in `<old>` and hold `v1` in `<new>`
+(little-endian, natural alignment, common length of both dumps) - e.g. a counter 15 -> 16.
+`--limit <n>` caps the printed addresses (default 200, 0 = all); the count always covers all.
+JSON: `{type, from, to, base, count, addresses[]}`.
+
+```bash
+spectre dumpdiff h1_0.dump h1_1.dump --base 0x7607e0000000 --value-type u32 --from 0 --to 1
+spectre dumpdiff h1_0.dump h1_1.dump --base 0x7607e0000000 --value-type u32 --from 3848 --to 3838 --json
+```
+
 Example output:
 
 ```

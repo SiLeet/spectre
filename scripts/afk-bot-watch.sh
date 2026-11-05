@@ -455,6 +455,8 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         1) echo "afk-bot-watch: events rc=1 (soft phase, stuck - not retried today)" | tee -a "$LOG"
            date -u +%Y-%m-%d > "$OUT_DIR/events-last.txt" ;;
         *) echo "afk-bot-watch: events rc=$ev_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     # T112: Legend Trial tower push (free 'x3' tickets only, never buys; the frame's 'Go!' tab
     # picks the tower, max 10 floors, stops on the first defeat). Soft phase like the guild:
     # rc 0 floor(s) won / 4 nothing to do (no tower open, no ticket, wall) -> done for today;

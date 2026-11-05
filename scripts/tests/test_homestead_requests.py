@@ -15,6 +15,8 @@ import afk_homestead_requests as rq  # noqa: E402
 import afk_homestead_upgrade as hu  # noqa: E402
 from fake_vision import FakeDevice, frame  # noqa: E402
 from test_homestead import SPECTRE, hermes  # noqa: E402
+from test_homestead_upgrade import (DIALOG_BOXES, GO, INTERACT, KITCHEN_BOXES,  # noqa: E402
+                                   TOWER_BOXES, TOWER_TAP)
 
 _gs = importlib.util.spec_from_file_location('afk_daily_gift_t104', Path(rq.__file__).with_name('afk-daily-gift.py'))
 gift = importlib.util.module_from_spec(_gs)
@@ -81,6 +83,7 @@ def real_frame(path):
 def live(name):
     return real_frame(LIVE / name)
 NO_BACK_KEY = ('key', 4)
+TOWER_W = (564, 502)                      # T104c: spire_tower on shots-42848/rq_ck_w
 
 
 class Detectors(unittest.TestCase):
@@ -183,10 +186,16 @@ class KitchenT104b(unittest.TestCase):
         self.assertEqual(dev.taps, [rq.KITCHEN_BASE, FLOAT, hu.BACK_PLATE])
 
     def test_kitchen_not_found_after_the_polls(self):
-        w = live('rq_ck_w.png')
-        dev = FakeDevice(self, [w, w, w, w])
+        # T104c: anchor == KITCHEN_BASE (no drag) -> Spire-Go stage; the Kitchen card is met (its label
+        # dropped from the hm_up3 boxes) -> no Go -> dialog closed via its back plate -> soft 0
+        w, d = live('rq_ck_w.png'), hermes('spire_sel2.png')
+        met = [b for b in DIALOG_BOXES if 'Kitchen' not in b[4]]
+        dev = FakeDevice(self, [w, w, w, w, w, real_frame(TOWER_TAP), d, d, hermes('fin2.png')],
+                         boxes={'hu_tower': TOWER_BOXES, 'hu_read': met})
         self.assertEqual(rq.cook_trip('t'), 0)
-        self.assertEqual(dev.taps, [rq.KITCHEN_BASE])
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W, INTERACT, hu.BACK_PLATE])
+        self.assertNotIn('swipe', [x[0] for x in dev.taps if isinstance(x[0], str)])
+        self.assertIn('no Kitchen Go', dev.out.getvalue())
         self.assertIn('Kitchen not found', dev.out.getvalue())
 
     def test_probes_only_without_a_banner_and_bounded(self):
@@ -209,6 +218,155 @@ class KitchenT104b(unittest.TestCase):
         self.assertEqual(dev.taps, [COOK, (740, 662), rq.KITCHEN_BACK, (887, 662), rq.MAKE,
                                     rq.KITCHEN_BACK, rq.KITCHEN_BACK])
         self.assertIn('not requested, not cooking', dev.out.getvalue())
+
+
+class KitchenT104c(unittest.TestCase):
+    def test_anchor_on_the_live_frames(self):
+        self.assertEqual(rq.kitchen_at(live('rq_ck_w.png')), rq.KITCHEN_BASE)     # defines the offset
+        for name in ('st0.png', 'st1.png'):                                         # Kitchen at the top edge
+            at = rq.kitchen_at(hermes(name))
+            self.assertLess(abs(at[0] - 814) + abs(at[1] - 78), 8, name)
+            self.assertFalse(hu._in(at, rq.KITCHEN_WIN), name)
+        for name in ('fin2.png', 'claim3.png', 'rq1.png'):                          # Kitchen selected
+            self.assertTrue(hu._in(rq.kitchen_at(hermes(name)), rq.KITCHEN_WIN), name)
+        cam1 = real_frame(SPECTRE / 'shots-59732' / 'hu_cam1.png')                  # anchor ON the Interact disc
+        self.assertFalse(hu._in(rq.kitchen_at(cam1), rq.KITCHEN_WIN))
+
+    def test_st1_npc_radial_is_no_kitchen(self):
+        for name in ('st0.png', 'st1.png'):
+            img = hermes(name)
+            self.assertIsNone(rq.cook_disc(img, [(927, 731, 66, 15, 'Interact')]), name)
+            self.assertIsNone(rq.floating_cook(img), name)
+            self.assertIsNone(rq.floating_cook(img, rq.kitchen_at(img)), name)
+
+    def test_floating_window_follows_the_tap(self):
+        img = live('rq_ck_k.png')
+        self.assertEqual(rq.floating_cook(img, rq.KITCHEN_BASE), FLOAT)
+        self.assertEqual(rq.floating_cook(img, (1042, 442)), (1074, 297))
+        self.assertIsNone(rq.floating_cook(img, (1040, 700)))
+
+    def test_st0_drag_then_tap(self):
+        low = [b if '3000/3000' not in b[4] else (*b[:4], '800/3000 +') for b in LIST]
+        dev = FakeDevice(self, [hermes('st0.png'), live('rq_ck_w.png'), live('rq_ck_k.png'),
+                                hermes('kz1.png'), hermes('fin2.png')], boxes={'t_list': low})
+        self.assertEqual(rq.cook_trip('t'), 0)
+        self.assertEqual(dev.taps, [('swipe', 1300, 350, 1526, 679, hu.CAMERA_MS, 1.5),
+                                    rq.KITCHEN_BASE, FLOAT, rq.KITCHEN_BACK])
+        self.assertEqual(dev.shots[:3], ['t_w', 't_cam1', 't_k1'])
+
+    def test_cook_disc_rescue_after_the_drag(self):
+        low = [b if '3000/3000' not in b[4] else (*b[:4], '800/3000 +') for b in LIST]
+        dev = FakeDevice(self, [hermes('st1.png'), hermes('fin2.png'), hermes('kz1.png'), hermes('fin2.png')],
+                         boxes={'t_cam1': WORLD, 't_list': low})
+        self.assertEqual(rq.cook_trip('t'), 0)
+        self.assertEqual(dev.taps, [('swipe', 1300, 350, 1526, 684, hu.CAMERA_MS, 1.5), COOK, rq.KITCHEN_BACK])
+
+    def test_two_drags_at_most(self):
+        s = hermes('st0.png')
+        dev = FakeDevice(self, [s, s, s, s, real_frame(TOWER_TAP), 'UNKNOWN', 'UNKNOWN'],
+                         boxes={'hu_tower': []})
+        self.assertIsNone(rq.cook_trip('t'))      # stage 2: no Interact after the tower tap, off the world
+        self.assertEqual([x[0] for x in dev.taps], ['swipe', 'swipe', 338])
+
+    def test_spire_go_reaches_the_kitchen(self):
+        low = [b if '3000/3000' not in b[4] else (*b[:4], '800/3000 +') for b in LIST]
+        w, d = live('rq_ck_w.png'), hermes('spire_sel2.png')
+        dev = FakeDevice(self, [w, w, w, w, w, real_frame(TOWER_TAP), d, d,
+                                real_frame(SPECTRE / 'shots-80480' / 'hu_world.png'),
+                                hermes('kz1.png'), hermes('fin2.png')],
+                         boxes={'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES, 't_go': KITCHEN_BOXES,
+                                't_list': low})
+        self.assertEqual(rq.cook_trip('t'), 0)
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W, INTERACT, GO, COOK, rq.KITCHEN_BACK])
+        self.assertNotIn(hu.LEVEL_UP_BTN, dev.taps)
+
+    def test_spire_stage_stuck_off_the_world(self):
+        w = live('rq_ck_w.png')
+        dev = FakeDevice(self, [w, w, w, w, w, 'UNKNOWN', 'UNKNOWN'], boxes={'hu_tower': TOWER_BOXES})
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W])
+
+    def test_drag_off_the_world_stops_without_a_tap(self):
+        dev = FakeDevice(self, [hermes('st0.png'), 'UNKNOWN'])
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual([x[0] for x in dev.taps], ['swipe'])
+        self.assertIn('the camera drag left the world view', dev.out.getvalue())
+
+    def test_kitchen_tap_opening_a_dialog_closes_it_then_spire_stage(self):
+        w, d = live('rq_ck_w.png'), hermes('hm_up3.png')   # a requirement dialog with its back plate
+        dev = FakeDevice(self, [w, d, w, w, 'UNKNOWN', 'UNKNOWN'],
+                         boxes={'hu_tower': TOWER_BOXES})
+        self.assertIsNone(rq.cook_trip('t'))           # closed (soft) -> stage 2 -> off the world there
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, hu.BACK_PLATE, TOWER_W])
+        self.assertIn('the Kitchen tap opened another dialog', dev.out.getvalue())
+
+    # --- T104c fix round: review findings ---
+    def test_drag_starts_clear_of_the_fountain(self):
+        # spire_sel camera: (1300,350) is the fountain's stone rim -> the (1450,400) grass start
+        dev = FakeDevice(self, [hermes('spire_sel.png'), 'UNKNOWN'])
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual(dev.taps, [('swipe', 1450, 400, 1097, 598, hu.CAMERA_MS, 1.5)])
+
+    def test_no_clear_drag_start_goes_to_the_spire_stage(self):
+        # tower_tap camera: bubble corner / fountain under both starts -> no drag at all
+        dev = FakeDevice(self, [real_frame(TOWER_TAP), 'UNKNOWN', 'UNKNOWN'])
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual(dev.taps, [])
+        self.assertIn('no clear drag start', dev.out.getvalue())
+
+    def test_drag_end_clipped_off_the_right_hud(self):
+        img = hermes('st0.png')
+        with mock.patch.object(rq, 'kitchen_at', side_effect=[(600, 80), None]):
+            dev = FakeDevice(self, [img, img, 'UNKNOWN', 'UNKNOWN'])
+            self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual(dev.taps[0], ('swipe', 1300, 350, 1600, 680, hu.CAMERA_MS, 1.5))
+
+    def test_spire_go_never_taps_the_npc_interact(self):
+        # st1: supplier NPC selected; its Interact is pixel-identical to the Spire's -> after the tower
+        # tap only a tower-anchored Interact counts -> no Interact tap, soft 0
+        s, npc = hermes('st1.png'), [(927, 731, 66, 15, 'Interact')]
+        dev = FakeDevice(self, [s, s, s], boxes={'hu_world': npc, 'hu_tower': npc})
+        self.assertEqual(rq.spire_go('t'), 0)
+        self.assertEqual(dev.taps, [(338, 168)])
+        self.assertIn('no Interact/Level Up radial after the tower tap', dev.out.getvalue())
+
+    def test_kitchen_tap_off_the_world_is_stuck(self):
+        dev = FakeDevice(self, [live('rq_ck_w.png'), 'UNKNOWN'])
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE])
+
+    def test_no_tower_after_the_drag_goes_to_the_spire_stage(self):
+        dev = FakeDevice(self, [hermes('st0.png'), hermes('quest1.png'), 'UNKNOWN', 'UNKNOWN'])
+        self.assertIsNone(rq.cook_trip('t'))
+        self.assertEqual([x[0] for x in dev.taps], ['swipe'])
+        self.assertIn('no Spire tower on the frame', dev.out.getvalue())
+
+    def test_spire_stage_nothing_to_do_is_soft(self):
+        w = live('rq_ck_w.png')
+        with mock.patch.object(hu, 'spire_dialog', return_value=4):
+            dev = FakeDevice(self, [w, w, w, w])
+            self.assertEqual(rq.cook_trip('t'), 0)
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE])
+        self.assertIn('Kitchen not found', dev.out.getvalue())
+
+    def _go(self, after):
+        w, d = live('rq_ck_w.png'), hermes('spire_sel2.png')
+        dev = FakeDevice(self, [w, w, w, w, w, real_frame(TOWER_TAP), d, d] + after,
+                         boxes={'hu_tower': TOWER_BOXES, 'hu_read': DIALOG_BOXES})
+        return dev, rq.cook_trip('t')
+
+    def test_go_without_a_cook_disc_is_soft(self):
+        w = live('rq_ck_w.png')
+        dev, rc = self._go([w, w, w])
+        self.assertEqual(rc, 0)
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W, INTERACT, GO])
+        self.assertIn('no Kitchen Cook radial after Go', dev.out.getvalue())
+
+    def test_go_to_an_unknown_screen_is_stuck(self):
+        dev, rc = self._go(['UNKNOWN'] * 3)
+        self.assertIsNone(rc)
+        self.assertEqual(dev.taps, [rq.KITCHEN_BASE, TOWER_W, INTERACT, GO])
+        self.assertIn('Go did not lead to the world view', dev.out.getvalue())
 
 
 class Gazette(unittest.TestCase):

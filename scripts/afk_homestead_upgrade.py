@@ -725,6 +725,27 @@ def main(argv: list[str] | None = None) -> int:
 
 def spire(dry_run: bool) -> int:
     """T103..T103i: the Radiant Spire path (also owns the start frame). Exit code."""
+    got = spire_dialog()
+    if isinstance(got, int):
+        return got
+    img, boxes = got
+    if _line(boxes, SPIRE_LABEL) is None:      # T103f: title still fading in -> one settled re-read
+        time.sleep(TITLE_SETTLE)
+        img2 = v.shot('hu_read2')
+        boxes2 = v.ocr_boxes('hu_read2')
+        if back_plate(img2) and parse_requirement(boxes2):
+            img, boxes = img2, boxes2
+        title = 'Radiant Spire' if _line(boxes, SPIRE_LABEL) else 'title unread (reached via the Spire)'
+        print(f'    dialog: {title}', flush=True)
+    return upgrade_or_go(img, boxes, 'Radiant Spire', dry_run, go=True)
+
+
+def spire_dialog(strict: bool = False):
+    """T104c (extracted from spire(), unchanged): start frame -> the recognised requirement dialog
+    reached via the Spire (radial / icon / tower + Interact / camera search). (img, boxes), else the
+    exit code (1 stuck, 4 nothing to do). Never taps inside the dialog. strict (T104c requests only):
+    after the tower tap accept only a tower-anchored Interact (spire_interact) - the supplier NPC's
+    screen-fixed Interact (st1) is pixel-identical to the Spire's (tower_tap)."""
     name = 'hu_world'
     img = v.shot(name)
     if v.is_confirm_dialog(img):                 # T103c: 'exit the game?' (shots-9308) - X only
@@ -772,7 +793,7 @@ def spire(dry_run: bool) -> int:
             disc = find_radial(img, boxes)       # label-paired Level Up, as on the start frame
             still = lambda im: v.classify(im) == 'WORLD' and disc_at(im, disc)  # noqa: E731
             if disc is None:
-                disc = find_interact(img, boxes)
+                disc = spire_interact(img, boxes, spire_tower(img)) if strict else find_interact(img, boxes)
                 still = lambda im: v.classify(im) == 'WORLD' and interact_at(im, disc)  # noqa: E731
             if disc is None and v.classify(img) == 'WORLD':
                 # T103e: the tap toggled a selection OFF (shots-25208/hu_tower) -> the icon shows now
@@ -805,15 +826,7 @@ def spire(dry_run: bool) -> int:
         print(f'    ERROR: Spire dialog not recognised (OCR {[b[4] for b in boxes][:6]})', flush=True)
         close_dialog(img)
         return 1
-    if _line(boxes, SPIRE_LABEL) is None:      # T103f: title still fading in -> one settled re-read
-        time.sleep(TITLE_SETTLE)
-        img2 = v.shot('hu_read2')
-        boxes2 = v.ocr_boxes('hu_read2')
-        if back_plate(img2) and parse_requirement(boxes2):
-            img, boxes = img2, boxes2
-        title = 'Radiant Spire' if _line(boxes, SPIRE_LABEL) else 'title unread (reached via the Spire)'
-        print(f'    dialog: {title}', flush=True)
-    return upgrade_or_go(img, boxes, 'Radiant Spire', dry_run, go=True)
+    return img, boxes
 
 
 def resolve(tag: str, near, name=None, icons=True, ignore=None):

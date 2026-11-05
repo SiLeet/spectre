@@ -28,16 +28,36 @@ roof, Cook + Level Up - the unselected-building grammar of T103b's spire_sel; a 
 always shows its labelled radial below the building (18 frames). Now: labelled Cook radial, else
 (up to KITCHEN_POLLS reads after the tap) the floating Cook disc (FLOAT_WIN pair, only rq_ck_k of
 87 world frames); a tap that merely selects the Kitchen gets its labelled radial once more; any
-other dialog is closed via its back plate. No camera-swipe search: the 'Kitchen' label shows only
-with its own radial (selected), so after a swipe there is nothing to anchor a tap on. Recipe
-cards are anchored on their OCR 'Select' (green = enabled); the first banner card of a fresh read
-is cooked while Stock < Request (the grid reflows when a banner clears); only when the list
-shows no banner at all, up to MAX_PROBES lowest-stock decks are opened (Make only if the deck
-reads Request > Stock). LIVE-open: the floating Cook disc tap, a non-requested recipe's deck.
+other dialog is closed via its back plate. Recipe cards are anchored on their OCR 'Select'
+(green = enabled); the first banner card of a fresh read is cooked while Stock < Request (the
+grid reflows when a banner clears); only when the list shows no banner at all, up to MAX_PROBES
+lowest-stock decks are opened (Make only if the deck reads Request > Stock).
+LIVE-open: the floating Cook disc tap, a non-requested recipe's deck.
+
+T104c (Hermes live st0/st1, shots-3300): the camera after the panel is often elsewhere - the
+Kitchen stall sits at the top edge (~(814,76)) and the Golden-Supplier NPC is still SELECTED
+(screen-fixed 'Interact' radial at (959,738)), so the blind KITCHEN_BASE tap hit nothing. Of 214
+tower frames only 41 put the Kitchen where a tap is safe. Now two bounded, soft fallback stages:
+(1) find_kitchen anchors the Kitchen on the Spire tower (TOWER_TO_KITCHEN, +-60 px on 14 frames),
+taps it inside KITCHEN_WIN, else drags the camera toward KITCHEN_BASE (content follows the finger,
+59732) up to KITCHEN_DRAGS times, re-anchoring and trying the Cook disc after every drag (the
+floating window follows the tap point); (2) spire_go: the T103f chain via hu.spire_dialog - the
+'Go' under a MISSING 'Level N Kitchen' card lands on the selected Kitchen (kitchen_go, 80480).
+Hermes' fixed 'south then west' swipes were replaced by the anchored drag: st0 needs the finger
+down+right (226,329), the (1290,58) camera down+left (-250,352).
 
 LIVE-open: the header 'n/5' (Hermes: 5 requests/day; post3 shows 4/5 after ONE delivery -
 not used, MAX_DELIVER bounds the run); slot 2 (never tapped live); a banner with several
-recipes; whether the Kitchen building tap at KITCHEN_BASE selects it from other cameras.
+recipes. T104c: whether the Spire-Go stage is live at all (Kitchen is Level 5 on fin2/rq1/claim3,
+the Spire 5->6 card asks 'Level 5 Kitchen' -> most likely met, no Go, soft end after tower /
+Interact / back plate; no Spire-dialog frame since the Kitchen reached 5); whether a tap on the
+tower-anchored point away from the shots-42848 camera focuses/selects the Kitchen and replaces the
+supplier-NPC selection; whether a second drag converges (ratio 0.85..1.11, never run live);
+a drag start on other cameras (a start on a building floor pans: 59732 hu_cam1 -> hu_cam2 from
+the Kitchen tiles; a start on a quest bubble is unseen - only the Kitchen + fountain are kept
+clear, DRAG_CLEAR); whether a dragged
+camera snaps back (59732 cam1 -> cam2: stays >= ~3 s); the floating disc at shifted tap points;
+the post-Go landing frame at Kitchen Level >= 5 (all post-Go frames are from Level 4).
 
 Usage: python scripts/afk_homestead_requests.py [--no-cook] [--min-idle S]
 Exit codes: 0 at least one request delivered, 1 stuck / unknown screen, 4 nothing to do
@@ -46,6 +66,7 @@ Exit codes: 0 at least one request delivered, 1 stuck / unknown screen, 4 nothin
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 import time
@@ -71,7 +92,8 @@ SLOTS = ((575, 1024), (675, 1024))  # LIVE: NPC portraits; slots 3/4 at x 778/87
 SLOT_HALF = 52
 RING_PX = 800                  # LIVE: green ring px of the selected slot 1688..1762, others 0
 PANEL_BACK = (464, 1014)       # Hermes live (arrow x 450..490 y 1005..1045)
-KITCHEN_BASE = (1040, 410)     # Hermes live: Kitchen building at the base camera
+KITCHEN_BASE = (1040, 410)     # Hermes live: Kitchen building at the base camera (T104c: drag target, tap
+                               # without a tower, FLOAT_WIN reference)
 CARD_XS = (741, 888, 1035, 1183)  # LIVE kz1/rqp: Kitchen card centres (Select boxes)
 BANNER = (455, 482, 40)        # red 'Requests' banner band y + half width over a card
 BANNER_PX = 500                # LIVE: 779 over Toast on kz1; other cards 0..280 (rqp/rqq/kz1)
@@ -83,7 +105,7 @@ STOCK_DY = (10, 45)            # 'Stock: n' box centre this far above its card's
 MAX_DECKS = 6                  # T104b: recipe decks opened per Kitchen trip
 MAX_PROBES = 3                 # T104b: decks of un-bannered cards, only when the list shows NO banner
 CARD_TOL = 40                  # opened-card match: OCR 'Select' centres jitter by 1 px between reads
-KITCHEN_POLLS = 3              # T104b: reads after the KITCHEN_BASE tap
+KITCHEN_POLLS = 3              # T104b: reads after a Kitchen tap
 KITCHEN_LABEL_DX = 200         # T104b: 'Kitchen' label centre vs 'Cook' text: LIVE dx 102 (fin2..) / 164
                                # (shots-63328/hu_go, Cook read at x 912)
 COOK_DX = 30                   # T104b: disc search +-x around the 'Cook' text (shots-63328/hu_go read it
@@ -93,6 +115,32 @@ FLOAT_DX = (55, 95)            # Kitchen (brackets, camera unmoved, no labels) w
 FLOAT_DY = 8                   # above its roof, Cook (1075,298) + Level Up (1147,298) - the T103b
                                # spire_sel grammar. Such a pair in FLOAT_WIN: 1 of 87 world frames
                                # (only rq_ck_k). What the Cook disc tap opens is LIVE-unverified.
+TOWER_TO_KITCHEN = (476, -92)  # T104c LIVE: KITCHEN_BASE - spire_tower(shots-42848/rq_ck_w) (564,502); that tap
+                               # focused the Kitchen (rq_ck_k). Lands on the stall on 13 frames (59732 hu_world/cam2,
+                               # fin2, kitchen_go, st0, st1, tower_tap, spire_sel, hm_requests, 80480/hu_world,
+                               # 3300/rq_ck_w, world_now); +-60 px only near the centre (KITCHEN_WIN: 41 of 41 on the
+                               # stall), drifts ~100 px with the tower low on screen (59732/hu_cam1: on the Interact
+                               # disc, tower read off); post-Go frames read (981..991, 411..456)
+KITCHEN_WIN = (740, 250, 1340, 570)  # T104c: the anchored Kitchen is tapped only here - its label and floating
+                               # discs (112 px above, rq_ck_k) stay on screen, clear of the screen-fixed radial
+                               # (Interact/Cook text (959,738), disc (958,690): tower_tap, 59732 hu_cam0..2, st1,
+                               # fin2) and the HUD columns. LIVE sweep: 41 of 214 tower frames inside; st0/st1/3300
+                               # (814,~76) and the (1290,~58) camera -> drag; 59732/hu_cam1 (924,664) = NPC Interact
+KITCHEN_DRAGS = 2              # Hermes: at most 2 camera drags per trip
+DRAG_FROM = tuple(d[:2] for d in hu.CAMERA_DRAGS)  # LIVE 59732: (1300,350) for a downward drag, (1150,650) upward
+DRAG_STARTS = ((DRAG_FROM[0], (1450, 400)), (DRAG_FROM[1],))  # downward / upward, first one clear of the Kitchen
+                               # + fountain wins. (1450,400): grass on spire_sel, hm_requests, hm_req2, hm_confirmed2,
+                               # hm_built15, b16a, end1, tooltip, where (1300,350) is the fountain's stone rim
+DRAG_CLEAR = 150               # min distance of a drag start from the anchored Kitchen and the fountain
+FOUNTAIN_DXY = (-143, 140)     # LIVE: fountain/pavilion centre - Kitchen anchor (spire_sel (-156,138), tower_tap
+                               # (-129,154)); on tower_tap both starts fail (bubble corner / fountain) -> no drag
+DRAG_MAX = (450, 400)          # per-axis clip: st0 needs (226,329), the (1290,58) camera (-250,352); content/finger
+                               # 0.85..1.11 by the Kitchen pin (59732: finger (0,+300) -> pin (-18,+254); (+350,-210)
+                               # -> (+390,-222); the tower read on hu_cam1 is off ~(57,40), hence its 1.34)
+                               # -> re-anchor after every drag
+DRAG_END_MAX = (1600, 750)     # drag end clip off the right HUD column (st1 'Login Rewards' x 1690..1840 y 645..685)
+DRAG_MIN = 100                 # smaller: the Kitchen is in place and did not answer -> Spire stage (selected /
+                               # post-Go frames |d| 41..59)
 MAKE = (960, 955)              # LIVE cook4/made2: mortar disc L 220, ring (900,955) L 105;
 MAKE_RING = (900, 955)         # cooking (made1): cog L 150, ring L 245
 KITCHEN_BACK = (470, 1000)     # Hermes live: deck -> list -> world
@@ -219,9 +267,13 @@ def cook_disc(img, boxes):
     return None
 
 
-def floating_cook(img):
-    """T104b: the left (Cook) disc of a floating Cook / Level Up pair over a focused Kitchen, else None."""
-    l, t, r, b = FLOAT_WIN
+def floating_cook(img, at=KITCHEN_BASE):
+    """T104b: the left (Cook) disc of a floating Cook / Level Up pair over a focused Kitchen, else None.
+    T104c: FLOAT_WIN moves with the tapped Kitchen point `at`, kept 30 px inside the frame."""
+    dx, dy = at[0] - KITCHEN_BASE[0], at[1] - KITCHEN_BASE[1]
+    w, h = img.size
+    l, t, r, b = (max(30, FLOAT_WIN[0] + dx), max(30, FLOAT_WIN[1] + dy),
+                  min(w - 30, FLOAT_WIN[2] + dx), min(h - 30, FLOAT_WIN[3] + dy))
     groups = []
     for y in range(t, b, 3):
         for x in range(l, r, 3):
@@ -360,6 +412,118 @@ def cook_recipe(tag: str, budget: int):
     return made
 
 
+def kitchen_at(img):
+    """T104c: the Kitchen body anchored on the Spire tower (hu.spire_tower), else None."""
+    t = hu.spire_tower(img)
+    return t and (t[0] + TOWER_TO_KITCHEN[0], t[1] + TOWER_TO_KITCHEN[1])
+
+
+def kitchen_tap(tag: str, at):
+    """T104c: tap the Kitchen body at `at`, then up to KITCHEN_POLLS reads: labelled Cook radial, else the
+    floating Cook disc above `at`. xy | 0 (nothing / foreign dialog closed) | None (stuck)."""
+    print(f'    no Kitchen radial - tapping the Kitchen at {at}', flush=True)
+    _tap(at, 2.0)
+    for i in range(KITCHEN_POLLS):
+        if i:
+            time.sleep(POLL_WAIT)
+        name = tag if i == 0 else f'{tag}_p{i}'
+        img = v.shot(name)
+        if v.classify(img) != 'WORLD':
+            if hu.back_plate(img):
+                print('    the Kitchen tap opened another dialog - closing it', flush=True)
+                return 0 if hu.close_dialog(img) else None
+            print('    ERROR: the Kitchen tap left the world view - stopping without a tap', flush=True)
+            return None
+        disc = cook_disc(img, v.ocr_boxes(name))
+        if disc is None:
+            disc = floating_cook(img, at)
+            if disc:
+                print(f'    Kitchen focused, not selected: floating Cook disc at {disc}', flush=True)
+        if disc:
+            return disc
+    return 0
+
+
+def find_kitchen(tag: str, img):
+    """T104c stage 1: anchor the Kitchen on the Spire tower; tap it inside KITCHEN_WIN, else drag the
+    camera (closed loop, toward KITCHEN_BASE) up to KITCHEN_DRAGS times, with a Cook-disc rescue on
+    every frame after a drag. No tower on the first frame -> the T104b blind KITCHEN_BASE tap; no blind
+    drags (spire_go's camera_search has its own). xy | 0 | None."""
+    for k in range(KITCHEN_DRAGS + 1):
+        if k:
+            name = f'{tag}_cam{k}'
+            img = v.shot(name)
+            if v.classify(img) != 'WORLD':
+                print('    ERROR: the camera drag left the world view - stopping without a tap', flush=True)
+                return None
+            disc = cook_disc(img, v.ocr_boxes(name))
+            if disc:
+                print(f'    Kitchen radial after the drag: Cook at {disc}', flush=True)
+                return disc
+        at = kitchen_at(img) or (KITCHEN_BASE if k == 0 else None)
+        if at is None:
+            print('    no Spire tower on the frame - no Kitchen anchor', flush=True)
+            break
+        if hu._in(at, KITCHEN_WIN):
+            disc = kitchen_tap(f'{tag}_k{k or ""}', at)
+            if disc != 0:
+                return disc
+        d = tuple(max(-m, min(m, b - a)) for a, b, m in zip(at, KITCHEN_BASE, DRAG_MAX))
+        if k == KITCHEN_DRAGS or max(map(abs, d)) < DRAG_MIN:
+            break
+        well = (at[0] + FOUNTAIN_DXY[0], at[1] + FOUNTAIN_DXY[1])
+        s = next((p for p in DRAG_STARTS[d[1] < 0]
+                  if min(math.dist(p, q) for q in (at, well)) >= DRAG_CLEAR), None)
+        if s is None:
+            print(f'    Kitchen anchored at {at} - no clear drag start (Kitchen / fountain)', flush=True)
+            break
+        e = (min(s[0] + d[0], DRAG_END_MAX[0]), min(s[1] + d[1], DRAG_END_MAX[1]))
+        print(f'    Kitchen anchored at {at} - camera drag {s} -> {e}', flush=True)
+        v.swipe(*s, *e, hu.CAMERA_MS, 1.5)
+    return 0
+
+
+def spire_go(tag: str):
+    """T104c stage 2 (the LIVE T103f chain): hu.spire_dialog (tower -> Interact -> requirement dialog)
+    -> the 'Go' under a MISSING 'Level N Kitchen' card -> world with the Kitchen selected -> its Cook
+    disc. A met card has no Go -> the dialog is closed via its back plate (soft). Only the Go and the
+    back plate are tapped in the dialog - never Level Up / Complete Now. xy | 0 | None."""
+    print('    Kitchen not found - Spire dialog Go fallback', flush=True)
+    got = hu.spire_dialog(strict=True)    # never the supplier NPC's look-alike Interact (st1)
+    if isinstance(got, int):
+        if got == 4:
+            return 0
+        img = v.shot(f'{tag}_sp')
+        if v.classify(img) == 'WORLD':
+            return 0
+        return 0 if hu.back_plate(img) and hu.close_dialog(img) else None
+    img, boxes = got
+    card = next((b for b in hu.missing_boxes(img, boxes)
+                 if (m := hu.BUILDING_RE.search(b[4])) and 'kitchen' in m.group(1).lower()), None)
+    go = card and (hu._centre(card)[0], hu._centre(card)[1] + hu.GO_DY)
+    if not (go and hu.go_pill(img, go)):
+        print('    no Kitchen Go on the dialog (card met?) - closing it', flush=True)
+        return 0 if hu.close_dialog(img) else None
+    print(f'    Go -> Kitchen at {go}', flush=True)
+    hu._tap(go, hu.GO_WAIT)                # Complete-Now guard; the only dialog tap besides its back plate
+    for i in range(hu.DIALOG_POLLS):
+        if i:
+            time.sleep(hu.DIALOG_POLL_WAIT)
+        name = f'{tag}_go' if i == 0 else f'{tag}_go_p{i}'
+        img = v.shot(name)
+        if v.classify(img) == 'WORLD':
+            disc = cook_disc(img, v.ocr_boxes(name)) or floating_cook(img)
+            if disc:
+                return disc
+    if v.classify(img) == 'WORLD':
+        print('    no Kitchen Cook radial after Go', flush=True)
+        return 0
+    if hu.back_plate(img):
+        return 0 if hu.close_dialog(img) else None
+    print('    ERROR: Go did not lead to the world view - stopping without a tap', flush=True)
+    return None
+
+
 def open_kitchen(tag: str):
     """World -> Kitchen recipe list: (img, boxes); 0 = Kitchen not found / not opened (soft);
     None = stuck on an unknown screen."""
@@ -370,26 +534,13 @@ def open_kitchen(tag: str):
         return None
     disc = cook_disc(img, v.ocr_boxes(name))
     if disc is None:
-        print(f'    no Kitchen radial - tapping the Kitchen at {KITCHEN_BASE}', flush=True)
-        _tap(KITCHEN_BASE, 2.0)
-        for i in range(KITCHEN_POLLS):
-            if i:
-                time.sleep(POLL_WAIT)
-            name = f'{tag}_k' if i == 0 else f'{tag}_k_p{i}'
-            img = v.shot(name)
-            if v.classify(img) != 'WORLD':
-                print('    ERROR: the Kitchen tap left the world view - stopping without a tap', flush=True)
-                return None
-            disc = cook_disc(img, v.ocr_boxes(name))
-            if disc is None:
-                disc = floating_cook(img)
-                if disc:
-                    print(f'    Kitchen focused, not selected: floating Cook disc at {disc}', flush=True)
-            if disc:
-                break
-        else:
-            print('    Kitchen not found (camera elsewhere?) - no cooking', flush=True)
-            return 0
+        disc = find_kitchen(tag, img)
+        if disc == 0:
+            disc = spire_go(tag)
+        if not disc:
+            if disc == 0:
+                print('    Kitchen not found (camera elsewhere?) - no cooking', flush=True)
+            return disc
     for attempt in range(2):
         _tap(disc, 2.5)
         img, boxes, ok = read(f'{tag}_list' if attempt == 0 else f'{tag}_list_s', is_kitchen)

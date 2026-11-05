@@ -1,4 +1,4 @@
-{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"header": {"git_head": "f85b3a9ab2ef29ea701955728d26693264716ad9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
 {"args": [{"img": "34cb3988ab57842c"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 3, "out": true, "test": "test_tap_seq.DailiesLeftoverPopup.test_adb_failure_raises_before_menu_read"}
 {"args": [{"img": "cecb8d3e90cf1e80"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 6, "out": false, "test": "test_review_fixes.F28DailiesDismiss.test_dismiss_verified"}
 {"args": [{"img": "d52f43ea87d0020b"}], "fn": "afk_dailies.is_dimmed", "kwargs": {}, "n": 2, "out": false, "test": "test_input_robustness.DeadTaps.test_dailies_quest_icon_hold_only_while_menu_is_open"}

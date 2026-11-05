@@ -1,22 +1,22 @@
-//! Parity testkit (rust-port-plan §4): corpus frames and golden JSONL files.
+//! Parity testkit (rust-port-plan §4): corpus frames and golden JSONL files, the test
+//! doubles of `scripts/tests/fake_vision.py` ([`fake`]) and the golden replay ([`replay`]).
+
+pub mod fake;
+pub mod replay;
+
+pub use crate::hash::crc32;
+pub use crate::img::{Frame, load_rgb};
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
+use std::sync::OnceLock;
 use std::path::{Path, PathBuf};
 
 /// Default corpus location (E0a); override with `SPECTRE_PARITY_DIR`.
 pub const DEFAULT_PARITY_DIR: &str = "C:/Users/Sigi/spectre-parity";
-
-/// An RGB frame as Pillow's `convert('RGB')` yields it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Frame {
-    pub w: u32,
-    pub h: u32,
-    pub rgb: Vec<u8>,
-}
 
 /// Corpus root (`frames/`, `synthetic/`), outside every repo.
 pub fn parity_dir() -> PathBuf {
@@ -44,44 +44,6 @@ pub fn png_dims(path: &Path) -> Result<(u32, u32)> {
     }
     let be = |b: &[u8]| u32::from_be_bytes([b[0], b[1], b[2], b[3]]);
     Ok((be(&head[16..20]), be(&head[20..24])))
-}
-
-/// Decode a corpus PNG to RGB the way Pillow's `convert('RGB')` does for
-/// 8-bit images: alpha dropped, gray replicated, palette expanded.
-pub fn load_rgb(path: &Path) -> Result<Frame> {
-    let file = File::open(path).with_context(|| format!("open {}", path.display()))?;
-    let mut dec = png::Decoder::new(BufReader::new(file));
-    dec.set_transformations(png::Transformations::EXPAND);
-    let mut reader = dec.read_info().with_context(|| format!("decode {}", path.display()))?;
-    let (ct, depth) = reader.output_color_type();
-    if depth != png::BitDepth::Eight {
-        bail!("{}: {depth:?}-bit output not ported (Pillow I;16 semantics)", path.display());
-    }
-    let mut buf = vec![0; reader.output_buffer_size().context("buffer size")?];
-    let info = reader.next_frame(&mut buf)?;
-    let px = &buf[..info.buffer_size()];
-    let rgb = match ct {
-        png::ColorType::Rgb => px.to_vec(),
-        png::ColorType::Rgba => px.as_chunks::<4>().0.iter().flat_map(|p| [p[0], p[1], p[2]]).collect(),
-        png::ColorType::Grayscale => px.iter().flat_map(|&g| [g, g, g]).collect(),
-        png::ColorType::GrayscaleAlpha => px.as_chunks::<2>().0.iter().flat_map(|p| [p[0], p[0], p[0]]).collect(),
-        png::ColorType::Indexed => bail!("{}: palette not expanded", path.display()),
-    };
-    Ok(Frame { w: info.width, h: info.height, rgb })
-}
-
-/// CRC-32 (IEEE, as Python's `zlib.crc32`) of a byte slice; checks decoded pixels
-/// against `frames.json` without a hash-crate dependency.
-pub fn crc32(data: &[u8]) -> u32 {
-    let mut table = [0u32; 256];
-    for (i, slot) in table.iter_mut().enumerate() {
-        let mut c = i as u32;
-        for _ in 0..8 {
-            c = if c & 1 == 1 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
-        }
-        *slot = c;
-    }
-    !data.iter().fold(!0u32, |c, &b| table[((c ^ u32::from(b)) & 0xFF) as usize] ^ (c >> 8))
 }
 
 /// One corpus entry of `parity/frames.json`.
@@ -137,18 +99,47 @@ pub fn corpus_manifest(path: &Path) -> Result<BTreeMap<String, CorpusFrame>> {
     Ok(out)
 }
 
-/// Current Python tree pin, computed by the exporter (`export_goldens.py py-tree`)
-/// so Rust and Python share one definition. `None` if python/git are unavailable.
+/// Current Python tree pin, the same definition as `export_goldens.py py_tree()`: sha16 over
+/// `git ls-tree -r HEAD -- scripts templates` without `scripts/tests/parity/`. `None` if git
+/// is unavailable.
 pub fn current_py_tree() -> Option<String> {
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-    let script = repo.join("scripts/tests/parity/export_goldens.py");
-    let out = std::process::Command::new("python")
-        .arg(&script)
-        .args(["py-tree", "--repo"])
+    let out = std::process::Command::new("git")
+        .arg("-C")
         .arg(&repo)
+        .args(["ls-tree", "-r", "HEAD", "--", "scripts", "templates"])
         .output()
         .ok()?;
-    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).trim().to_owned())
+    if !out.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let lines: Vec<&str> = crate::pystr::splitlines(&text)
+        .into_iter()
+        .filter(|l| !l.split_once('\t').is_some_and(|(_, p)| p.starts_with("scripts/tests/parity/")))
+        .collect();
+    Some(crate::hash::sha16(&[lines.join("\n").as_bytes()]))
+}
+
+/// A frame by its golden key: corpus `frames/<k>.png`, a synthetic alias (`convert('RGB')` of
+/// a corpus frame = [`load_rgb`]) or `synthetic/<k>.png`.
+pub fn frame_by_key(key: &str) -> Result<Frame> {
+    static SYNTH: OnceLock<Value> = OnceLock::new();
+    let synth = SYNTH.get_or_init(|| {
+        std::fs::read_to_string(repo_parity().join("goldens").join("synthetic.json"))
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(Value::Null)
+    });
+    let corpus = parity_dir().join("frames").join(format!("{key}.png"));
+    if corpus.is_file() {
+        return Ok(load_rgb(&corpus)?);
+    }
+    if let Some(alias) = synth["frames"][key]["alias_of"].as_str() {
+        return Ok(load_rgb(&parity_dir().join("frames").join(format!("{alias}.png")))?);
+    }
+    let p = parity_dir().join("synthetic").join(format!("{key}.png"));
+    load_rgb(&p).with_context(|| format!("frame {key} in neither corpus nor synthetic"))
 }
 
 /// Every frame key (`{"img": k}` or `"frame": k`) referenced in a golden value.
@@ -178,12 +169,6 @@ mod tests {
         let mut out = Vec::new();
         frame_refs(&v, &mut out);
         assert_eq!(out, ["aa", "bb", "cc"]);
-    }
-
-    #[test]
-    fn crc32_matches_zlib() {
-        assert_eq!(crc32(b""), 0);
-        assert_eq!(crc32(b"123456789"), 0xCBF4_3926); // zlib.crc32(b"123456789")
     }
 
     #[test]

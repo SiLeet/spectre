@@ -1,3 +1,3 @@
-{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"header": {"git_head": "f85b3a9ab2ef29ea701955728d26693264716ad9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
 {"args": [["AFK Journey", "Tap to Start"]], "fn": "afk_device_ready.is_title", "kwargs": {}, "n": 1, "out": true, "test": "test_device_ensure.DeviceReady.test_loading_then_title_then_world"}
 {"args": [[]], "fn": "afk_device_ready.is_title", "kwargs": {}, "n": 3, "out": false, "test": "test_device_ensure.DeviceReady.test_loading_then_title_then_world"}

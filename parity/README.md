@@ -1,6 +1,6 @@
-# parity/ — Python-Spezifikation für den Rust-Port (E0a/E0b, T115)
+# parity/ — Python-Spezifikation für den Rust-Port (E0a/E0b T115, E1 T117)
 
-Plan: `docs/reports/rust-port-plan.md` §E0a, §E0b, §4. Bericht: `docs/reports/rust-port-E0.md`.
+Plan: `docs/reports/rust-port-plan.md` §E0a, §E0b, §E1, §4. Berichte: `docs/reports/rust-port-E0.md`, `docs/reports/rust-port-E1.md`.
 
 | Pfad | Inhalt | Erzeugt von |
 |---|---|---|
@@ -8,6 +8,8 @@ Plan: `docs/reports/rust-port-plan.md` §E0a, §E0b, §4. Bericht: `docs/reports
 | `spectre-filelist.json` | eingefrorene Dateiliste von `.spectre` (Pfad, Größe, sha16 der Bytes) für den E2-Differential-Lauf | `freeze_corpus.py freeze` |
 | `goldens/flows/<test_modul>.jsonl` | pro Test: ein Record je FakeDevice (+ einer für I/O ohne Device): geordneter Event-Strom, Overrides, stdout | `export_goldens.py` |
 | `goldens/calls/<bot_modul>.jsonl` | äußerste reine Aufrufe (Frame / OCR-Zeilen / Tupel → Ergebnis), dedupliziert | `export_goldens.py` |
+| `goldens/infra/<modul>.jsonl` | E1: jeder direkte Test-Aufruf in die Infra (`afk_claim_vision` adb/Tap/Seq/Screencap, `_bot_lock`): Argumente, Tap-Zustand vorher/nachher, `sleep_patched`, I/O-Events dazwischen, Ergebnis/Exception, stdout, Shot-Datei | `export_goldens.py` |
+| `scope/E1.toml` | E1-Scope: Pflicht-Shards, Spec-Module (je ≥ 1 Record), out_of_scope mit Grund | von Hand |
 | `goldens/tests.json` | pro Test-ID Ergebnis + Record-Zähler (Ledger-Keim), Laufsumme | `export_goldens.py` |
 | `goldens/synthetic.json` | von Tests gebaute Frames (PNG in `$SPECTRE_PARITY_DIR/synthetic/`; `alias_of` = `convert('RGB')` eines Korpus-Frames, nicht doppelt gespeichert) und große Byte-Payloads (`blobs/`) | `export_goldens.py` |
 | `goldens/determinism.json` | Vergleich der zwei Exporte | `export_goldens.py check` |
@@ -27,6 +29,7 @@ der Export unabhängig davon, was die Live-Lane währenddessen prunt oder nach `
 python scripts/tests/parity/verify_corpus.py                 # Korpus gegen frames.json (sha16 neu berechnet)
 python -m unittest discover -s scripts/tests/parity -p "test_*.py"   # Selbsttests des Toolings (nicht Teil der Bot-Suite)
 SPECTRE_PARITY=1 cargo +stable-x86_64-pc-windows-gnu test -p spectre-afk --test parity   # Rust: alle Frames dekodieren (crc32 == Pillow), STALE, Frame-Keys
+SPECTRE_PARITY=1 cargo +stable-x86_64-pc-windows-gnu test -p spectre-afk --test parity_e1   # E1: alle Infra-Records replayen, Lock-Interop mit _bot_lock.py
 ```
 
 ## Re-Export (Routine am Start jeder Etappe und nach jedem Merge, der `scripts/` oder `templates/` ändert)

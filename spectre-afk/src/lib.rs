@@ -1,7 +1,14 @@
 //! `spectre-afk` — Rust port of the AFK Journey bot (plan: `docs/reports/rust-port-plan.md`).
 //!
-//! E0b state: no bot code yet. [`testkit`] loads the frozen frame corpus
-//! (`$SPECTRE_PARITY_DIR`, E0a) and the Python goldens (`parity/goldens`, E0b);
-//! `tests/parity.rs` checks both and reports coverage (0 % until E1+ maps functions).
+//! E1 (android-infra): [`env`], [`infra`] (adb, tap modes, input sequences, screencap,
+//! `Device`, trace), [`img`] (RGB frame, PNG), [`state::lock`] (pulled forward from E4),
+//! [`pystr`]/[`hash`] (Python string semantics, SHA-256/CRC-32 without dependencies) and the
+//! [`testkit`] (corpus/golden loader, FakeDevice, golden replay). Vision comes in E2.
 
+pub mod env;
+pub mod hash;
+pub mod img;
+pub mod infra;
+pub mod pystr;
+pub mod state;
 pub mod testkit;

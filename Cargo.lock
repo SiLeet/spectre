@@ -877,6 +877,7 @@ dependencies = [
  "anyhow",
  "png",
  "serde_json",
+ "spectre-mcp",
 ]
 
 [[package]]

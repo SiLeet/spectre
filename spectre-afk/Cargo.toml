@@ -1,10 +1,15 @@
 [package]
 name = "spectre-afk"
-description = "Rust port of the AFK Journey bot (rust-port-plan T114); E0b: parity testkit only"
+description = "Rust port of the AFK Journey bot (rust-port-plan T114); E1: android-infra"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
 serde_json = { workspace = true }
-png = "0.18.1"     # D1 (approved T115): corpus/fixture loader, later shot persistence
+png = "0.18.1"     # D1 (approved T115): corpus/fixture loader, shot persistence
+spectre-mcp = { path = "../spectre-mcp" }   # CommandRunner/SystemRunner as a library (plan §E1), not moved
+
+[[bin]]
+name = "spectre-afk"
+path = "src/main.rs"

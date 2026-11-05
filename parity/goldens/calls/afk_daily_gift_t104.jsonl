@@ -1,4 +1,4 @@
-{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"header": {"git_head": "f85b3a9ab2ef29ea701955728d26693264716ad9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
 {"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_daily_gift_t104.is_dimmed", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_requests.Gazette.test_daily_gift_entry_opens_the_gazette"}
 {"args": [{"img": "7c307e6b4903582c"}], "fn": "afk_daily_gift_t104.is_events_panel", "kwargs": {}, "n": 3, "out": false, "test": "test_homestead_requests.Gazette.test_daily_gift_entry_opens_the_gazette"}
 {"args": [{"img": "cd925fec5970a85b"}], "fn": "afk_daily_gift_t104.is_events_panel", "kwargs": {}, "n": 1, "out": false, "test": "test_homestead_requests.Gazette.test_daily_gift_entry_opens_the_gazette"}

@@ -21,6 +21,12 @@ the arena screens have their own look, so the script additionally checks
 that the screen CHANGED between fight start and fight end before counting
 an attempt. Reaching Battle Modes is v.open_battle_modes (classify-gated).
 
+T108: the lobby's ticket pill ('N/1', ticket_clusters) is read before Challenge;
+at 0/1 the run stops without tapping (the arena_p*_pre dialog-cancel stays the
+backstop). Purchases are never confirmed. TODO (LIVE-open): Supreme Arena is on
+no frame (account Adept I); it is a separate mode with its own Glory Badges and
+needs its own card/lobby frames before any taps - the normal flow stays.
+
 Usage: python scripts/afk_arena.py [--fights 4] [--dry-run]
 Exit codes: 0 = all attempts done (incl. the attempts-exhausted stop), 1 = stuck / unknown / aborted with no fight, 5 = idle-gate skip, 7 = tap lock held by another run.
 """
@@ -68,6 +74,14 @@ LOBBY_BAND = (1100, 1068)                 # dark navy band under the bar (r=6)
 # arrow (530,1000) L 186. v.BACK (474,1010) sits 4 px left of the plate (it did
 # press it live: norm_1 arrow highlighted, then Battle Modes); the centre has margin.
 LOBBY_BACK = (530, 1000)
+# T108 ticket pill under the Challenge label ('N/1' = Warrior's Guarantee tickets held /
+# cost per Challenge; 4 free per day). LIVE (shots-54808|82200|66656|41632, trash/shots-
+# 63812|6048 arena_1_lobby, hermes ar5/ar6/arena_lobby_frame): ticket icon = one orange
+# column cluster; at 0/1 the '0' is orange too (2nd cluster; 3 frames: shots-41632
+# arena_1_lobby - Challenge there opened the 10-diamond Warrior's Guarantee buy -,
+# shots-54424/norm_0, shots-82200/arena_exit2); 'Continue <timer>' lobbies: no cluster.
+# LIVE-open: 0/1 on the zoomed layout, two-digit counts, an orange digit other than 0.
+TICKET_ROW = (900, 1012, 1350, 1056)
 
 # T95 select screen, current layout. LIVE: shots-52268/arena_2_select,
 # arena_f1_step0|2|4, arena_p1_pre, arena_exit0 (all identical): three 3D cards,
@@ -150,6 +164,17 @@ def is_lobby(img: Image.Image) -> bool:
             and max(v.lum(avg(img, p, r=4)) for p in (LOBBY_PLATE, LOBBY_PLATE_W)) > 200
             and v.lum(avg(img, LOBBY_BAND, r=6)) < 40
             and v.lum(avg(img, (480, 270))) < 200)
+
+
+def ticket_clusters(img: Image.Image) -> int:
+    """Orange column clusters in the lobby ticket pill: 0 = no pill (Continue),
+    1 = tickets left, >= 2 = 0/1 (Challenge would offer the diamond purchase)."""
+    l, t, r, b = TICKET_ROW
+    px = img.load()
+    orange = lambda p: (p[0] > 170 and p[2] < 110 and p[0] - p[2] > 110
+                        and 70 < p[1] < 200 and p[0] - p[1] > 40)
+    cols = [x for x in range(l, r) if sum(orange(px[x, y]) for y in range(t, b)) >= 2]
+    return sum(1 for i, x in enumerate(cols) if i == 0 or x - cols[i - 1] > 3)
 
 
 def sword(img: Image.Image) -> tuple[int, int] | None:
@@ -378,6 +403,14 @@ def main() -> int:
     if not is_lobby(img):
         print('    ERROR: arena lobby did not open', flush=True)
         return 1
+    tickets = ticket_clusters(img)
+    if tickets >= 2:
+        # rc 0 like the dialog stop: the watch marker semantics stay the same
+        print('    STOP: no free arena tickets (0/1) — Challenge would offer the '
+              'diamond purchase; not tapped', flush=True)
+        exit_to_world()
+        return 0
+    print(f'    tickets: {"left" if tickets == 1 else "pill not shown (Continue)"}', flush=True)
 
     tap(CHALLENGE, 4.0)
     img = v.shot('arena_2_select')

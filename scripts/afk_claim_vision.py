@@ -342,6 +342,8 @@ CLAIM = (960, 602)
 BACK = (474, 1010)
 GROUND = (300, 250)
 LOGIN_CLAIM = (960, 930)   # 'Esperia Monthly / Daily Rewards' popup Claim (verified live)
+GAZETTE_WIN = (700, 860, 1220, 1000)   # T104: orange Claim plate search (gazette_claim)
+GAZETTE_PX = 5000
 # T91 Dream Realm prep screen (hero grid in a cream panel, back + Records + one
 # wide green Battle bar x 718-1652 / y 954-1042). LIVE: shots-66808/dr_f1_pre1..3,
 # dr_f1_prewait1..3, dr_f1_after0_0..9, shots-80660/norm_0
@@ -439,6 +441,26 @@ def ocr_lines(name: str) -> list[str]:
     return ocr_png(png)
 
 
+def is_gazette(lines: list[str]) -> bool:
+    return any(('monthly' in l.lower() or 'gazette' in l.lower()
+                or 'daily rewards' in l.lower()) for l in lines)
+
+
+def gazette_claim(img: Image.Image):
+    """T104: centre of the orange Claim plate on the Esperia gazette, else None. LIVE (Hermes
+    2026-11-05 backzone/cook1/claim1/claim2): 21853 px x 815..1104 y 895..975, median (959,934);
+    a tap at (965,888) missed the plate."""
+    box = GAZETTE_WIN
+    crop = img.crop(box).convert('RGB')
+    w, data = crop.width, crop.tobytes()
+    pts = [(box[0] + i // 3 % w, box[1] + i // 3 // w) for i in range(0, len(data), 3)
+           if data[i] > 215 and 110 < data[i + 1] < 190 and data[i + 2] < 110]
+    if len(pts) < GAZETTE_PX:
+        return None
+    xs, ys = sorted(p[0] for p in pts), sorted(p[1] for p in pts)
+    return xs[len(xs) // 2], ys[len(ys) // 2]
+
+
 def resolve_startup_popup(tag: str) -> bool:
     """Handle the known login popup (Esperia Monthly / Daily Rewards).
 
@@ -447,14 +469,12 @@ def resolve_startup_popup(tag: str) -> bool:
     resolver stays non-blind; a follow-up card is dismissed with one BACK.
     Returns True when the popup was recognised and handled.
     """
-    shot(tag)
-    lines = ocr_lines(tag)
-    hit = any(('monthly' in l.lower() or 'gazette' in l.lower()
-               or 'daily rewards' in l.lower()) for l in lines)
-    if not hit:
+    img = shot(tag)
+    if not is_gazette(ocr_lines(tag)):
         return False
-    print(f'    {tag}: login popup detected -> claim', flush=True)
-    tap(LOGIN_CLAIM, 3.0)
+    xy = gazette_claim(img) or LOGIN_CLAIM
+    print(f'    {tag}: login popup detected -> claim at {xy}', flush=True)
+    tap(xy, 3.0)
     st = classify(shot(f'{tag}_after'))
     if st in ('POPUP', 'UNKNOWN'):
         tap(BACK, 1.5)          # rewards-obtained card / second popup

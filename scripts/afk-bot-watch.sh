@@ -325,6 +325,23 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
         *) echo "afk-bot-watch: homestead upgrade rc=$hu_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
       esac
     fi
+    # T104: homestead phase 3, deliver Golden Supplier requests (max 5), one Kitchen trip
+    # for missing items (stamina floor, max 8 Makes). Soft phase like the upgrade: rc 0
+    # delivered / 4 nothing to do -> done for today; other rc logged, no marker.
+    # AFK_HOMESTEAD_REQUESTS=0 = off.
+    if [ "${AFK_HOMESTEAD_REQUESTS:-1}" = "1" ] && \
+       [ "$(cat "$OUT_DIR/homestead-requests-last.txt" 2>/dev/null || echo never)" != "$today" ]; then
+      normalize_or_abort "homestead requests"
+      {
+        echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) homestead requests (deliver + cook)"
+        "$PY" scripts/afk_homestead_requests.py --min-idle "$MIN_IDLE" 2>&1
+      } | tee -a "$LOG"
+      rq_rc="${PIPESTATUS[0]}"
+      case "$rq_rc" in
+        0|4) date -u +%Y-%m-%d > "$OUT_DIR/homestead-requests-last.txt" ;;
+        *) echo "afk-bot-watch: homestead requests rc=$rq_rc (soft phase, chain continues)" | tee -a "$LOG" ;;
+      esac
+    fi
     normalize_or_abort "stage push"
     run_daily_task "stage push (auto battle)" "stage-last.txt" \
       "$PY" scripts/afk_stage_push.py --auto --auto-minutes 6 --retry-defeats \

@@ -67,6 +67,7 @@ case "$script" in
   *afk_duras.py) exit "${FAKE_DURAS_RC:-0}" ;;
   *afk_homestead.py) exit "${FAKE_HOMESTEAD_RC:-0}" ;;
   *afk_homestead_upgrade.py) exit "${FAKE_UPGRADE_RC:-0}" ;;
+  *afk_homestead_requests.py) exit "${FAKE_REQUESTS_RC:-0}" ;;
   *) exit 0 ;;
 esac
 """,
@@ -266,6 +267,37 @@ esac
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse(any("afk_homestead_upgrade.py" in call for call in calls), calls)
         self.assertTrue(any("afk_homestead.py" in call for call in calls), calls)
+
+    # --- T104 homestead requests (soft daily phase right after the homestead upgrade) ---
+    def test_requests_run_once_after_homestead_upgrade(self):
+        result, calls = self._run_wrapper(runs=2)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        rq = [c for c in calls if "afk_homestead_requests.py" in c]
+        self.assertEqual(rq, ["scripts/afk_homestead_requests.py --min-idle 180"], calls)
+        i = self._index(calls, "afk_homestead_requests.py")
+        self.assertLess(self._index(calls, "afk_homestead_upgrade.py"), i, calls)
+        self.assertIn("afk_normalize.py", calls[i - 1])
+        self.assertLess(i, self._index(calls, "afk_stage_push.py"))
+        self.assertIn("homestead-requests-last.txt", self.markers)
+
+    def test_requests_nothing_to_do_marks_the_day(self):
+        result, calls = self._run_wrapper(FAKE_REQUESTS_RC="4")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("homestead-requests-last.txt", self.markers)
+
+    def test_requests_failure_is_soft(self):
+        result, calls = self._run_wrapper(runs=2, FAKE_REQUESTS_RC="1")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(any("afk_stage_push.py" in call for call in calls), calls)
+        self.assertNotIn("homestead-requests-last.txt", self.markers)
+        self.assertIn("homestead requests rc=1 (soft phase", result.stdout)
+        self.assertEqual(sum("afk_homestead_requests.py" in c for c in calls), 2, calls)
+
+    def test_requests_switch_off(self):
+        result, calls = self._run_wrapper(AFK_HOMESTEAD_REQUESTS="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(any("afk_homestead_requests.py" in call for call in calls), calls)
+        self.assertTrue(any("afk_homestead_upgrade.py" in call for call in calls), calls)
 
 
 if __name__ == "__main__":

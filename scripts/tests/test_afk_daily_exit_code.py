@@ -21,7 +21,10 @@ def bash_path(path: Path | str) -> str:
 
 
 class DailyWrapperExitCode(unittest.TestCase):
-    def _run_wrapper(self, runs: int = 1, **fake_results: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    def _run_wrapper(
+        self, runs: int = 1, args: tuple[str, ...] = ("--scheduled",), idle: list[int] | None = None,
+        **fake_results: str,
+    ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
         with tempfile.TemporaryDirectory(prefix="afk-daily-wrapper-") as temp:
             root = Path(temp)
             (root / "scripts").mkdir()
@@ -54,7 +57,15 @@ class DailyWrapperExitCode(unittest.TestCase):
             fake_python = root / "bin" / "python"
             fake_python.write_text(
                 """#!/usr/bin/env bash
-if [ "${1:-}" = "-c" ]; then exit 0; fi
+if [ "${1:-}" = "-c" ]; then
+  case "${2:-}" in *idle_seconds*)
+    if [ -n "${FAKE_IDLE:-}" ] && [ -s "$FAKE_IDLE" ]; then
+      head -n1 "$FAKE_IDLE"
+      [ "$(wc -l < "$FAKE_IDLE")" -gt 1 ] && sed -i 1d "$FAKE_IDLE"   # last value sticks
+    fi ;;
+  esac
+  exit 0
+fi
 if [ "${1:-}" = "-" ]; then echo 0x724DD0000000; exit 0; fi
 script="$1"
 printf '%s\\n' "$*" >> "$FAKE_CALLS"
@@ -90,11 +101,22 @@ esac
             env["AFK_MIN_IDLE"] = "180"
             calls_file = root / "calls.txt"
             env["FAKE_CALLS"] = bash_path(calls_file)
+            if idle is not None:   # T107: idle probe values (one per poll, last sticks) + fake sleep
+                # LF only: a CR would make the probe value non-numeric ("unknown idle")
+                (root / "idle.txt").write_text("".join(f"{i}\n" for i in idle), encoding="utf-8", newline="\n")
+                env["FAKE_IDLE"] = bash_path(root / "idle.txt")
+                fake_sleep = root / "bin" / "sleep"
+                fake_sleep.write_text(
+                    '#!/usr/bin/env bash\nprintf \'sleep %s\\n\' "$*" >> "$FAKE_CALLS"\n'
+                    '[ -e .spectre/afk-bot.lock ] && echo LOCKED-DURING-WAIT >> "$FAKE_CALLS"\nexit 0\n',
+                    encoding="utf-8"
+                )
+                fake_sleep.chmod(0o755)
             env.update(fake_results)
 
             for _ in range(runs):        # same temp root = same .spectre markers / same day
                 result = subprocess.run(
-                    [shutil.which("bash") or "bash", bash_path(wrapper_path), "--scheduled"],
+                    [shutil.which("bash") or "bash", bash_path(wrapper_path), *args],
                     env=env,
                     capture_output=True,
                     text=True,
@@ -331,6 +353,96 @@ esac
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse(any("afk_guild.py" in call for call in calls), calls)
         self.assertTrue(any("afk_homestead_requests.py" in call for call in calls), calls)
+
+
+class ScheduledIdleWait(unittest.TestCase):
+    """T107: scheduled runs wait for an idle window (fake idle probe + fake sleep, no real sleeping)."""
+
+    _run_wrapper = DailyWrapperExitCode._run_wrapper   # reuse the harness without re-running its tests
+    _index = DailyWrapperExitCode._index
+
+    @staticmethod
+    def _sleeps(calls):
+        return [c for c in calls if c.startswith("sleep ")]
+
+    def test_scheduled_waits_for_idle_then_runs(self):
+        result, calls = self._run_wrapper(idle=[5, 100, 200], AFK_WAIT_POLL="90")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self._sleeps(calls), ["sleep 90", "sleep 90"], calls)
+        last_sleep = max(i for i, c in enumerate(calls) if c.startswith("sleep "))
+        self.assertGreater(self._index(calls, "afk_claim_vision.py"), last_sleep, calls)
+        self.assertIn("idle window after 180s wait", result.stdout)
+        self.assertNotIn("LOCKED-DURING-WAIT", calls)
+
+    def test_no_idle_window_exits_5_without_any_phase(self):
+        result, calls = self._run_wrapper(idle=[1], AFK_WAIT_TIMEOUT="180", AFK_WAIT_POLL="60")
+        self.assertEqual(result.returncode, 5, result.stdout + result.stderr)
+        self.assertEqual(len(self._sleeps(calls)), 3, calls)
+        self.assertFalse(any(".py" in c for c in calls), calls)
+        self.assertIn("no idle window", result.stderr)
+        self.assertNotIn("LOCKED-DURING-WAIT", calls)
+
+    def test_progress_mode_waits_too(self):
+        result, calls = self._run_wrapper(args=("--scheduled-progress",), idle=[1, 500])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(self._sleeps(calls)), 1, calls)
+        self.assertTrue(any("afk_claim_vision.py" in c for c in calls), calls)
+        push = [c for c in calls if "afk_stage_push.py" in c]
+        self.assertEqual(len(push), 1, calls)
+        self.assertIn("--min-idle 180", push[0])   # stage push re-checks idle per poll
+
+    def test_manual_run_never_waits(self):
+        result, calls = self._run_wrapper(args=(), idle=[1])
+        self.assertEqual(self._sleeps(calls), [], calls)
+        claim = [c for c in calls if "afk_claim_vision.py" in c]
+        self.assertEqual(len(claim), 1, calls)
+        self.assertIn("--min-idle 0", claim[0])
+
+    def test_wait_timeout_flag_zero_skips_immediately(self):
+        result, calls = self._run_wrapper(args=("--scheduled", "--wait-timeout", "0"), idle=[1])
+        self.assertEqual(result.returncode, 5, result.stdout + result.stderr)
+        self.assertEqual(self._sleeps(calls), [], calls)
+        self.assertIn("no idle window", result.stderr)
+
+    def test_invalid_poll_falls_back_to_60(self):
+        result, calls = self._run_wrapper(idle=[1, 999], AFK_WAIT_POLL="0")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self._sleeps(calls), ["sleep 60"], calls)
+
+    def test_unknown_idle_does_not_wait(self):
+        result, calls = self._run_wrapper(idle=[])   # empty probe output + recording fake sleep
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARN idle time unavailable", result.stdout)
+        self.assertEqual(self._sleeps(calls), [], calls)
+    def test_leading_zero_poll_is_decimal(self):
+        result, calls = self._run_wrapper(idle=[1, 999], AFK_WAIT_POLL="08")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self._sleeps(calls), ["sleep 8"], calls)
+
+    def test_user_back_after_claims_stops_daily_gameplay(self):
+        # 999 passes the wait, 1 = user back at the first normalize boundary (sticks)
+        result, calls = self._run_wrapper(idle=[999, 1])
+        self.assertEqual(result.returncode, 5, result.stdout + result.stderr)
+        self.assertTrue(any("afk_claim_vision.py" in c for c in calls), calls)
+        for ungated in ("afk_normalize.py", "afk_arena.py", "afk_hero_level.py", "afk_stage_push.py"):
+            self.assertFalse(any(ungated in c for c in calls), (ungated, calls))
+        self.assertIn("user is back", result.stderr)
+
+    def _assert_usage_error(self, *args):
+        result, calls = self._run_wrapper(args=args, idle=[1])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(calls, [], calls)
+        self.assertIn("usage", result.stderr)
+
+    def test_misplaced_wait_timeout_is_rejected_not_manual(self):
+        self._assert_usage_error("--wait-timeout", "0", "--scheduled")
+
+    def test_non_numeric_wait_timeout_is_rejected(self):
+        self._assert_usage_error("--scheduled", "--wait-timeout", "0s")
+
+    def test_unknown_argument_is_rejected(self):
+        self._assert_usage_error("--schedueld")
+
 
 if __name__ == "__main__":
     unittest.main()

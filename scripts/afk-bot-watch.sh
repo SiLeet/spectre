@@ -5,7 +5,10 @@
 # committed config can't hold them permanently. This wrapper re-discovers both,
 # writes a generated config (metadata only), and runs a single bot round.
 #
-# Usage: scripts/afk-bot-watch.sh [--dry-run]
+# Usage: scripts/afk-bot-watch.sh [--scheduled|--scheduled-progress [--wait-timeout SEC]] | [--dry-run]
+# Env (scheduled modes only): AFK_WAIT_TIMEOUT (default 10800 s) = max wait for an
+# idle window, AFK_WAIT_POLL (default 60 s) = idle re-check interval. Timeout -> exit 5.
+# Unknown / misplaced arguments or a non-numeric --wait-timeout -> usage error, exit 1.
 set -u
 cd "$(dirname "$0")/.."
 SPECTRE="./target/release/spectre.exe"
@@ -19,10 +22,23 @@ OUT="$OUT_DIR/afk-live.generated.yaml"
 # driver) + stage push — all once-per-day tasks stay in the 05:10 Daily run.
 MIN_IDLE=0
 PROGRESS=0
+usage() { echo "afk-bot-watch: $1 (usage: [--scheduled|--scheduled-progress [--wait-timeout SEC]] | [--dry-run])" >&2; exit 1; }
+# base-10, max 6 digits: a leading 0 would be octal in $(( )), a huge value breaks [ -ge ]
+num() { case "$1" in ''|*[!0-9]*|???????*) return 1 ;; esac; echo $((10#$1)); }
 case "${1:-}" in
   --scheduled)          MIN_IDLE="${AFK_MIN_IDLE:-180}" ;;
   --scheduled-progress) MIN_IDLE="${AFK_MIN_IDLE:-180}"; PROGRESS=1 ;;
+  ''|--dry-run)         ;;
+  *) usage "unknown argument '$1'" ;;
 esac
+WAIT_TIMEOUT=$(num "${AFK_WAIT_TIMEOUT:-10800}") || WAIT_TIMEOUT=10800
+if [ $# -gt 1 ]; then
+  case "$1" in --scheduled|--scheduled-progress) ;; *) usage "'${*:2}' is only valid after --scheduled / --scheduled-progress" ;; esac
+  { [ $# -eq 3 ] && [ "$2" = "--wait-timeout" ]; } || usage "unknown arguments '${*:2}'"
+  WAIT_TIMEOUT=$(num "$3") || usage "--wait-timeout needs whole seconds, got '$3'"
+fi
+WAIT_POLL=$(num "${AFK_WAIT_POLL:-60}") || WAIT_POLL=60
+[ "$WAIT_POLL" -gt 0 ] || WAIT_POLL=60   # 0 would never reach the timeout
 
 if ! mkdir -p "$OUT_DIR" "$OUT_DIR/logs"; then
   echo "afk-bot-watch: cannot create the log directory; refusing to continue" >&2
@@ -32,6 +48,71 @@ LOG="$OUT_DIR/logs/afk-bot-$(date -u +%Y-%m-%d).log"
 if ! printf '=== %s watch start (mode=%s shell_pid=%s)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${1:-manual}" "$$" >> "$LOG"; then
   echo "afk-bot-watch: cannot write the daily log; refusing to continue" >&2
   exit 1
+fi
+
+# Resolve the interpreter explicitly: under Task Scheduler the PATH can differ,
+# and silently falling back to the un-gated CLI tap sequence is exactly the
+# dangerous mode these scripts exist to avoid. Resolved this early because the
+# idle probe needs PIL (afk_claim_vision); the exit-7 refusal stays below.
+if [ -n "${AFK_PYTHON:-}" ]; then
+  PY="$AFK_PYTHON"
+elif command -v python >/dev/null 2>&1 && python -c 'import PIL' >/dev/null 2>&1; then
+  PY=python
+elif [ -x "${LOCALAPPDATA:-}/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe" ]; then
+  PY="$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe"
+else
+  PY=""
+fi
+idle_now() {  # shared v.idle_seconds (wrap-safe); last line only (import may print WARNs); empty = unknown
+  "${PY:-python}" -c 'import sys; sys.path.insert(0, "scripts"); import afk_claim_vision as v; i = v.idle_seconds(); print("" if i is None else int(i))' 2>/dev/null | tail -n1
+}
+# User back mid-run? Same fail-open rule as the phases' own gates (unknown idle -> go on).
+pc_in_use() {
+  [ "$MIN_IDLE" -gt 0 ] 2>/dev/null || return 1
+  local i; i=$(idle_now)
+  case "$i" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$i" -lt "$MIN_IDLE" ] || return 1
+  echo "afk-bot-watch: PC in use (idle ${i}s < ${MIN_IDLE}s)" | tee -a "$LOG"
+}
+
+# T107: scheduled runs WAIT for an idle window instead of SKIP+end (2026-11-05:
+# 05:10 skipped with "idle 1s < 180s"). Before the lock and device-ensure: a
+# waiting run holds no lock (manual runs stay free) and starts nothing. No tap
+# happens here. After the wait the idle gate still holds: every phase passes
+# --min-idle (Progress stage push included), and before each Daily boundary
+# normalize_or_abort stops the rest of the run when the user is back (covers the
+# un-gated normalizer and hero leveling).
+# Task Scheduler (read via Get-ScheduledTask 2026-11-05): Daily 05:10 / Progress
+# 17:10 / Night 02:00 (afk-night.sh, no wait), each ExecutionTimeLimit PT72H,
+# MultipleInstances IgnoreNew, WakeToRun False, no repetition -> Daily+3 h and
+# Progress+3 h never overlap each other or Night.
+# Live lane: idle is Windows input only and spectre-mcp adb_* takes no lock, so
+# Hermes must call with --wait-timeout 0 (immediate rc 5 as before) and hold
+# .spectre/afk-bot.lock during live sessions in 05:10-08:10 / 17:10-20:10, so a
+# released waiter exits 6 instead of tapping alongside him.
+# Manual / --dry-run (MIN_IDLE=0) never wait.
+if [ "$MIN_IDLE" -gt 0 ] 2>/dev/null; then
+  waited=0
+  # wall-clock deadline too: a suspended host stalls sleep, so poll counting alone could overrun
+  deadline=$(( $(date +%s) + WAIT_TIMEOUT ))
+  while :; do
+    idle=$(idle_now)
+    case "$idle" in
+      ''|*[!0-9]*) echo "afk-bot-watch: WARN idle time unavailable - not waiting" | tee -a "$LOG"; break ;;
+    esac
+    if [ "$idle" -ge "$MIN_IDLE" ]; then
+      [ "$waited" -gt 0 ] && echo "afk-bot-watch: idle window after ${waited}s wait (idle ${idle}s)" | tee -a "$LOG"
+      break
+    fi
+    now=$(date +%s)
+    if [ "$waited" -ge "$WAIT_TIMEOUT" ] || [ "$now" -ge "$deadline" ]; then
+      echo "afk-bot-watch: no idle window (idle ${idle}s < ${MIN_IDLE}s after ${waited}s wait, $(( now - deadline + WAIT_TIMEOUT ))s wall) - run skipped" | tee -a "$LOG" >&2
+      exit 5
+    fi
+    echo "afk-bot-watch: PC in use (idle ${idle}s < ${MIN_IDLE}s) - waiting ${WAIT_POLL}s (${waited}/${WAIT_TIMEOUT}s)" | tee -a "$LOG"
+    sleep "$WAIT_POLL"
+    waited=$(( waited + WAIT_POLL ))
+  done
 fi
 
 # Serialize runs: the scheduled task and manual invocations must never tap at
@@ -126,16 +207,8 @@ if [ "${1:-}" = "--dry-run" ]; then
   exit $?
 fi
 
-# Resolve the interpreter explicitly: under Task Scheduler the PATH can differ,
-# and silently falling back to the un-gated CLI tap sequence is exactly the
-# dangerous mode these scripts exist to avoid. Fail loudly instead.
-if [ -n "${AFK_PYTHON:-}" ]; then
-  PY="$AFK_PYTHON"
-elif command -v python >/dev/null 2>&1 && python -c 'import PIL' >/dev/null 2>&1; then
-  PY=python
-elif [ -x "$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe" ]; then
-  PY="$LOCALAPPDATA/hermes/tools/python-3.14.9+20261021-win32-x64/python.exe"
-else
+# PY was resolved above; no PIL python -> fail loudly instead of blind taps.
+if [ -z "$PY" ]; then
   echo "afk-bot-watch: no python with PIL available (set AFK_PYTHON) — refusing to fall back to blind taps" | tee -a "$LOG" >&2
   exit 7
 fi
@@ -152,7 +225,8 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     if [ "$rc" = "0" ] || [ "$rc" = "4" ]; then
       {
         echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) progress stage push"
-        "$PY" scripts/afk_stage_push.py --pid "$pid" --base "$base" --auto --auto-minutes 6 --retry-defeats 2>&1
+        "$PY" scripts/afk_stage_push.py --pid "$pid" --base "$base" --auto --auto-minutes 6 --retry-defeats \
+          --min-idle "$MIN_IDLE" 2>&1
       } | tee -a "$LOG"
       rc="${PIPESTATUS[0]}"
     fi
@@ -222,6 +296,11 @@ if "$PY" -c 'import PIL' >/dev/null 2>&1; then
     # screen. Fail closed, report it to Task Scheduler, and do not continue taps.
     normalize_or_abort() {
       local boundary="$1" normalize_rc
+      if pc_in_use; then   # T107: normalizer + hero leveling have no idle gate of their own
+        record_daily_failure "PC in use before $boundary" 5
+        echo "afk-bot-watch: user is back; stopping remaining Daily gameplay phases" | tee -a "$LOG" >&2
+        exit "$daily_rc"
+      fi
       "$PY" scripts/afk_normalize.py 2>&1 | tee -a "$LOG"
       normalize_rc="${PIPESTATUS[0]}"
       if [ "$normalize_rc" -ne 0 ]; then

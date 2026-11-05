@@ -274,6 +274,23 @@ pub struct DumpDiffArgs {
     /// Output as JSON (full hex, with file offset and address per region).
     #[structopt(long = "json")]
     pub json: bool,
+
+    /// Slot mode (with --from/--to): value type u8..u64, i8..i64, f32, f64. Lists only the
+    /// aligned slots that held --from in <old> and hold --to in <new> (e.g. a counter 15 -> 16).
+    #[structopt(long = "value-type")]
+    pub value_type: Option<String>,
+
+    /// Slot mode: the value before (decimal, 0x-hex or float).
+    #[structopt(long = "from")]
+    pub from: Option<String>,
+
+    /// Slot mode: the value after (decimal, 0x-hex or float).
+    #[structopt(long = "to")]
+    pub to: Option<String>,
+
+    /// Slot mode: maximum addresses printed (0 = all); the count always covers all.
+    #[structopt(long = "limit", default_value = "200")]
+    pub limit: usize,
 }
 
 // ── Find Command ─────────────────────────────────────────────────────────────
@@ -1137,6 +1154,23 @@ fn run_dumpdiff(args: DumpDiffArgs) -> Result<()> {
         bail!("base {base:#x} + dump length {longest} overflows the 64-bit address space");
     }
 
+    if args.value_type.is_some() || args.from.is_some() || args.to.is_some() {
+        let (Some(vt), Some(from), Some(to)) = (&args.value_type, &args.from, &args.to) else {
+            bail!("slot mode needs --value-type, --from and --to together");
+        };
+        let a = parse_search_value(vt, from)?;
+        let b = parse_search_value(vt, to)?;
+        let slots = spectre_core::transition_slots(&old, &new, &a.bytes, &b.bytes);
+        info!("dumpdiff: {} {} slot(s) {from} -> {to}", slots.len(), a.type_name);
+        let text = if args.json {
+            serde_json::to_string_pretty(&transition_slots_json(&slots, base, &a.type_name, from, to, args.limit))?
+        } else {
+            render_transition_slots(&slots, base, &a.type_name, from, to, args.limit)
+        };
+        println!("{text}");
+        return Ok(());
+    }
+
     let diff = spectre_core::diff_dumps(&old, &new);
     info!(
         "dumpdiff: {} region(s), {} changed byte(s)",
@@ -1156,6 +1190,36 @@ fn run_dumpdiff(args: DumpDiffArgs) -> Result<()> {
     };
     println!("{text}");
     Ok(())
+}
+
+/// Slot mode output: one address per line (first `limit`, 0 = all) under a summary line.
+fn render_transition_slots(slots: &[usize], base: u64, ty: &str, from: &str, to: &str, limit: usize) -> String {
+    let shown = if limit == 0 { slots.len() } else { slots.len().min(limit) };
+    let mut lines = vec![format!(
+        "{} {ty} slot(s) changed {from} -> {to} (showing {shown})",
+        slots.len()
+    )];
+    lines.extend(slots[..shown].iter().map(|o| format!("0x{:X}", base + *o as u64)));
+    lines.join("\n")
+}
+
+fn transition_slots_json(
+    slots: &[usize],
+    base: u64,
+    ty: &str,
+    from: &str,
+    to: &str,
+    limit: usize,
+) -> serde_json::Value {
+    let shown = if limit == 0 { slots.len() } else { slots.len().min(limit) };
+    serde_json::json!({
+        "type": ty,
+        "from": from,
+        "to": to,
+        "base": format!("{base:#x}"),
+        "count": slots.len(),
+        "addresses": slots[..shown].iter().map(|o| format!("{:#x}", base + *o as u64)).collect::<Vec<_>>(),
+    })
 }
 
 fn render_dumpdiff_table(
@@ -2471,6 +2535,16 @@ structures:
         assert_eq!(lines.len(), 2);
         assert!(lines[0].starts_with("1 changed region(s), 1 changed byte(s)"));
         assert_eq!(lines[1], "0x7FF0010  old: 00  new: ab");
+    }
+
+    #[test]
+    fn dumpdiff_slot_mode_lists_addresses_with_base_and_limit() {
+        let text = render_transition_slots(&[8, 16, 24], 0x7000, "u32", "15", "16", 2);
+        assert_eq!(text, "3 u32 slot(s) changed 15 -> 16 (showing 2)\n0x7008\n0x7010");
+        let v = transition_slots_json(&[8, 16, 24], 0x7000, "u32", "15", "16", 0);
+        assert_eq!(v["count"], 3);
+        assert_eq!(v["addresses"][2], "0x7018");
+        assert_eq!(v["base"], "0x7000");
     }
 
     #[test]

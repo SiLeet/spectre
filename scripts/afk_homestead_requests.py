@@ -15,12 +15,25 @@ Flow (bounded, every step verified on its frame, soft phase):
      orange 'Deliver' -> 'Request Completed' -> 'Tap to close' -> the slot's next NPC
      green 'Quick Select' (once per request) -> 'Insufficient resources' popup -> its X = short
      grey plate / 'No available items' = short
-  -> first short: ONE kitchen trip (leave the panel, Kitchen 'Cook' radial, cook every recipe
-     under a red 'Requests' banner while Stock < Request, MAX_COOKS, stamina floor), panel
+  -> first short: ONE kitchen trip (leave the panel, Kitchen 'Cook' radial, open up to MAX_DECKS
+     recipe decks - banner cards first - and Make while Stock < Request, MAX_COOKS, stamina floor), panel
      again; still short -> the next NPC slot (SLOTS); no slot left -> leave.
 Never tapped: 'Give Up' (refused by _tap), 'Auto', the x1/x3 steppers, Process Upgrade.
 No keyevent BACK (homestead menus open the exit-game dialog): panel, deck and list are left
 via their own back arrows. An unrecognised screen stops the run (rc 1) without a tap.
+
+T104b (Hermes live, shots-42848): 'Kitchen not found' after the KITCHEN_BASE tap. The tap only
+FOCUSED the Kitchen (brackets, camera unmoved, no labels) and drew two floating discs above its
+roof, Cook + Level Up - the unselected-building grammar of T103b's spire_sel; a SELECTED Kitchen
+always shows its labelled radial below the building (18 frames). Now: labelled Cook radial, else
+(up to KITCHEN_POLLS reads after the tap) the floating Cook disc (FLOAT_WIN pair, only rq_ck_k of
+87 world frames); a tap that merely selects the Kitchen gets its labelled radial once more; any
+other dialog is closed via its back plate. No camera-swipe search: the 'Kitchen' label shows only
+with its own radial (selected), so after a swipe there is nothing to anchor a tap on. Recipe
+cards are anchored on their OCR 'Select' (green = enabled); the first banner card of a fresh read
+is cooked while Stock < Request (the grid reflows when a banner clears); only when the list
+shows no banner at all, up to MAX_PROBES lowest-stock decks are opened (Make only if the deck
+reads Request > Stock). LIVE-open: the floating Cook disc tap, a non-requested recipe's deck.
 
 LIVE-open: the header 'n/5' (Hermes: 5 requests/day; post3 shows 4/5 after ONE delivery -
 not used, MAX_DELIVER bounds the run); slot 2 (never tapped live); a banner with several
@@ -63,7 +76,23 @@ CARD_XS = (741, 888, 1035, 1183)  # LIVE kz1/rqp: Kitchen card centres (Select b
 BANNER = (455, 482, 40)        # red 'Requests' banner band y + half width over a card
 BANNER_PX = 500                # LIVE: 779 over Toast on kz1; other cards 0..280 (rqp/rqq/kz1)
 RED = lambda r, g, b: r > 150 and r - max(g, b) > 70  # noqa: E731
-SELECT_Y = 662                 # LIVE kz1: green Select centre (740,661)
+SELECT_HALF = (30, 8)          # T104b: green px around an OCR 'Select' centre: LIVE 657..671 on every
+SELECT_PX = 300                # enabled card (rqp, kz1), 0 on the locked Dry Fruit cards (rqp)
+BANNER_ROW_Y = 700             # Select of a card under the banner row (kz1: y 662; next row 905)
+STOCK_DY = (10, 45)            # 'Stock: n' box centre this far above its card's 'Select' (LIVE 27)
+MAX_DECKS = 6                  # T104b: recipe decks opened per Kitchen trip
+MAX_PROBES = 3                 # T104b: decks of un-bannered cards, only when the list shows NO banner
+CARD_TOL = 40                  # opened-card match: OCR 'Select' centres jitter by 1 px between reads
+KITCHEN_POLLS = 3              # T104b: reads after the KITCHEN_BASE tap
+KITCHEN_LABEL_DX = 200         # T104b: 'Kitchen' label centre vs 'Cook' text: LIVE dx 102 (fin2..) / 164
+                               # (shots-63328/hu_go, Cook read at x 912)
+COOK_DX = 30                   # T104b: disc search +-x around the 'Cook' text (shots-63328/hu_go read it
+                               # at x 912 instead of 938; disc still (951,708))
+FLOAT_WIN = (790, 160, 1290, 380)  # T104b LIVE shots-42848/rq_ck_k: the KITCHEN_BASE tap only FOCUSED the
+FLOAT_DX = (55, 95)            # Kitchen (brackets, camera unmoved, no labels) with two floating discs
+FLOAT_DY = 8                   # above its roof, Cook (1075,298) + Level Up (1147,298) - the T103b
+                               # spire_sel grammar. Such a pair in FLOAT_WIN: 1 of 87 world frames
+                               # (only rq_ck_k). What the Cook disc tap opens is LIVE-unverified.
 MAKE = (960, 955)              # LIVE cook4/made2: mortar disc L 220, ring (900,955) L 105;
 MAKE_RING = (900, 955)         # cooking (made1): cog L 150, ring L 245
 KITCHEN_BACK = (470, 1000)     # Hermes live: deck -> list -> world
@@ -118,6 +147,29 @@ def requested_cards(img) -> list[int]:
     return [x for x in CARD_XS if len(hs._pixels(img, (x - dx, t, x + dx, b), RED)) >= BANNER_PX]
 
 
+def kitchen_cards(img, boxes) -> list[tuple[int, int, int | None, bool]]:
+    """T104b: (x, y, stock, under the banner) of every ENABLED recipe card, anchored on its OCR
+    'Select' (green button; locked cards are grey), banner cards first, then lowest stock."""
+    banner = requested_cards(img)
+    dx, dy = SELECT_HALF
+    out = []
+    for b in boxes:
+        if not b[4].lower().startswith('select'):
+            continue
+        cx, cy = hu._centre(b)
+        if len(hs._pixels(img, (cx - dx, cy - dy, cx + dx, cy + dy), GREEN)) < SELECT_PX:
+            continue
+        stock = None
+        for sb in boxes:
+            m = STOCK_RE.search(sb[4])
+            sx, sy = hu._centre(sb)
+            if m and abs(sx - cx) <= 35 and STOCK_DY[0] <= cy - sy <= STOCK_DY[1]:
+                stock = _num(m.group(1))
+        req = cy < BANNER_ROW_Y and any(abs(cx - x) <= BANNER[2] for x in banner)
+        out.append((cx, cy, stock, req))
+    return sorted(out, key=lambda c: (not c[3], 10 ** 9 if c[2] is None else c[2], c[1], c[0]))
+
+
 def make_ready(img) -> bool:
     return v.lum(v.avg(img, MAKE, r=3)) > 200 and v.lum(v.avg(img, MAKE_RING, r=3)) < 150
 
@@ -157,13 +209,32 @@ def cook_disc(img, boxes):
         if not b[4].lower().startswith('cook'):
             continue
         cx, cy = hu._centre(b)
-        if not any('kitchen' in lb[4].lower() and abs(hu._centre(lb)[0] - cx) <= hu.LABEL_DX
+        if not any('kitchen' in lb[4].lower() and abs(hu._centre(lb)[0] - cx) <= KITCHEN_LABEL_DX
                    and hu._centre(lb)[1] < cy for lb in boxes):
             continue
-        for y in (cy - hu.SMALL_DISC_DY, cy - hu.SMALL_DISC_DY + 4, cy - hu.SMALL_DISC_DY - 4):
-            for x in range(cx - 8, cx + 9, 4):
-                if hu.small_disc_at(img, (x, y)):
-                    return x, y
+        hits = [(x, y) for y in (cy - hu.SMALL_DISC_DY, cy - hu.SMALL_DISC_DY + 4, cy - hu.SMALL_DISC_DY - 4)
+                for x in range(cx - COOK_DX, cx + COOK_DX + 1, 3) if hu.small_disc_at(img, (x, y))]
+        if hits:
+            return hs._median(hits)
+    return None
+
+
+def floating_cook(img):
+    """T104b: the left (Cook) disc of a floating Cook / Level Up pair over a focused Kitchen, else None."""
+    l, t, r, b = FLOAT_WIN
+    groups = []
+    for y in range(t, b, 3):
+        for x in range(l, r, 3):
+            if hu.small_disc_at(img, (x, y)):
+                g = next((g for g in groups if abs(g[0][0] - x) <= 20 and abs(g[0][1] - y) <= 20), None)
+                if g:
+                    g.append((x, y))
+                else:
+                    groups.append([(x, y)])
+    centres = sorted(hs._median(g) for g in groups)
+    for a in centres:
+        if any(FLOAT_DX[0] <= c[0] - a[0] <= FLOAT_DX[1] and abs(c[1] - a[1]) <= FLOAT_DY for c in centres):
+            return a
     return None
 
 
@@ -261,7 +332,7 @@ def cook_recipe(tag: str, budget: int):
     while made < budget:
         stock, req = deck_counts(boxes)
         if stock is None or req is None:
-            print(f'    deck: Stock/Request unread ({stock}/{req}) - not cooking', flush=True)
+            print(f'    deck: no Stock/Request read ({stock}/{req}) - not requested, not cooking', flush=True)
             break
         if stock >= req:
             print(f'    stock {stock} covers the request {req}', flush=True)
@@ -289,8 +360,9 @@ def cook_recipe(tag: str, budget: int):
     return made
 
 
-def cook_trip(tag: str):
-    """World -> Kitchen -> cook the bannered recipes -> world. Makes done, None = stuck."""
+def open_kitchen(tag: str):
+    """World -> Kitchen recipe list: (img, boxes); 0 = Kitchen not found / not opened (soft);
+    None = stuck on an unknown screen."""
     name = f'{tag}_w'
     img = v.shot(name)
     if v.classify(img) != 'WORLD':
@@ -300,42 +372,85 @@ def cook_trip(tag: str):
     if disc is None:
         print(f'    no Kitchen radial - tapping the Kitchen at {KITCHEN_BASE}', flush=True)
         _tap(KITCHEN_BASE, 2.0)
-        name = f'{tag}_k'
-        img = v.shot(name)
-        if v.classify(img) != 'WORLD':
-            print('    ERROR: the Kitchen tap left the world view - stopping without a tap', flush=True)
-            return None
-        disc = cook_disc(img, v.ocr_boxes(name))
-        if disc is None:
+        for i in range(KITCHEN_POLLS):
+            if i:
+                time.sleep(POLL_WAIT)
+            name = f'{tag}_k' if i == 0 else f'{tag}_k_p{i}'
+            img = v.shot(name)
+            if v.classify(img) != 'WORLD':
+                print('    ERROR: the Kitchen tap left the world view - stopping without a tap', flush=True)
+                return None
+            disc = cook_disc(img, v.ocr_boxes(name))
+            if disc is None:
+                disc = floating_cook(img)
+                if disc:
+                    print(f'    Kitchen focused, not selected: floating Cook disc at {disc}', flush=True)
+            if disc:
+                break
+        else:
             print('    Kitchen not found (camera elsewhere?) - no cooking', flush=True)
             return 0
-    _tap(disc, 2.5)
-    img, boxes, ok = read(f'{tag}_list', is_kitchen)
-    if not ok:
-        print(f'    ERROR: Kitchen did not open after Cook at {disc}', flush=True)
-        return None
+    for attempt in range(2):
+        _tap(disc, 2.5)
+        img, boxes, ok = read(f'{tag}_list' if attempt == 0 else f'{tag}_list_s', is_kitchen)
+        if ok:
+            return img, boxes
+        disc = cook_disc(img, boxes) if attempt == 0 and v.classify(img) == 'WORLD' else None
+        if disc is None:
+            break
+        print(f'    the tap selected the Kitchen: its Cook radial at {disc}', flush=True)
+    if v.classify(img) == 'WORLD':
+        print('    Kitchen did not open (no Cook radial after the tap) - no cooking', flush=True)
+        return 0
+    if hu.back_plate(img):
+        print('    ERROR: not the Kitchen after the Cook tap - closing that dialog', flush=True)
+        return 0 if hu.close_dialog(img) else None
+    print(f'    ERROR: Kitchen did not open after Cook (OCR {[b[4] for b in boxes][:6]})', flush=True)
+    return None
+
+
+def cook_trip(tag: str):
+    """World -> Kitchen -> cook the bannered recipes -> world. Makes done, None = stuck."""
+    got = open_kitchen(tag)
+    if not isinstance(got, tuple):
+        return got
+    img, boxes = got
     st = stamina(boxes)
     low = st is not None and st < STAMINA_FLOOR
     if low:
         print(f'    stamina {st} < {STAMINA_FLOOR} - no cooking', flush=True)
-    made = 0
-    for k in range(len(CARD_XS)):
-        cards = requested_cards(img)
-        if low or not cards or made >= MAX_COOKS:
+    made = probes = 0
+    opened = []
+    bannered = bool(requested_cards(img))
+    for k in range(MAX_DECKS):
+        if low or made >= MAX_COOKS:
             break
-        print(f'    requested recipe at x={cards[0]} (stamina {st})', flush=True)
-        _tap((cards[0], SELECT_Y), 2.0)
+        cards = kitchen_cards(img, boxes)
+        if cards and cards[0][3]:
+            card = cards[0]                      # first banner card of a FRESH read (the grid reflows)
+        elif bannered:
+            break                                # every bannered recipe covered
+        else:                                    # no banner at all: probe lowest-stock decks
+            rest = [c for c in cards if not any(abs(c[0] - x) <= CARD_TOL and abs(c[1] - y) <= CARD_TOL
+                                                for x, y in opened)]
+            if not rest or probes >= MAX_PROBES:
+                break
+            card, probes = rest[0], probes + 1
+        x, y, stock, req = card
+        opened.append((x, y))
+        print(f'    recipe card at ({x},{y}), stock {stock}, banner {req} (stamina {st})', flush=True)
+        _tap((x, y), 2.0)
         n = cook_recipe(f'{tag}_deck{k}', MAX_COOKS - made)
         if n is None:
             return None
         _tap(KITCHEN_BACK, 2.0)
-        img, _, ok = read(f'{tag}_list{k}', is_kitchen)
+        img, boxes, ok = read(f'{tag}_list{k}', is_kitchen)
         if not ok:
             print('    ERROR: Kitchen list not back after the deck', flush=True)
             return None
         made += n
-        if n == 0:
-            break
+        if req and n == 0:
+            break                                # a bannered recipe that cannot be cooked: no loop
     _tap(KITCHEN_BACK, 2.0)
     if v.classify(v.shot(f'{tag}_world')) != 'WORLD':
         print('    ERROR: world not reached after the Kitchen back arrow', flush=True)

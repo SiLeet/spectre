@@ -54,6 +54,7 @@ import tempfile
 import time
 import types
 import unittest
+import zlib
 from pathlib import Path
 from unittest import mock
 
@@ -65,6 +66,11 @@ GOLDENS = OUT / 'goldens'
 # 268k distinct records / 58 MB); E2's corpus-wide differential run covers them (plan §E2)
 CALL_NAME = re.compile(r'^(classify\w*|is_\w+|find_\w+|read_\w+|parse_\w+)$')
 PARITY_PREFIX = 'scripts/tests/parity/'
+# E1 infra (rust-port-plan §E1): the test's direct calls into these are recorded with their I/O
+INFRA = {'afk_claim_vision': ('adb', '_env_tap_mode', 'parse_getevent', 'sendevent_cmds', 'sendevent_device',
+                              '_tap_cmd', '_press', 'tap', 'tap_retry', 'tap_result', '_run_seq', 'tap_seq',
+                              'key_seq', 'back', 'tap_hold', 'swipe', '_raw_to_image', 'shot'),
+         '_bot_lock': ('acquire', 'release', 'describe')}
 TAP_LIKE = {'tap', 'seq_step', 'key', 'hold', 'swipe'}
 OCR_NAMES = {'ocr_lines', 'ocr_boxes', 'ocr_region', 'ocr_text', 'ocr_png', 'ocr_scaled', '_ocr_crop'}
 CLOCK_NAMES = {'monotonic', 'time', 'perf_counter'}
@@ -189,6 +195,23 @@ class Proxy:
         return f'<parity proxy {object.__getattribute__(self, "_parity")[0]!r}>'
 
 
+class _Tee(io.TextIOBase):
+    """Writes through to the current sys.stdout (often a test's mock) and keeps a copy."""
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.captured = io.StringIO()
+
+    def write(self, text):
+        self.captured.write(text)
+        return self.inner.write(text)
+
+    def flush(self):
+        flush = getattr(self.inner, 'flush', None)
+        if flush:
+            flush()
+
+
 class _Pseudo:
     """Event sink for I/O that happens while no FakeDevice exists (dev: null record)."""
 
@@ -216,6 +239,8 @@ class Recorder:
         self.fv = None
         self.dev_makers: dict = {}
         self.blobs: dict[str, int] = {}
+        self.infra: dict[str, dict] = {}         # module -> {record json: record}
+        self.infra_depth = 0
 
     # -- module classification
     def is_bot(self, mod) -> bool:
@@ -298,10 +323,12 @@ class Recorder:
             return {'ev': 'shot', 'name': self.enc(arg(0, 'name'))}
         if name == 'tap':
             xy = arg(0, 'xy', (None, None))
-            return {'ev': 'tap', 'x': self.enc(xy[0]), 'y': self.enc(xy[1]),
-                    'mode': self.enc(arg(2, 'mode')), 'wait': self.enc(arg(1, 'wait', 1.0))}
+            # mode = the mode used (only known when the patched tap returns it), mode_arg = passed
+            return {'ev': 'tap', 'x': self.enc(xy[0]), 'y': self.enc(xy[1]), 'mode': None,
+                    'mode_arg': self.enc(arg(2, 'mode')), 'wait': self.enc(arg(1, 'wait', 1.0))}
         if name in ('tap_seq',):
-            return {'ev': 'seq', 'steps': self.enc(arg(0, 'steps', []))}
+            return {'ev': 'seq', 'steps': self.enc(arg(0, 'steps', [])),
+                    'tolerate': self.enc(arg(1, 'tolerate', True)), 'dry': self.enc(arg(2, 'dry', False))}
         if name == 'key':
             return {'ev': 'key', 'code': self.enc(arg(0, 'code')), 'w': self.enc(arg(1, 'wait'))}
         if name == 'tap_hold':
@@ -345,10 +372,14 @@ class Recorder:
             elif ev['ev'] == 'now':
                 ev['val'] = rec.enc(out, opaque)
             elif ev['ev'] == 'tap' and isinstance(out, str):
-                ev['mode'] = out
+                ev['mode'] = out                # the patched tap reports the mode it used
             elif ev['ev'] in ('adb', 'run') and isinstance(out, subprocess.CompletedProcess):
                 ev['rc'] = out.returncode
                 ev['out'] = rec.enc(out, opaque)
+                fh = k.get('stdout')
+                if hasattr(fh, 'name') and hasattr(fh, 'flush'):   # shot(): `screencap -p` into a file
+                    fh.flush()
+                    ev['stdout_file'] = rec.enc(Path(fh.name).read_bytes(), opaque)
             elif ev['ev'] not in ('sleep', 'key', 'hold', 'swipe', 'seq'):
                 ev['out'] = rec.enc(out, opaque)
             if opaque:
@@ -434,10 +465,11 @@ class Recorder:
 
         def mk(build):
             def make(d, a, k, r, exc):
-                for ev in build(d, a, k, r):
+                evs = build(d, a, k, r)
+                for ev in evs:
                     if exc is not None:
                         ev['raise'] = type(exc).__name__
-                    rec.event(d, ev)
+                return evs
             return make
 
         def arg(a, k, i, key, default=None):
@@ -451,9 +483,14 @@ class Recorder:
                                            'y': rec.enc(arg(a, k, 0, 'xy')[1]),
                                            'mode': r if isinstance(r, str) else
                                            rec.enc(arg(a, k, 2, 'mode') or fv.v.TAP_MODE),
+                                           'mode_arg': rec.enc(arg(a, k, 2, 'mode')),
                                            'wait': rec.enc(arg(a, k, 1, 'wait', 1.0))}]),
-            '_tap_seq': mk(lambda d, a, k, r: [{'ev': 'seq', 'steps': rec.enc(arg(a, k, 0, 'steps', []))}]),
-            '_key_seq': mk(lambda d, a, k, r: [{'ev': 'key', 'code': rec.enc(c), 'w': rec.enc(w)}
+            '_tap_seq': mk(lambda d, a, k, r: [{'ev': 'seq', 'steps': rec.enc(arg(a, k, 0, 'steps', [])),
+                                               'tolerate': rec.enc(arg(a, k, 1, 'tolerate', True)),
+                                               'dry': rec.enc(arg(a, k, 2, 'dry', False))}]),
+            '_key_seq': mk(lambda d, a, k, r: [{'ev': 'key', 'code': rec.enc(c), 'w': rec.enc(w),
+                                                'tolerate': rec.enc(arg(a, k, 1, 'tolerate', True)),
+                                                'dry': rec.enc(arg(a, k, 2, 'dry', False))}
                                                for c, w in arg(a, k, 0, 'steps', [])]),
             '_tap_hold': mk(lambda d, a, k, r: [{'ev': 'hold', 'x': rec.enc(arg(a, k, 0, 'xy')[0]),
                                                 'y': rec.enc(arg(a, k, 0, 'xy')[1]),
@@ -497,21 +534,30 @@ class Recorder:
             return
         make = self.dev_makers[name]
 
+        rec = self
         @functools.wraps(orig)
         def w(dev, *a, **k):
-            d = dev.__dict__.get('_parity_depth', 0)
-            dev.__dict__['_parity_depth'] = d + 1
+            # a device method called by the SAME device (super() chains, GatedDevice._tap_hold ->
+            # self._tap) is the fake's internals, not bot behaviour: only the outer call records.
+            # Device I/O reached through bot code still records (real_seq: the fake's _tap_seq ->
+            # the real tap_seq -> v.adb = dev._no_adb; that caller frame is afk_claim_vision).
+            caller = sys._getframe(1)
+            internal = caller.f_locals.get('self') is dev or caller.f_locals.get('dev') is dev
+            d = 1 if internal else 0
+            events = dev.__dict__.setdefault('_parity_events', [])
+            at = len(events)                    # the call's event goes BEFORE what happens inside
             r, exc = None, None
             try:
                 r = orig(dev, *a, **k)
                 return r
             except BaseException as e:
-                exc = e
-                raise
+                exc = e                         # incl. AssertionError: a fired test guard is part
+                raise                           # of the stream (`raise` field), replayed as such
             finally:
-                dev.__dict__['_parity_depth'] = d
-                if d == 0 and not (exc is not None and isinstance(exc, AssertionError)):
-                    make(dev, a, k, r, exc)
+                if d == 0:
+                    evs = make(dev, a, k, r, exc)
+                    events[at:at] = evs
+                    rec.dev_events += len(evs)
         w.__parity_dev__ = True
         setattr(cls, name, w)
 
@@ -596,11 +642,132 @@ class Recorder:
             n += 1
         return n
 
+    # -- infra calls (E1): the test's direct calls into the adb/tap/screencap/lock layer
+    def enc_infra(self, x):
+        if self.Image is not None and isinstance(x, self.Image.Image):
+            rgb = x if x.mode == 'RGB' else x.convert('RGB')
+            return {'img': self.frames.key(x), 'w': x.size[0], 'h': x.size[1], 'mode': x.mode,
+                    'crc32': zlib.crc32(rgb.tobytes())}
+        if isinstance(x, (list, tuple)):
+            return [self.enc_infra(i) for i in x]
+        if isinstance(x, dict) and all(isinstance(k, str) for k in x):
+            return {k: self.enc_infra(v) for k, v in x.items()}
+        return self.enc(x)
+
+    def infra_state(self, mod, name: str, a: tuple, k: dict) -> dict:
+        if mod.__name__ == '_bot_lock':
+            lock = a[0] if a else k.get('lock')
+            lock = Path(lock) if lock is not None else mod._default_lock()
+            env = a[1] if len(a) > 1 else k.get('env')
+            env = os.environ if env is None else env
+            now = a[3] if len(a) > 3 else k.get('now')
+            st = {'lock': self.enc(Path(lock)), 'env': {e: env.get(e) for e in
+                                                         ('AFK_BOT_LOCK_HELD', 'AFK_LOCK_STALE')}}
+            try:
+                text = Path(lock).read_text(encoding='ascii', errors='replace')
+                age = (time.time() if now is None else now) - Path(lock).stat().st_mtime
+                st.update(exists=True, text='<PID>' if text.strip() == str(os.getpid()) else text,
+                          age=int(age))
+            except FileNotFoundError:
+                st['exists'] = False
+            return st
+        st = {'TAP_MODE': mod.TAP_MODE, 'TAP_DEAD': sorted(mod._TAP_DEAD),
+              'SENDEVENT': self.enc(mod._SENDEVENT), 'env': {'AFK_TAP_MODE': os.environ.get('AFK_TAP_MODE')},
+              # patched -> every host sleep is an event; unpatched -> Python really slept, none recorded
+              'sleep_patched': isinstance(time.sleep, Proxy)}
+        if name == 'shot':                      # the persisted TMP/<name>.png (OCR reads it)
+            nm = a[0] if a else k.get('name')
+            f = Path(mod.TMP) / f'{nm}.png'
+            try:
+                data = f.read_bytes()
+                st['file'] = {'exists': True, 'len': len(data), 'sha16': hashlib.sha256(data).hexdigest()[:16]}
+            except OSError:
+                st['file'] = {'exists': False}
+        return st
+
+    def wrap_infra(self, mod, fn):
+        rec = self
+        name = fn.__name__.removeprefix('_real_') if fn.__name__.startswith('_real_') else fn.__name__
+
+        @functools.wraps(fn)
+        def w(*a, **k):
+            if rec.infra_depth:
+                return fn(*a, **k)
+            sink = rec.current()
+            evs = sink.__dict__.setdefault('_parity_events', [])
+            n0 = len(evs)
+            before = rec.infra_state(mod, name, a, k)
+            rec.infra_depth += 1
+            out, exc = None, None
+            tee = _Tee(sys.stdout)              # the lines the call prints (informative diff)
+            sys.stdout = tee
+            try:
+                out = fn(*a, **k)
+                return out
+            except BaseException as e:
+                exc = e
+                raise
+            finally:
+                if sys.stdout is tee:
+                    sys.stdout = tee.inner
+                rec.infra_depth -= 1
+                r = {'fn': f'{mod.__name__}.{name}', 'args': rec.enc_infra(list(a)),
+                     'kwargs': rec.enc_infra(k), 'before': before, 'events': evs[n0:],
+                     'after': rec.infra_state(mod, name, a, k), 'stdout': mask_clock(tee.captured.getvalue())}
+                if exc is not None:
+                    r['raise'] = type(exc).__name__
+                else:
+                    o = rec.enc_infra(out)
+                    if mod.__name__ == '_bot_lock' and isinstance(o, str):
+                        o = o.replace(f'pid {os.getpid()},', 'pid <PID>,')
+                    r['out'] = o
+                key = json.dumps(r, sort_keys=True, default=_default)
+                shard = rec.infra.setdefault(mod.__name__, {})
+                if key in shard:
+                    shard[key]['n'] += 1
+                    if rec.test_id not in shard[key]['tests']:   # identical call from another test:
+                        shard[key]['tests'].append(rec.test_id)  # keep every test it specifies
+                        t = rec.per_test.setdefault(rec.test_id, {})
+                        t['infra'] = t.get('infra', 0) + 1
+                else:
+                    shard[key] = dict(r, test=rec.test_id, tests=[rec.test_id], n=1)
+                    t = rec.per_test.setdefault(rec.test_id, {})
+                    t['infra'] = t.get('infra', 0) + 1
+        w.__parity_infra__ = True
+        return w
+
+    def install_infra(self) -> int:
+        wrapped = {}
+        for mod in self.bot_modules():
+            for name in INFRA.get(mod.__name__, ()):
+                fn = vars(mod).get(name)
+                # only the module's own functions: fake_vision's lock-stub lambdas stay unwrapped
+                if (isinstance(fn, types.FunctionType) and fn.__module__ == mod.__name__
+                        and id(fn) not in wrapped):
+                    wrapped[id(fn)] = self.wrap_infra(mod, fn)
+        # fake_vision stubs _bot_lock.acquire/release/describe at import and keeps the originals
+        # as _real_*; test_bot_lock binds those at import -> wrap them so lock semantics are recorded
+        lock_mod = sys.modules.get('_bot_lock')
+        for real in ('_real_acquire', '_real_release', '_real_describe'):
+            fn = getattr(lock_mod, real, None)
+            if isinstance(fn, types.FunctionType) and id(fn) not in wrapped:
+                wrapped[id(fn)] = self.wrap_infra(lock_mod, fn)
+        n = 0
+        for mod in list(sys.modules.values()) + self.bot_modules():   # incl. `from x import f`
+            f = getattr(mod, '__file__', None)
+            if not f or not Path(f).resolve().is_relative_to(self.scripts):
+                continue
+            for attr, val in list(vars(mod).items()):
+                if id(val) in wrapped:
+                    setattr(mod, attr, wrapped[id(val)])
+                    n += 1
+        return n
+
     # -- per test
     def start(self, test_id: str) -> None:
         self.test_id = test_id
         self.devices, self.pseudo, self.overrides = [], None, []
-        self.depth = 0
+        self.depth = self.infra_depth = 0
         self.frames.memo.clear()                # bounded memory: keys live for one test
 
     def stop(self, outcome: str) -> None:
@@ -807,7 +974,8 @@ def export(repo: Path, out: Path, pattern: str, allow_dirty: bool) -> int:
     t0 = time.time()
     suite = unittest.defaultTestLoader.discover(str(repo / 'scripts' / 'tests'), pattern=pattern)
     installed = {'devices': rec.install_devices(), 'calls': rec.install_calls(),
-                 'entries': rec.install_entries(), 'bot_modules': len(rec.bot_modules())}
+                 'entries': rec.install_entries(), 'infra': rec.install_infra(),
+                 'bot_modules': len(rec.bot_modules())}
     rec.install_patch_hook()
     _Result.rec = rec
     guard_spectre(repo, blocked, lambda: rec.test_id)
@@ -822,8 +990,12 @@ def export(repo: Path, out: Path, pattern: str, allow_dirty: bool) -> int:
     for mod, shard in sorted(rec.calls.items()):
         _jsonl(stage / 'calls' / f'{mod}.jsonl', head, sorted(shard.values(),
                key=lambda r: json.dumps([r['fn'], r['args'], r['kwargs']], sort_keys=True)))
+    for mod, shard in sorted(rec.infra.items()):
+        _jsonl(stage / 'infra' / f'{mod}.jsonl', head, sorted(
+            shard.values(), key=lambda r: (r['fn'], json.dumps(r, sort_keys=True, default=_default))))
     flow_rows = [x for r in rec.flows.values() for x in r]
-    summary = {'header': head, 'suite': {'tests_run': res.testsRun, 'failures': len(res.failures),
+    summary = {'infra_records': {m: len(s) for m, s in sorted(rec.infra.items())},
+               'header': head, 'suite': {'tests_run': res.testsRun, 'failures': len(res.failures),
                'errors': len(res.errors), 'skipped': len(res.skipped)},
                'installed': installed, 'counts': rec.counts,
                'flow_records': len(flow_rows), 'flow_records_without_device': sum(

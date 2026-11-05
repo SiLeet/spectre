@@ -1,0 +1,16 @@
+# E1 android-infra (rust-port-plan §E1, §4.4): which golden records the E1 parity run owns.
+# Read by spectre-afk/tests/parity_e1.rs (flat key = ["..."] lists only).
+#
+# Every module below must contribute >= 1 infra record and every record must replay
+# identically; under SPECTRE_PARITY=1 also 0 unsupported, 0 skips, 0 STALE.
+
+stage = "E1"
+
+# infra shards in parity/goldens/infra/ (any other shard there fails the run)
+shards = ["afk_claim_vision", "_bot_lock"]
+
+# Python test modules whose direct infra calls are E1 specs
+modules = ["test_tap_mode", "test_tap_seq", "test_input_robustness", "test_fast_shots", "test_review_fixes", "test_zombie_recovery", "test_bot_lock"]
+
+# not E1 (reason in the string): never replayed here
+out_of_scope = ["test_adb_bench: adb-bench.py is a Python dev tool with its own adb calls (plan §10), no afk_claim_vision infra records"]

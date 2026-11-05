@@ -1,4 +1,4 @@
-{"header": {"git_head": "222be8c986bf77a83d265e117b18c48b102f35a9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
+{"header": {"git_head": "f85b3a9ab2ef29ea701955728d26693264716ad9", "ocr_ps1_sha": "3c592d504cec2781", "pillow": "12.2.0", "py_tree": "03cc13204eef9bbf", "python": "3.14.3", "v": 1, "windows_build": "10.0.26300"}}
 {"args": [{"img": "0a7d60ed5042232e"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": [1084, 705], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
 {"args": [{"img": "23fa84e5deedd065"}, [[981, 735, 125, 43, "Cha//enge/"]]], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 12, "out": [1043, 756], "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
 {"args": [{"img": "63a9d1bb1ca08b0a"}, []], "fn": "afk_legend_trial.find_challenge", "kwargs": {}, "n": 1, "out": null, "test": "test_legend_trial.Detectors.test_challenge_ribbon"}
